@@ -14,17 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Bedtime
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Lyrics
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Repeat
-import androidx.compose.material.icons.rounded.RepeatOne
-import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,12 +29,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.PlayerActionKey
 import com.ljyh.mei.playback.PlayMode
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.model.PlayerAction
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import com.ljyh.mei.utils.rememberPreference
@@ -62,6 +53,7 @@ fun PlayerActionToolbar(
     onPlaylistClick: () -> Unit,
     onSleepTimerClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
+    onDownloadClick: () -> Unit,
     onMoreClick: () -> Unit
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -120,17 +112,13 @@ fun PlayerActionToolbar(
                     ShadowedIconButton(
                         onClick = { playerConnection.switchPlayMode() }
                     ) {
-                        val icon = when (playMode) {
-                            PlayMode.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne // 单曲循环
-                            PlayMode.REPEAT_MODE_ALL -> Icons.Rounded.Repeat    // 列表循环
-                            PlayMode.SHUFFLE_MODE_ALL -> Icons.Rounded.Shuffle  // 随机播放
+                        val systemName = when (playMode) {
+                            PlayMode.REPEAT_MODE_ONE -> "repeat.1"
+                            PlayMode.REPEAT_MODE_ALL -> "repeat"
+                            PlayMode.SHUFFLE_MODE_ALL -> "shuffle"
                         }
-                        AnimatedContent(targetState = icon, label = "PlayModeIcon") { targetIcon ->
-                            Icon(
-                                imageVector = targetIcon,
-                                contentDescription = "播放模式",
-                                tint = Color.White
-                            )
+                        AnimatedContent(targetState = systemName, label = "PlayModeIcon") { target ->
+                            SfIcon(target, stringResource(com.ljyh.mei.R.string.player_action_play_mode), tint = Color.White)
                         }
                     }
                 }
@@ -139,11 +127,7 @@ fun PlayerActionToolbar(
                     ShadowedIconButton(
                         onClick = onPlaylistClick
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
-                            contentDescription = "播放队列",
-                            tint = Color.White
-                        )
+                        SfIcon(action.systemName, stringResource(action.labelRes), tint = Color.White)
                     }
                 }
 
@@ -151,11 +135,7 @@ fun PlayerActionToolbar(
                     ShadowedIconButton(
                         onClick = onLyricClick
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Lyrics,
-                            contentDescription = "Lyrics",
-                            tint = Color.White
-                        )
+                        SfIcon(action.systemName, stringResource(action.labelRes), tint = Color.White)
                     }
 
                 }
@@ -190,11 +170,7 @@ fun PlayerActionToolbar(
                                 ShadowedIconButton(
                                     onClick = onSleepTimerClick
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Bedtime,
-                                        contentDescription = "睡眠定时器",
-                                        tint = Color.White
-                                    )
+                                    SfIcon(action.systemName, stringResource(action.labelRes), tint = Color.White)
                                 }
                             }
                         }
@@ -205,25 +181,15 @@ fun PlayerActionToolbar(
                     ShadowedIconButton(
                         onClick = onAddToPlaylistClick
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = "添加到歌单",
-                            tint = Color.White
-                        )
+                        SfIcon(action.systemName, stringResource(action.labelRes), tint = Color.White)
                     }
                 }
 
                 PlayerAction.DOWNLOAD -> {
                     ShadowedIconButton(
-                        onClick = {
-                            Toast.makeText(context, "暂未实现", Toast.LENGTH_SHORT).show()
-                        }
+                        onClick = onDownloadClick,
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Download,
-                            contentDescription = "下载",
-                            tint = Color.White
-                        )
+                        SfIcon(action.systemName, stringResource(action.labelRes), tint = Color.White)
                     }
                 }
 
@@ -231,11 +197,7 @@ fun PlayerActionToolbar(
                     ShadowedIconButton(
                         onClick = onMoreClick
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.MoreVert,
-                            contentDescription = "更多功能",
-                            tint = Color.White
-                        )
+                        SfIcon(action.systemName, stringResource(action.labelRes), tint = Color.White)
                     }
                 }
             }
@@ -255,7 +217,7 @@ fun ShadowedIconButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier
-            .size(48.dp)
+            .size(48.dp),
     ) {
         Box(
             modifier = Modifier

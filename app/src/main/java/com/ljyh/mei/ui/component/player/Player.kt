@@ -5,8 +5,11 @@ import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.PlayerStyle
@@ -22,8 +25,10 @@ import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.glass.LocalGlassBackdrop
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 
 @OptIn(UnstableApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
@@ -31,12 +36,16 @@ import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 fun BottomSheetPlayer(
     state: BottomSheetState,
     modifier: Modifier = Modifier,
+    compactMiniPlayerProgress: Float,
+    miniPlayerVerticalOffset: Dp,
     playerViewModel: PlayerViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val navController = LocalNavController.current
     val device = rememberDeviceInfo()
+    val collapsedBackdrop = LocalGlassBackdrop.current
+    val playerBackdrop = rememberLayerBackdrop()
 
     // 获取播放器样式
     val playerStyle by rememberEnumPreference(PlayerStyleKey, defaultValue = PlayerStyle.AppleMusic)
@@ -63,14 +72,22 @@ fun BottomSheetPlayer(
                     state = state,
                     modifier = modifier,
                     stateContainer = stateContainer,
-                    overlayHandler = overlayHandler
+                    overlayHandler = overlayHandler,
+                    collapsedBackdrop = collapsedBackdrop,
+                    playerBackdrop = playerBackdrop,
+                    compactMiniPlayerProgress = compactMiniPlayerProgress,
+                    miniPlayerVerticalOffset = miniPlayerVerticalOffset,
                 )
             }else{
                 AppleMusicPlayer(
                     state = state,
                     modifier = modifier,
                     stateContainer = stateContainer,
-                    overlayHandler = overlayHandler
+                    overlayHandler = overlayHandler,
+                    collapsedBackdrop = collapsedBackdrop,
+                    playerBackdrop = playerBackdrop,
+                    compactMiniPlayerProgress = compactMiniPlayerProgress,
+                    miniPlayerVerticalOffset = miniPlayerVerticalOffset,
                 )
             }
 
@@ -80,15 +97,21 @@ fun BottomSheetPlayer(
                 state = state,
                 modifier = modifier,
                 stateContainer = stateContainer,
-                overlayHandler = overlayHandler
+                overlayHandler = overlayHandler,
+                collapsedBackdrop = collapsedBackdrop,
+                playerBackdrop = playerBackdrop,
+                compactMiniPlayerProgress = compactMiniPlayerProgress,
+                miniPlayerVerticalOffset = miniPlayerVerticalOffset,
             )
         }
     }
 
     // 公共的弹窗处理层
-    CommonOverlayHandler(
-        overlayHandler = overlayHandler,
-        stateContainer = stateContainer,
-        sheetState = state
-    )
+    CompositionLocalProvider(LocalGlassBackdrop provides playerBackdrop) {
+        CommonOverlayHandler(
+            overlayHandler = overlayHandler,
+            stateContainer = stateContainer,
+            sheetState = state,
+        )
+    }
 }

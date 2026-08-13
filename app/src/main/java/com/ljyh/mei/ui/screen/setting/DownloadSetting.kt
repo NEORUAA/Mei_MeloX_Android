@@ -1,36 +1,45 @@
 package com.ljyh.mei.ui.screen.setting
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Folder
-import androidx.compose.material.icons.rounded.HighQuality
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.ljyh.mei.R
+import com.ljyh.mei.constants.AutoCacheEnabledKey
+import com.ljyh.mei.constants.AutoCachePlaybackThresholdKey
+import com.ljyh.mei.constants.AutoCacheQualityKey
 import com.ljyh.mei.constants.DownloadPathKey
 import com.ljyh.mei.constants.DownloadQuality
 import com.ljyh.mei.constants.DownloadQualityKey
-import com.ljyh.mei.ui.component.EditTextPreference
-import com.ljyh.mei.ui.component.EnumListPreference
-import com.ljyh.mei.ui.component.IconButton
-import com.ljyh.mei.ui.component.PreferenceGroupTitle
+import com.ljyh.mei.ui.glass.GlassCard
+import com.ljyh.mei.ui.glass.GlassEmphasis
+import com.ljyh.mei.ui.glass.GlassIconButton
+import com.ljyh.mei.ui.glass.GlassSegmentedControl
+import com.ljyh.mei.ui.glass.GlassSurface
+import com.ljyh.mei.ui.glass.GlassToggle
+import com.ljyh.mei.ui.glass.IosStepper
+import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.SfIcon
+import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
-import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.DownloadManager
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
@@ -38,64 +47,113 @@ import com.ljyh.mei.utils.rememberPreference
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadSetting(
-    scrollBehavior: TopAppBarScrollBehavior
+    @Suppress("UNUSED_PARAMETER") scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val navController = LocalNavController.current
-
-    val defaultPath = DownloadManager.getDefaultDownloadPath()
-
+    val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val (downloadPath, onDownloadPathChange) = rememberPreference(
-        key = DownloadPathKey,
-        defaultValue = defaultPath
+        DownloadPathKey,
+        DownloadManager.getDefaultDownloadPath(),
     )
-
     val (downloadQuality, onDownloadQualityChange) = rememberEnumPreference(
-        key = DownloadQualityKey,
-        defaultValue = DownloadQuality.EXHIGH,
+        DownloadQualityKey,
+        DownloadQuality.EXHIGH,
+    )
+    val (automaticCache, onAutomaticCacheChange) = rememberPreference(AutoCacheEnabledKey, false)
+    val (threshold, onThresholdChange) = rememberPreference(AutoCachePlaybackThresholdKey, 5)
+    val (automaticQuality, onAutomaticQualityChange) = rememberEnumPreference(
+        AutoCacheQualityKey,
+        DownloadQuality.EXHIGH,
     )
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("下载设置") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
+    IosPinnedListPage(
+        title = stringResource(R.string.download_settings),
+        onNavigateBack = navController::navigateUp,
+        bottomPadding = insets.calculateBottomPadding(),
+    ) {
+        item {
+            SettingsGroup(stringResource(R.string.download_storage)) {
+                GlassSurface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            SfIcon("folder", null, size = 19.dp)
+                            Text(stringResource(R.string.download_save_location), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 10.dp))
+                        }
+                        BasicTextField(
+                            value = downloadPath, onValueChange = onDownloadPathChange,
+                            modifier = Modifier.fillMaxWidth(), singleLine = true,
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         )
                     }
-                },
-                scrollBehavior = scrollBehavior
-            )
+                }
+            }
         }
-    ) { paddingValues ->
-        Column(
-            Modifier
-                .padding(paddingValues)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .verticalScroll(rememberScrollState())
+        item {
+            SettingsGroup(stringResource(R.string.download_quality)) {
+                DownloadQuality.entries.forEach { quality ->
+                    DownloadQualityCard(quality = quality, selected = quality == downloadQuality, onClick = { onDownloadQualityChange(quality) })
+                }
+            }
+        }
+        item {
+            SettingsGroup(stringResource(R.string.automatic_cache)) {
+                GlassCard(Modifier.fillMaxWidth(), onClick = { onAutomaticCacheChange(!automaticCache) }) {
+                    Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        SfIcon("arrow.down.circle", null)
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(R.string.automatic_cache_by_play_count), fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.automatic_cache_description), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        GlassToggle(automaticCache, onAutomaticCacheChange)
+                    }
+                }
+            }
+        }
+        if (automaticCache) {
+            item {
+                SettingsGroup(stringResource(R.string.automatic_cache_threshold)) {
+                    GlassCard(Modifier.fillMaxWidth()) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(R.string.automatic_cache_count, threshold), modifier = Modifier.weight(1f))
+                            IosStepper(value = threshold, onValueChange = onThresholdChange, range = 1..100)
+                        }
+                    }
+                }
+            }
+            item {
+                SettingsGroup(stringResource(R.string.automatic_cache_quality)) {
+                    DownloadQuality.entries.forEach { quality ->
+                        DownloadQualityCard(quality = quality, selected = quality == automaticQuality, onClick = { onAutomaticQualityChange(quality) })
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DownloadQualityCard(
+    quality: DownloadQuality,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            PreferenceGroupTitle(title = "DOWNLOAD")
-
-            EditTextPreference(
-                title = { Text("保存位置") },
-                icon = { Icon(Icons.Rounded.Folder, null) },
-                value = downloadPath,
-                onValueChange = onDownloadPathChange
-            )
-
-            EnumListPreference(
-                title = { Text("下载音质") },
-                icon = { Icon(Icons.Rounded.HighQuality, null) },
-                selectedValue = downloadQuality,
-                onValueSelected = onDownloadQualityChange,
-                valueText = { "${it.label} - ${it.description}" }
-            )
+            SfIcon(if (selected) "checkmark.circle.fill" else "circle", null)
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(quality.label, fontWeight = FontWeight.SemiBold)
+                Text(
+                    quality.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

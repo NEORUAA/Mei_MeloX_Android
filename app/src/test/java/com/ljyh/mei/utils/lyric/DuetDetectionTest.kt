@@ -1,26 +1,23 @@
 package com.ljyh.mei.utils.lyric
 
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import org.junit.Assert.*
 import org.junit.Test
-import java.io.File
 
 /**
- * 本地对唱检测集成测试 — 使用 temp/ 中完整的真实歌词 JSON 数据
+ * 本地对唱检测集成测试 — 使用自包含的两类对唱歌词样本
  *
  * 直接内联算法逻辑，不依赖 AiLyricProcessor 实例。
  */
 class DuetDetectionTest {
 
-    private val gson = Gson()
+    private val prefixLrc = """[00:01.000]【Alice】first line
+[00:02.000]【Bob】second line
+[00:03.000]【Alice】third line"""
 
-    private fun loadLrc(filename: String): String {
-        val projectRoot = File(System.getProperty("user.dir")).parentFile
-        val json = File(projectRoot, "temp/$filename").readText()
-        val obj = gson.fromJson(json, JsonObject::class.java)
-        return obj.getAsJsonObject("lrc").get("lyric").asString
-    }
+    private val standaloneLrc = """[00:01.000]Alice:
+[00:01.500]first line
+[00:02.000]Bob:
+[00:02.500]second line"""
 
     // ==================== 本地对唱检测算法（镜像 AiLyricProcessor） ====================
 
@@ -123,13 +120,13 @@ class DuetDetectionTest {
 
     @Test
     fun test1_isDuetLikely() {
-        val lrc = loadLrc("test_lyric_1.json")
+        val lrc = prefixLrc
         assertTrue("【Name】嵌入式应检测对唱", isDuetLikely(lrc))
     }
 
     @Test
     fun test1_segments_ge2() {
-        val lrc = loadLrc("test_lyric_1.json")
+        val lrc = prefixLrc
         val duet = detectDuetLocally(lrc)
         assertNotNull("应检测到 segment", duet)
         assertTrue("应≥2, 实际=${duet?.size}", (duet?.size ?: 0) >= 2)
@@ -137,7 +134,7 @@ class DuetDetectionTest {
 
     @Test
     fun test1_segments_print() {
-        val lrc = loadLrc("test_lyric_1.json")
+        val lrc = prefixLrc
         val duet = detectDuetLocally(lrc)!!
         println("\n=== test_1 segments ===")
         for (seg in duet) println("  ${seg.role}: [${seg.startLine}, ${seg.endLine})")
@@ -150,13 +147,13 @@ class DuetDetectionTest {
 
     @Test
     fun test2_isDuetLikely() {
-        val lrc = loadLrc("test_lyric_2.json")
+        val lrc = standaloneLrc
         assertTrue("Name: 独立行应检测对唱", isDuetLikely(lrc))
     }
 
     @Test
     fun test2_segments_ge2() {
-        val lrc = loadLrc("test_lyric_2.json")
+        val lrc = standaloneLrc
         val duet = detectDuetLocally(lrc)
         assertNotNull("应检测到 segment", duet)
         assertTrue("应≥2, 实际=${duet?.size}", (duet?.size ?: 0) >= 2)
@@ -164,7 +161,7 @@ class DuetDetectionTest {
 
     @Test
     fun test2_segments_print() {
-        val lrc = loadLrc("test_lyric_2.json")
+        val lrc = standaloneLrc
         val duet = detectDuetLocally(lrc)!!
         println("\n=== test_2 segments ===")
         for (seg in duet) println("  ${seg.role}: [${seg.startLine}, ${seg.endLine})")

@@ -34,6 +34,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +42,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,6 +55,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import com.ljyh.mei.R
 import com.ljyh.mei.constants.PlaylistCardSize
 import com.ljyh.mei.constants.PlaylistCardSizeTablet
 import com.ljyh.mei.constants.RecommendCardHeight
@@ -67,12 +72,14 @@ import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.home.CardExtInfo
 import com.ljyh.mei.ui.component.home.PlaylistCard
 import com.ljyh.mei.ui.component.home.RecommendCard
+import com.ljyh.mei.ui.component.GlobalProfileAvatarButton
 import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.component.playlist.PlayingImageView
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.glass.IosPinnedPage
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.DateUtils.getGreeting
 import com.ljyh.mei.utils.positionComparator
@@ -114,8 +121,21 @@ fun HomeScreen(
     }
 
     val systemBarsPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    val collapseDistancePx = with(LocalDensity.current) { 56.dp.toPx() }
+    val collapseProgress by remember(listState) {
+        derivedStateOf {
+            if (listState.firstVisibleItemIndex > 0) 1f
+            else (listState.firstVisibleItemScrollOffset / collapseDistancePx).coerceIn(0f, 1f)
+        }
+    }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    IosPinnedPage(
+        title = stringResource(R.string.app_tab_home),
+        bottomPadding = systemBarsPadding.calculateBottomPadding(),
+        collapseProgress = collapseProgress,
+        backgroundColor = Color.White,
+        actions = { GlobalProfileAvatarButton() },
+    ) { pinnedPadding ->
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { viewModel.homePageResourceShow(true) },
@@ -132,11 +152,18 @@ fun HomeScreen(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
-                            top = systemBarsPadding.calculateTopPadding() + 16.dp,
+                            top = pinnedPadding.calculateTopPadding(),
                             bottom = systemBarsPadding.calculateBottomPadding() + 16.dp
                         ),
                         verticalArrangement = Arrangement.spacedBy(24.dp) // 块与块之间的间距
                     ) {
+                        item(key = "ios-large-title") {
+                            Text(
+                                stringResource(R.string.app_tab_home),
+                                style = MaterialTheme.typography.headlineLarge,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                        }
                         items(
                             items = sortedBlocks,
                             key = { it.positionCode }

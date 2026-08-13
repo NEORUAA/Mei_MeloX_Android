@@ -8,7 +8,7 @@
 
 ![Android](https://img.shields.io/badge/Platform-Android-green?logo=android)
 ![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-blue)
-![License](https://img.shields.io/badge/License-Apache%202.0-orange)
+![License](https://img.shields.io/badge/License-GPLv3-orange)
 ![Status](https://img.shields.io/badge/Development-In%20Progress-yellow)
 
 </div>
@@ -100,6 +100,24 @@ cookie: MUSIC_U=xxxxx;
 * 提供高质量歌词库 [amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db)
 * 提供精美歌词组件 [accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui.git)
 * 提供qrc解密算法 [qrcDecrypt](https://github.com/TLittlePrince/qrcDecrypt)
+
+## 许可证与第三方声明
+
+Mei 主体代码以 [GNU General Public License v3](LICENSE) 发布。AndroidLiquidGlass 的
+Backdrop 依赖以 Apache License 2.0 发布；MeloX 参考项目以 GPLv3 发布；BeatNet 模型
+以 CC BY 4.0 发布；音频指纹运行时以 MIT 发布；PV Tool 衍生内容受其独立的非商业许可
+约束。完整来源、署名和再分发要求见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES)。
+
+液态玻璃交互实现直接复用了本地 `skill-liquid-glass` 的 Backdrop 2.0 模式，包括
+`layerBackdrop` 采样层、`drawBackdrop`、三层底栏指示器、弹性拖拽、Slider、Toggle、
+Sheet、Dialog 与 Popup Menu；普通内容列表保持 iOS grouped surface，以避免递归采样和
+过多 GPU backdrop 节点。
+
+### SF Pro 图标字体
+
+本项目为个人自用项目，`debug` 与 `release` 均直接打包 `res/font/sf_pro.ttf`，用于按
+MeloX 的 SF Symbols 名称显示一致的图标。该字体不得从本项目拆出或另行分发；如需公开
+发布构建产物，应先重新核对并遵守 Apple 的字体许可条款。
 
 
 

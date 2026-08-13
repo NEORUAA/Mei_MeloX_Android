@@ -6,12 +6,15 @@ import com.ljyh.mei.data.model.AlbumPhoto
 import com.ljyh.mei.data.model.UserAccount
 import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserPlaylist
+import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.toMiniPlaylistDetail
 import com.ljyh.mei.data.model.room.AlbumEntity
 import com.ljyh.mei.data.model.room.ArtistEntity
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.weapi.UserSubcount
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.UserRepository
+import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.di.repository.AlbumsRepository
 import com.ljyh.mei.di.repository.LocalPlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +30,8 @@ import javax.inject.Inject
 class LibraryViewModel @Inject constructor(
     private val repository: UserRepository,
     private val localPlaylistRepository: LocalPlaylistRepository,
-    private val albumsRepository: AlbumsRepository
+    private val albumsRepository: AlbumsRepository,
+    private val playlistRepository: PlaylistRepository,
 ):ViewModel() {
     private val _account = MutableStateFlow<Resource<UserAccount>>(Resource.Loading)
     val account: StateFlow<Resource<UserAccount>> = _account
@@ -43,6 +47,9 @@ class LibraryViewModel @Inject constructor(
 
     private val _userSubcount = MutableStateFlow<Resource<UserSubcount>>(Resource.Loading)
     val userSubcount: StateFlow<Resource<UserSubcount>> = _userSubcount
+
+    private val _likedSongs = MutableStateFlow<List<MediaMetadata>>(emptyList())
+    val likedSongs: StateFlow<List<MediaMetadata>> = _likedSongs
 
     val localPlaylists: StateFlow<List<Playlist>> = localPlaylistRepository.getAllPlaylist()
         .stateIn(
@@ -105,6 +112,15 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch {
             _userSubcount.value= Resource.Loading
             _userSubcount.value= repository.getUsrSubcount()
+        }
+    }
+
+    fun getLikedSongs(playlistId: Long) {
+        viewModelScope.launch {
+            when (val result = playlistRepository.getPlaylistDetail(playlistId.toString())) {
+                is Resource.Success -> _likedSongs.value = result.data.toMiniPlaylistDetail().tracks
+                else -> Unit
+            }
         }
     }
 

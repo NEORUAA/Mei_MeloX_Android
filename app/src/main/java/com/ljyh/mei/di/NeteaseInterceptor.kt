@@ -227,20 +227,22 @@ class NeteaseInterceptor : Interceptor {
 
     private fun handleResponseDecryption(response: Response, cryptoMode: String): Response {
         if (cryptoMode == "eapi" && response.isSuccessful) {
-            response.body.let { body ->
-                try {
-                    val encryptedBytes = body.bytes()
-                    if (encryptedBytes.isEmpty()) return response
-
-                    Timber.tag("Decrypted Response").d("eapi")
-                    val decryptedBytes = decryptEApi(encryptedBytes)
-                    val newBody = decryptedBytes.toResponseBody(body.contentType())
-
-                    return response.newBuilder().body(newBody).build()
-                } catch (e: IOException) {
-                    Timber.e(e, "Decrypt EAPI response failed")
-                }
+            val body = response.body
+            val contentType = body.contentType()
+            val encryptedBytes = body.bytes()
+            if (encryptedBytes.isEmpty()) {
+                return response.newBuilder().body(encryptedBytes.toResponseBody(contentType)).build()
             }
+            return runCatching {
+                Timber.tag("Decrypted Response").d("eapi")
+                decryptEApi(encryptedBytes).toResponseBody(contentType)
+            }.fold(
+                onSuccess = { response.newBuilder().body(it).build() },
+                onFailure = { error ->
+                    Timber.e(error, "Decrypt EAPI response failed; forwarding the raw response")
+                    response.newBuilder().body(encryptedBytes.toResponseBody(contentType)).build()
+                },
+            )
         }
         return response
     }

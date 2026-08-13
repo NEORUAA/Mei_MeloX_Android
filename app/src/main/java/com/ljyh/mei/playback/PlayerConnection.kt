@@ -16,6 +16,8 @@ import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.LoopPlaybackKey
+import com.ljyh.mei.constants.MusicQuality
+import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.constants.PreviousPlaybackKey
 import com.ljyh.mei.data.model.metadata
 import com.ljyh.mei.data.model.toMediaItem
@@ -32,6 +34,7 @@ import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.reportException
 import kotlinx.coroutines.CoroutineScope
+import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -45,7 +48,7 @@ class PlayerConnection(
     context: Context,
     binder: MusicService.MusicBinder,
     val database: AppDatabase,
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
 ) : Player.Listener {
 
     init {
@@ -128,6 +131,8 @@ class PlayerConnection(
     fun playQueue(queue: ListQueue) {
         // 判断当前 UI 上的模式是否是随机模式
         val startInShuffle = repeatMode.value == PlayMode.SHUFFLE_MODE_ALL.mode
+        service.queueTitle = queue.title
+        queueTitle.value = queue.title
         // 调用新的 playQueue 方法，传入随机意图
         service.scope.launch {
             service.queueManager.playQueue(queue, startInShuffleMode = startInShuffle)
@@ -143,6 +148,21 @@ class PlayerConnection(
 
     fun addToQueue(items: List<MediaItem>) {
         service.addToQueue(items)
+    }
+
+    fun changeQuality(quality: MusicQuality) {
+        scope.launch {
+            service.dataStore.edit { it[MusicQualityKey] = quality.text }
+            val index = player.currentMediaItemIndex
+            val current = player.currentMediaItem ?: return@launch
+            val position = player.currentPosition
+            val shouldPlay = player.playWhenReady
+            player.removeMediaItem(index)
+            player.addMediaItem(index, current)
+            player.seekTo(index, position)
+            player.prepare()
+            player.playWhenReady = shouldPlay
+        }
     }
 
     fun seekToNext() {

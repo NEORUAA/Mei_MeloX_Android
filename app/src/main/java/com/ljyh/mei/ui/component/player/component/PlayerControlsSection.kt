@@ -34,6 +34,7 @@ fun PlayerControlsSection(
     onPlaylistClick: () -> Unit,
     onSleepTimerClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
+    onDownloadClick: () -> Unit,
     onMoreClick: () -> Unit,
     isCompact: Boolean = false // 新增参数
 ) {
@@ -102,6 +103,7 @@ fun PlayerControlsSection(
                 onPlaylistClick = onPlaylistClick,
                 onSleepTimerClick = onSleepTimerClick,
                 onAddToPlaylistClick = onAddToPlaylistClick,
+                onDownloadClick = onDownloadClick,
                 onMoreClick = onMoreClick
             )
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))

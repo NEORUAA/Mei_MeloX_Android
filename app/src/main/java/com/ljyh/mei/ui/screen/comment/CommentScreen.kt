@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,11 +24,14 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.comment.component.CommentItem
 import com.ljyh.mei.ui.screen.comment.component.CommentTopBar
+import com.ljyh.mei.ui.screen.comment.component.CommentSortAction
+import com.ljyh.mei.ui.glass.IosPinnedPage
+import com.ljyh.mei.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.asPaddingValues
 import timber.log.Timber
 import java.util.Timer
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommentScreen(
     songId: String,
@@ -48,17 +49,16 @@ fun CommentScreen(
         viewModel.setSongId(songId)
     }
 
-    val insets = LocalPlayerAwareWindowInsets.current
+    val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
 
-    Scaffold(
-        topBar = {
-            CommentTopBar(
-                total = total,
-                sortType = sortType,
-                onSortTypeChange = { viewModel.setSortType(it) },
-                onBack = { navController.popBackStack() }
-            )
-        }
+    IosPinnedPage(
+        title = if (total > 0) stringResource(R.string.comment_title_count, total)
+        else stringResource(R.string.comment_title),
+        bottomPadding = bottomPadding,
+        onNavigateBack = { navController.popBackStack() },
+        actions = {
+            CommentSortAction(sortType) { viewModel.setSortType(it) }
+        },
     ) { paddingValues ->
         when (val refreshState = pagingItems.loadState.refresh) {
             is LoadState.Loading -> {
@@ -80,7 +80,7 @@ fun CommentScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "加载失败",
+                        text = stringResource(R.string.load_failed),
                         color = MaterialTheme.colorScheme.error
                     )
                 }
@@ -91,7 +91,10 @@ fun CommentScreen(
                         .fillMaxSize()
                         .padding(paddingValues),
                     contentPadding = PaddingValues(
-                        bottom = insets.asPaddingValues().calculateBottomPadding()
+                        top = paddingValues.calculateTopPadding(),
+                        bottom = paddingValues.calculateBottomPadding(),
+                        start = paddingValues.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                        end = paddingValues.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
                     )
                 ) {
                     items(

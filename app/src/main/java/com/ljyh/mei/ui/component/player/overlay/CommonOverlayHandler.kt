@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.component.player.overlay
 
-import android.widget.Toast
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.runtime.Composable
@@ -8,6 +7,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.ui.component.player.OverlayState
@@ -22,10 +24,21 @@ import com.ljyh.mei.ui.component.player.component.sheet.SongInfoSheet
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.playlist.AddToPlaylistSheet
 import com.ljyh.mei.ui.component.playlist.CreatePlaylistSheet
+import com.ljyh.mei.ui.component.playlist.TrackActionMenu
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.constants.MusicQuality
+import com.ljyh.mei.R
+import com.ljyh.mei.ui.glass.IosAlertSurface
+import com.ljyh.mei.ui.glass.IosGroupedList
+import com.ljyh.mei.ui.glass.IosListRow
+import com.ljyh.mei.ui.glass.LocalGlassColors
+import com.ljyh.mei.ui.glass.SfIcon
+import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.screen.social.NeteaseShareSheet
+import com.ljyh.mei.utils.setClipboard
 import timber.log.Timber
 
 /**
@@ -132,9 +145,10 @@ fun CommonOverlayHandler(
                     overlayHandler.dismiss()
                 },
                 onActionClick = { action ->
-                    if(action == MoreAction.COMMENT){
+                    if (action == MoreAction.COMMENT || action == MoreAction.SONG_WIKI) {
                         stateContainer.mediaMetadata.value?.let { v->
-                            Screen.Comment.navigate(navController) {
+                            val destination = if (action == MoreAction.COMMENT) Screen.Comment else Screen.SongWiki
+                            destination.navigate(navController) {
                                 addPath(v.id.toString())
                             }
                             overlayHandler.dismiss()
@@ -150,14 +164,54 @@ fun CommonOverlayHandler(
             )
         }
 
+        is OverlayState.Share -> {
+            NeteaseShareSheet(
+                metadata = overlay.metadata,
+                onDismiss = overlayHandler::dismiss,
+            )
+        }
+
         is OverlayState.MusicQualitySelection -> {
-            // TODO: 实现音质选择弹窗
-            Toast.makeText(context, "音质选择: ${overlay.current}", Toast.LENGTH_SHORT).show()
+            val playerConnection = LocalPlayerConnection.current
+            Dialog(onDismissRequest = overlayHandler::dismiss) {
+                IosAlertSurface(title = stringResource(R.string.music_quality)) {
+                    IosGroupedList {
+                        MusicQuality.entries.forEachIndexed { index, quality ->
+                            IosListRow(
+                                title = "${quality.explanation} · ${quality.text}",
+                                showTopSeparator = index != 0,
+                                onClick = {
+                                    playerConnection?.changeQuality(quality)
+                                    overlayHandler.dismiss()
+                                },
+                                trailing = if (quality.ordinal == overlay.current) {
+                                    {
+                                        SfIcon(
+                                            "checkmark",
+                                            contentDescription = null,
+                                            size = 17.dp,
+                                            tint = LocalGlassColors.current.accent,
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         is OverlayState.TrackActionMenu -> {
-            // TODO: 实现轨道操作菜单
-            Toast.makeText(context, "轨道操作: ${overlay.track.title}", Toast.LENGTH_SHORT).show()
+            TrackActionMenu(
+                targetTrack = overlay.track,
+                onDismiss = overlayHandler::dismiss,
+                onAddToPlaylist = { overlayHandler.showAddToPlaylist(overlay.track.id) },
+                onDownloadTrack = { playerViewModel.downloadSong(overlay.track, context) },
+                onCopyId = { setClipboard(context, overlay.track.id.toString(), "id") },
+                onCopyName = { setClipboard(context, overlay.track.title, "name") },
+            )
         }
     }
 }

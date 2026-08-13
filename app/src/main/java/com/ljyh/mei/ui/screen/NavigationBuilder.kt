@@ -1,14 +1,7 @@
 package com.ljyh.mei.ui.screen
 
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.ui.util.fastAny
-import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -24,7 +17,7 @@ import com.ljyh.mei.ui.screen.album.AlbumDetailScreen
 import com.ljyh.mei.ui.screen.history.HistoryScreen
 import com.ljyh.mei.ui.screen.local.LocalMusicScreen
 import com.ljyh.mei.ui.screen.local.LocalSongListScreen
-import com.ljyh.mei.ui.screen.main.home.HomeScreen
+import com.ljyh.mei.ui.screen.main.home.HomeHubScreen
 import com.ljyh.mei.ui.screen.main.library.LibraryScreen
 import com.ljyh.mei.ui.screen.playlist.EveryDay
 import com.ljyh.mei.ui.screen.playlist.PlaylistScreen
@@ -35,10 +28,27 @@ import com.ljyh.mei.ui.screen.main.findmusic.FindMusicScreen
 import com.ljyh.mei.ui.screen.setting.ContentsSetting
 import com.ljyh.mei.ui.screen.setting.DownloadManageScreen
 import com.ljyh.mei.ui.screen.setting.DownloadSetting
+import com.ljyh.mei.ui.screen.setting.StorageManagementScreen
+import com.ljyh.mei.ui.screen.setting.GeneralSettings
 import com.ljyh.mei.ui.screen.setting.PlaySetting
+import com.ljyh.mei.ui.screen.setting.EqualizerSettings
+import com.ljyh.mei.ui.screen.setting.LyricsSettings
 import com.ljyh.mei.ui.screen.setting.SettingScreen
 import com.ljyh.mei.ui.screen.log.LogScreen
 import com.ljyh.mei.ui.screen.comment.CommentScreen
+import com.ljyh.mei.ui.screen.cloud.CloudMusicScreen
+import com.ljyh.mei.ui.screen.podcast.PodcastDetailScreen
+import com.ljyh.mei.ui.screen.podcast.PodcastScreen
+import com.ljyh.mei.ui.screen.search.SearchLandingScreen
+import com.ljyh.mei.ui.screen.social.ConversationScreen
+import com.ljyh.mei.ui.screen.social.ConversationsScreen
+import com.ljyh.mei.ui.screen.social.MessageContactsScreen
+import com.ljyh.mei.ui.screen.listentogether.ListenTogetherScreen
+import com.ljyh.mei.ui.screen.recognition.SongRecognitionScreen
+import com.ljyh.mei.ui.screen.account.NeteaseLoginScreen
+import com.ljyh.mei.ui.screen.account.AccountHomeScreen
+import com.ljyh.mei.ui.screen.account.ListeningRankScreen
+import com.ljyh.mei.ui.screen.song.SongWikiScreen
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,7 +57,7 @@ fun NavGraphBuilder.navigationBuilder(
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
     composable(Screen.Home.route) {
-        HomeScreen()
+        HomeHubScreen()
     }
 
     composable(Screen.Library.route) {
@@ -56,6 +66,63 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable(Screen.FindMusic.route) {
         FindMusicScreen()
+    }
+
+    composable(Screen.Podcasts.route) {
+        PodcastScreen()
+    }
+
+    composable(Screen.CloudMusic.route) {
+        CloudMusicScreen()
+    }
+
+    composable(Screen.Search.route) {
+        SearchLandingScreen()
+    }
+
+    composable(Screen.PrivateMessages.route) {
+        ConversationsScreen()
+    }
+
+    composable(Screen.MessageContacts.route) {
+        MessageContactsScreen()
+    }
+
+    composable(
+        route = "${Screen.PrivateConversation.route}/{userId}",
+        arguments = listOf(navArgument("userId") { type = NavType.LongType }),
+    ) {
+        ConversationScreen(it.arguments!!.getLong("userId"))
+    }
+
+    composable(Screen.ListenTogether.route) {
+        ListenTogetherScreen()
+    }
+
+    composable(Screen.SongRecognition.route) {
+        SongRecognitionScreen()
+    }
+
+    composable(Screen.NeteaseLogin.route) {
+        NeteaseLoginScreen()
+    }
+
+    composable(Screen.AccountHome.route) {
+        AccountHomeScreen()
+    }
+
+    composable(
+        route = "${Screen.AccountListeningRank.route}/{userId}",
+        arguments = listOf(navArgument("userId") { type = NavType.LongType }),
+    ) {
+        ListeningRankScreen(it.arguments!!.getLong("userId"))
+    }
+
+    composable(
+        route = "${Screen.PodcastDetail.route}/{id}",
+        arguments = listOf(navArgument("id") { type = NavType.LongType }),
+    ) {
+        PodcastDetailScreen(it.arguments!!.getLong("id"))
     }
 
     composable(Screen.Test.route) {
@@ -70,15 +137,30 @@ fun NavGraphBuilder.navigationBuilder(
         AppearanceSettings(scrollBehavior)
     }
 
+    composable(Screen.GeneralSettings.route) {
+        GeneralSettings()
+    }
+
+    composable(Screen.LyricsSettings.route) {
+        LyricsSettings()
+    }
+
     composable(Screen.ContentSettings.route) {
         ContentsSetting(scrollBehavior)
     }
     composable(Screen.PlaySettings.route){
         PlaySetting(scrollBehavior)
     }
+    composable(Screen.EqualizerSettings.route) {
+        EqualizerSettings()
+    }
 
     composable(Screen.DownloadSettings.route) {
         DownloadSetting(scrollBehavior)
+    }
+
+    composable(Screen.StorageManagement.route) {
+        StorageManagementScreen()
     }
 
     composable(Screen.DownloadManage.route) {
@@ -153,29 +235,9 @@ fun NavGraphBuilder.navigationBuilder(
                 type = NavType.IntType
             }
         ),
-        enterTransition = {
-            fadeIn(tween(250))
-        },
-        exitTransition = {
-            if (targetState.destination.route?.startsWith("search/") == true) {
-                fadeOut(tween(200))
-            } else {
-                fadeOut(tween(200)) + slideOutHorizontally { -it / 2 }
-            }
-        },
-        popEnterTransition = {
-            if (initialState.destination.route?.startsWith("search/") == true) {
-                fadeIn(tween(250))
-            } else {
-                fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
-            }
-        },
-        popExitTransition = {
-            fadeOut(tween(200))
-        }
     ) {
         SearchResultScreen(
-            query = it.arguments!!.getString("query")!!,
+            query = android.net.Uri.decode(it.arguments!!.getString("query")!!),
             type= it.arguments!!.getInt("type"),
         )
     }
@@ -227,11 +289,11 @@ fun NavGraphBuilder.navigationBuilder(
             songId = it.arguments!!.getString("songId")!!
         )
     }
-}
 
-
-fun NavController.backToMain() {
-    while (!Screen.MainScreens.fastAny { it.route == currentBackStackEntry?.destination?.route }) {
-        navigateUp()
+    composable(
+        route = "${Screen.SongWiki.route}/{songId}",
+        arguments = listOf(navArgument("songId") { type = NavType.LongType }),
+    ) {
+        SongWikiScreen(songId = it.arguments!!.getLong("songId"))
     }
 }

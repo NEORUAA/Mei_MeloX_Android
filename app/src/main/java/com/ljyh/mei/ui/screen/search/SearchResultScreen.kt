@@ -12,13 +12,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -40,6 +43,28 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
+import androidx.compose.ui.res.stringResource
+import coil3.compose.AsyncImage
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import com.ljyh.mei.R
+import com.ljyh.mei.ui.glass.GlassCard
+import com.ljyh.mei.ui.glass.GlassButton
+import com.ljyh.mei.ui.glass.GlassEmphasis
+import com.ljyh.mei.ui.glass.GlassIconButton
+import com.ljyh.mei.ui.glass.IosTopBarStyle
+import com.ljyh.mei.ui.glass.IosTopToolbar
+import com.ljyh.mei.ui.glass.SfIcon
+import com.ljyh.mei.ui.glass.SfSymbol
+import com.ljyh.mei.ui.component.player.OverlayState
+import com.ljyh.mei.ui.screen.playlist.component.StandaloneTrackActionOverlay
+import com.ljyh.mei.constants.PodcastsEnabledKey
+import com.ljyh.mei.utils.rememberPreference
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -59,13 +84,30 @@ fun SearchResultScreen(
 
     val playerConnection = LocalPlayerConnection.current
     val navController = LocalNavController.current
+    var currentOverlay by remember { mutableStateOf<OverlayState>(OverlayState.None) }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = LocalPlayerAwareWindowInsets.current
-            .add(WindowInsets(top = 4.dp))
-            .asPaddingValues()
-    ) {
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = LocalPlayerAwareWindowInsets.current
+                .add(WindowInsets(top = 4.dp))
+                .asPaddingValues()
+        ) {
+        item {
+            IosTopToolbar(
+                title = query,
+                style = IosTopBarStyle.Default,
+                navigation = {
+                    GlassIconButton(onClick = navController::navigateUp) {
+                        SfIcon(
+                            SfSymbol.ChevronBack,
+                            stringResource(R.string.navigation_back),
+                            mirrored = true,
+                        )
+                    }
+                },
+            )
+        }
         // Tab 过滤器
         item {
             SearchTypeFilterRow(
@@ -91,6 +133,7 @@ fun SearchResultScreen(
                     data = result.data,
                     type = selectedType,
                     navController = navController,
+                    onSongMore = { currentOverlay = OverlayState.TrackActionMenu(it) },
                     onSongClick = { songs, index ->
                         playerConnection?.playQueue(
                             ListQueue(
@@ -105,6 +148,12 @@ fun SearchResultScreen(
                 )
             }
         }
+        }
+        StandaloneTrackActionOverlay(
+            overlay = currentOverlay,
+            onDismiss = { currentOverlay = OverlayState.None },
+            onUpdateOverlay = { currentOverlay = it },
+        )
     }
 }
 
@@ -115,21 +164,25 @@ fun SearchTypeFilterRow(
     selected: SearchType,
     onSelect: (SearchType) -> Unit
 ) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    val podcastsEnabled by rememberPreference(PodcastsEnabledKey, true)
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SearchType.entries
-            .filter { it != SearchType.History }
-            .forEach { type ->
-                FilterChip(
-                    selected = selected == type,
-                    onClick = { onSelect(type) },
-                    label = { Text(type.displayName) }
-                )
+        items(
+            SearchType.entries.filter {
+                it != SearchType.History && (it != SearchType.Podcast || podcastsEnabled)
+            },
+            key = SearchType::name,
+        ) { type ->
+            GlassButton(
+                onClick = { onSelect(type) },
+                emphasis = if (selected == type) GlassEmphasis.Prominent else GlassEmphasis.Regular,
+            ) {
+                Text(stringResource(type.labelRes))
             }
+        }
     }
 }
 
@@ -153,7 +206,7 @@ fun ErrorView(message: String) {
             .padding(top = 50.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text("加载失败：$message")
+        Text(stringResource(R.string.load_failed_message, message))
     }
 }
 
@@ -161,6 +214,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
     data: SearchResult,
     type: SearchType,
     navController: NavController,
+    onSongMore: (com.ljyh.mei.data.model.MediaMetadata) -> Unit,
     onSongClick: (List<SearchResult.Result.Song>, Int) -> Unit
 ) {
     when (type) {
@@ -175,7 +229,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
                         val index = songs.indexOfFirst { it.id == song.id }
                         onSongClick(songs, maxOf(0, index))
                     },
-                    onMoreClick = { }
+                    onMoreClick = { onSongMore(song.toMediaData()) }
                 )
             }
         }
@@ -215,6 +269,35 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
                 )
             }
         }
+        SearchType.Podcast -> {
+            val podcasts = data.result.podcasts.orEmpty()
+            if (podcasts.isEmpty()) item { EmptyView() }
+            items(podcasts) { podcast ->
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
+                    onClick = {
+                        Screen.PodcastDetail.navigate(navController) { addPath(podcast.id.toString()) }
+                    },
+                ) {
+                    Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        AsyncImage(
+                            model = podcast.picUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(58.dp).clip(RoundedCornerShape(14.dp)),
+                        )
+                        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                            Text(podcast.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                listOfNotNull(podcast.host?.nickname, podcast.category).filter(String::isNotBlank).joinToString(" · "),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+        }
         else -> {}
     }
 }
@@ -222,6 +305,6 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
 @Composable
 fun EmptyView() {
     Box(Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
-        Text("暂无搜索结果", color = androidx.compose.ui.graphics.Color.Gray)
+        Text(stringResource(R.string.no_search_results), color = androidx.compose.ui.graphics.Color.Gray)
     }
 }

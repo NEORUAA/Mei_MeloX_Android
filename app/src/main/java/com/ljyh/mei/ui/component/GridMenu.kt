@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.component
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -20,11 +19,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.glass.GlassCard
+import com.ljyh.mei.ui.glass.SfIcon
 
 
 val GridMenuItemHeight = 96.dp
@@ -65,6 +65,26 @@ fun LazyGridScope.GridMenuItem(
     onClick = onClick
 )
 
+fun LazyGridScope.SfGridMenuItem(
+    modifier: Modifier = Modifier,
+    systemName: String,
+    title: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) = GridMenuItem(
+    modifier = modifier,
+    icon = {
+        SfIcon(
+            systemName = systemName,
+            contentDescription = null,
+            size = 26.dp,
+        )
+    },
+    title = title,
+    enabled = enabled,
+    onClick = onClick,
+)
+
 private fun LazyGridScope.GridMenuItem(
     modifier: Modifier = Modifier,
     icon: @Composable BoxScope.() -> Unit,
@@ -73,31 +93,28 @@ private fun LazyGridScope.GridMenuItem(
     onClick: () -> Unit,
 ) {
     item {
-        Column(
+        GlassCard(
             modifier = modifier
-                .clip(ShapeDefaults.Large)
                 .height(GridMenuItemHeight)
-                .clickable(
-                    enabled = enabled,
-                    onClick = onClick
-                )
-                .alpha(if (enabled) 1f else 0.5f)
-                .padding(12.dp)
+                .alpha(if (enabled) 1f else 0.5f),
+            onClick = onClick.takeIf { enabled },
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center,
-                content = icon
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelLarge,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center,
+                    content = icon,
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

@@ -34,8 +34,25 @@ data class SearchResult(
         @SerializedName("playlists")
         val playlists: List<Playlist>?,
         @SerializedName("albums")
-        val albums: List<Album>?
+        val albums: List<Album>?,
+        @SerializedName("djRadios")
+        val podcasts: List<Podcast>?
     ) {
+        data class Podcast(
+            @SerializedName("id") val id: Long,
+            @SerializedName("name") val name: String,
+            @SerializedName("picUrl") val picUrl: String?,
+            @SerializedName("desc") val description: String?,
+            @SerializedName("category") val category: String?,
+            @SerializedName("programCount") val programCount: Int,
+            @SerializedName("subCount") val subscriberCount: Long,
+            @SerializedName("dj") val host: PodcastHost?,
+        ) {
+            data class PodcastHost(
+                @SerializedName("nickname") val nickname: String?,
+                @SerializedName("avatarUrl") val avatarUrl: String?,
+            )
+        }
         data class Song(
             @SerializedName("album")
             val album: Album,

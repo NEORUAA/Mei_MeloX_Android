@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.screen.local
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -33,13 +34,13 @@ import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.local.component.AlbumRow
 import com.ljyh.mei.ui.screen.local.component.ArtistRow
 import com.ljyh.mei.ui.screen.local.component.EmptyLocalMusic
 import com.ljyh.mei.ui.screen.local.component.FolderItem
 import com.ljyh.mei.ui.screen.local.component.ManagementCard
 import com.ljyh.mei.ui.screen.local.component.SectionHeader
+import com.ljyh.mei.ui.glass.IosPinnedListPage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,48 +68,16 @@ fun LocalMusicScreen(
             .sortedBy { it.first }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("本地音乐") },
-                navigationIcon = {
-                    com.ljyh.mei.ui.component.IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(
-                        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
-                    )
-                )
-        ) {
+    IosPinnedListPage(
+        title = "本地音乐",
+        onNavigateBack = navController::navigateUp,
+        bottomPadding = LocalPlayerAwareWindowInsets.current
+            .asPaddingValues()
+            .calculateBottomPadding(),
+    ) {
             if (localSongs.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    EmptyLocalMusic()
-                }
+                item { Box(Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) { EmptyLocalMusic() } }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
                     item { SectionHeader("歌曲", "${localSongs.size} 首") }
                     item {
                         ManagementCard(
@@ -169,9 +138,7 @@ fun LocalMusicScreen(
                             )
                         }
                     }
-                }
             }
-        }
     }
 }
 

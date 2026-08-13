@@ -25,6 +25,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.ui.local.LocalNavController
+import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+import com.ljyh.mei.ui.glass.GlassIconButton
+import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.SfIcon
+import androidx.compose.foundation.layout.asPaddingValues
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -44,42 +49,18 @@ fun LogScreen(
     val secondaryTextColor = if (darkTheme) Color(0xFFB0B0B0) else Color.Gray
     val logBackgroundColor = if (darkTheme) Color(0xFF1E1E1E) else Color(0xFFEEEEEE)
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("日志收集") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                navigationIcon = {
-                    IconButton(onClick = {
-                        navController.popBackStack()
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            "Back",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.clearAllLogs() }) {
-                        Icon(
-                            Icons.Default.Delete,
-                            "Clear All",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+    IosPinnedListPage(
+        title = "日志收集",
+        onNavigateBack = navController::popBackStack,
+        bottomPadding = LocalPlayerAwareWindowInsets.current
+            .asPaddingValues()
+            .calculateBottomPadding(),
+        actions = {
+            GlassIconButton(onClick = viewModel::clearAllLogs) {
+                SfIcon("trash", "Clear All")
+            }
+        },
+    ) {
             items(fileList) { file ->
                 LogFileItem(
                     file = file,
@@ -90,7 +71,6 @@ fun LogScreen(
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
-        }
     }
 
     // 如果 content 不为空，显示详情弹窗

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
+import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import com.ljyh.mei.utils.rememberEnumPreference
 import kotlin.math.roundToLong
@@ -50,6 +52,7 @@ fun FluidProgressSlider(
     modifier: Modifier = Modifier
 ) {
     val musicQuality by rememberEnumPreference(MusicQualityKey, MusicQuality.EXHIGH)
+    val playerConnection = LocalPlayerConnection.current
     val isDurationValid = remember(duration) { duration > 0 }
     val valueRange = remember(duration) { 0f..(duration.takeIf { it > 0 } ?: 1).toFloat() }
 
@@ -208,6 +211,11 @@ fun FluidProgressSlider(
                 text = musicQuality.explanation,
                 style = commonTextStyle.copy(fontSize = 10.sp),
                 color = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier.clickable {
+                    playerConnection?.changeQuality(
+                        MusicQuality.entries[(musicQuality.ordinal + 1) % MusicQuality.entries.size],
+                    )
+                },
             )
 
             // 右侧：剩余时间 (Apple Music 风格通常显示剩余时间，即 "-03:45")

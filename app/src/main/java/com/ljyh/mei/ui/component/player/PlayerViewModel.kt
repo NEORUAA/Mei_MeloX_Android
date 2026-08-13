@@ -241,7 +241,8 @@ class PlayerViewModel @Inject constructor(
                                 songAlbum = metadata.album.title,
                                 songCover = metadata.coverUrl,
                                 duration = metadata.duration,
-                                fileType = songData.encodeType
+                                fileType = songData.encodeType,
+                                quality = quality.text,
                             )
                         ),
                         playlistName = "单曲下载",

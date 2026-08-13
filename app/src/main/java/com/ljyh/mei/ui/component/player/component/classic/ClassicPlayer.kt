@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.ljyh.mei.ui.component.player.MiniPlayer
@@ -26,6 +27,9 @@ import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.utils.audio.AudioVisualizerManager
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 
 
 @SuppressLint("ConfigurationScreenWidthHeight")
@@ -36,6 +40,10 @@ fun ClassicPlayer(
     modifier: Modifier = Modifier,
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
+    collapsedBackdrop: Backdrop,
+    playerBackdrop: LayerBackdrop,
+    compactMiniPlayerProgress: Float,
+    miniPlayerVerticalOffset: Dp,
 ) {
 
     val device = rememberDeviceInfo()
@@ -80,6 +88,10 @@ fun ClassicPlayer(
             MiniPlayer(
                 position = sliderPosition.toLong(),
                 duration = duration,
+                backdrop = collapsedBackdrop,
+                compactProgress = compactMiniPlayerProgress,
+                verticalOffset = miniPlayerVerticalOffset,
+                onClick = state::expandSoft,
             )
         }
     ) {
@@ -100,7 +112,8 @@ fun ClassicPlayer(
         FluidBackground(
             imageUrl = coverUrl,
             audioVisualizerManager = audioVisualizerManager,
-            isPlaying = isPlaying
+            isPlaying = isPlaying,
+            modifier = Modifier.layerBackdrop(playerBackdrop),
         )
 
 

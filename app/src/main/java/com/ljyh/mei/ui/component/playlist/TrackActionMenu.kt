@@ -1,21 +1,13 @@
 package com.ljyh.mei.ui.component.playlist
 
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.DeleteSweep
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.dp
+import com.ljyh.mei.R
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.ui.component.GridMenu
-import com.ljyh.mei.ui.component.GridMenuItem
+import com.ljyh.mei.ui.glass.IosActionSheetContent
+import com.ljyh.mei.ui.glass.IosListRow
+import com.ljyh.mei.ui.glass.IosModalSheet
+import androidx.compose.ui.res.stringResource
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrackActionMenu(
     targetTrack: MediaMetadata?,
@@ -28,26 +20,32 @@ fun TrackActionMenu(
     onCopyName: () -> Unit
 ) {
     if (targetTrack != null) {
-        ModalBottomSheet(
+        val addToPlaylistTitle = stringResource(R.string.track_action_add_playlist)
+        val downloadTitle = stringResource(R.string.track_action_download)
+        val deleteTitle = stringResource(R.string.track_action_delete)
+        val copyNameTitle = stringResource(R.string.track_action_copy_name)
+        val copyIdTitle = stringResource(R.string.track_action_copy_id)
+        IosModalSheet(
             onDismissRequest = onDismiss,
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
         ) {
-            GridMenu(
-                contentPadding = PaddingValues(bottom = 48.dp)
+            IosActionSheetContent(
+                title = targetTrack.title,
+                message = targetTrack.artists.joinToString(", ") { it.name },
             ) {
-                GridMenuItem(
-                    icon = Icons.Rounded.Add,
-                    title = "添加到歌单",
+                IosListRow(
+                    showTopSeparator = false,
+                    systemName = "plus.circle",
+                    title = addToPlaylistTitle,
                     onClick = {
                         onDismiss()
                         onAddToPlaylist()
-                    }
+                    },
                 )
 
                 onDownloadTrack?.let { downloadFunc ->
-                    GridMenuItem(
-                        icon = Icons.Filled.Download,
-                        title = "下载",
+                    IosListRow(
+                        systemName = "arrow.down.circle",
+                        title = downloadTitle,
                         onClick = {
                             onDismiss()
                             downloadFunc()
@@ -56,22 +54,22 @@ fun TrackActionMenu(
                 }
 
                 if (isCreator) {
-                    GridMenuItem(
-                        icon = Icons.Rounded.DeleteSweep,
-                        title = "删除此歌曲",
+                    IosListRow(
+                        systemName = "trash",
+                        title = deleteTitle,
                         onClick = {
                             onDismiss()
                             onDelete()
                         }
                     )
                 }
-                GridMenuItem(
-                    icon = Icons.Rounded.ContentCopy,
-                    title = "复制歌名",
+                IosListRow(
+                    systemName = "square.on.square",
+                    title = copyNameTitle,
                     onClick = { onDismiss(); onCopyName() })
-                GridMenuItem(
-                    icon = Icons.Rounded.ContentCopy,
-                    title = "复制ID",
+                IosListRow(
+                    systemName = "info.circle",
+                    title = copyIdTitle,
                     onClick = { onDismiss(); onCopyId() })
             }
         }

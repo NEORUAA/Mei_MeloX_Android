@@ -50,14 +50,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -83,6 +87,10 @@ import com.ljyh.mei.ui.component.utils.lerp
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.utils.UnitUtils.toPx
 import kotlin.math.min
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.shapes.Capsule
 
 
 
@@ -93,6 +101,10 @@ fun AppleMusicPlayer(
     modifier: Modifier = Modifier,
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
+    collapsedBackdrop: Backdrop,
+    playerBackdrop: LayerBackdrop,
+    compactMiniPlayerProgress: Float,
+    miniPlayerVerticalOffset: Dp,
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
@@ -101,6 +113,8 @@ fun AppleMusicPlayer(
 
     // --- Apple Music 特定状态 ---
     var showLyrics by remember { mutableStateOf(false) }
+    var playerBoundsInRoot by remember { mutableStateOf<Rect?>(null) }
+    var miniCoverBoundsInRoot by remember { mutableStateOf<Rect?>(null) }
 
     // --- 从状态容器获取数据 ---
     val mediaMetadata by stateContainer.mediaMetadata
@@ -141,7 +155,14 @@ fun AppleMusicPlayer(
         }
     }
 
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            .onGloballyPositioned { coordinates ->
+                val bounds = coordinates.boundsInRoot()
+                if (playerBoundsInRoot != bounds) playerBoundsInRoot = bounds
+            },
+    ) {
         val screenWidth = maxWidth
         val maxWidthPx = constraints.maxWidth.toFloat()
         val maxHeightPx = constraints.maxHeight.toFloat()
@@ -153,14 +174,27 @@ fun AppleMusicPlayer(
         // --- 1. 定义关键尺寸参数 ---
 
         // A. Mini Player (Bottom)
-        val miniSize = with(density) { 48.dp.toPx() }
-        val miniStart = with(density) { 12.dp.toPx() }
+        val measuredMiniBounds = miniCoverBoundsInRoot
+        val measuredPlayerBounds = playerBoundsInRoot
+        val miniSize = measuredMiniBounds?.width?.takeIf { it > 0f }
+            ?: with(density) { 32.dp.toPx() }
+        val miniStart = if (measuredMiniBounds != null && measuredPlayerBounds != null) {
+            measuredMiniBounds.left - measuredPlayerBounds.left
+        } else {
+            with(density) { (20.dp + 60.dp * compactMiniPlayerProgress).toPx() }
+        }
         val miniRadius = with(density) { ThumbnailCornerRadius.toPx() }
         val collapsedBoundPx = with(density) { state.collapsedBound.toPx() }
-        val miniAbsTop = maxHeightPx - collapsedBoundPx + with(density) { 6.dp.toPx() }
+        val miniAbsTop = if (measuredMiniBounds != null && measuredPlayerBounds != null) {
+            measuredMiniBounds.top - measuredPlayerBounds.top
+        } else {
+            maxHeightPx - collapsedBoundPx +
+                with(density) { (8.dp + miniPlayerVerticalOffset).toPx() }
+        }
 
         // B. Normal Expanded
-        val topSafeArea = with(density) { WindowInsets.statusBars.getTop(this).toFloat() }
+        val statusBarTop = with(density) { WindowInsets.statusBars.getTop(this).toFloat() }
+        val topSafeArea = (statusBarTop - (playerBoundsInRoot?.top ?: 0f)).coerceAtLeast(0f)
 
         val bottomControlsHeightDp = if (isCompactHeight || isLandscape) 220.dp else 300.dp
         val bottomControlsHeight = with(density) { bottomControlsHeightDp.toPx() }
@@ -200,6 +234,16 @@ fun AppleMusicPlayer(
         val shadowAlpha = if (sheetProgress > 0.8f) (1f - lyricAnimFraction) else 0f
         var mShadowElevation = 16.dp * shadowAlpha
 
+        val coverUrl = mediaMetadata?.coverUrl
+        val audioVisualizerManager = remember { AudioVisualizerManager(context) }
+        LaunchedEffect(stateContainer.playerConnection.player) {
+            val player = stateContainer.playerConnection.player as? ExoPlayer
+            player?.audioSessionId?.let(audioVisualizerManager::attachToPlayer)
+        }
+        val playerBackgroundAlpha = sheetProgress.coerceIn(0f, 1f).let { progress ->
+            progress * progress * (3f - 2f * progress)
+        }
+
 
         // --- 3. UI Structure ---
         BottomSheet(
@@ -218,31 +262,41 @@ fun AppleMusicPlayer(
                     }
                 }
             },
+            backgroundContent = {
+                FluidBackground(
+                    imageUrl = coverUrl,
+                    audioVisualizerManager = audioVisualizerManager,
+                    isPlaying = isPlaying,
+                    alpha = playerBackgroundAlpha,
+                    modifier = Modifier.layerBackdrop(playerBackdrop),
+                )
+            },
             collapsedContent = {
                 MiniPlayer(
                     position = sliderPosition.toLong(),
                     duration = duration,
+                    backdrop = collapsedBackdrop,
+                    compactProgress = compactMiniPlayerProgress,
+                    verticalOffset = miniPlayerVerticalOffset,
+                    onClick = state::expandSoft,
+                    onCoverBoundsChanged = { bounds ->
+                        if (miniCoverBoundsInRoot != bounds) miniCoverBoundsInRoot = bounds
+                    },
                 )
             }
         ) {
-            val coverUrl = mediaMetadata?.coverUrl
-            
-            val audioVisualizerManager = remember { AudioVisualizerManager(context) }
-            
-            LaunchedEffect(stateContainer.playerConnection.player) {
-                val player = stateContainer.playerConnection.player as? ExoPlayer
-                player?.audioSessionId?.let { sessionId ->
-                    audioVisualizerManager.attachToPlayer(sessionId)
-                }
-            }
-
-            FluidBackground(
-                imageUrl = coverUrl,
-                audioVisualizerManager = audioVisualizerManager,
-                isPlaying = isPlaying
-            )
-
             Box(modifier = Modifier.fillMaxSize()) {
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = with(density) { topSafeArea.toDp() } + 7.dp)
+                        .size(width = 58.dp, height = 4.dp)
+                        .background(
+                            Color.White.copy(alpha = if (isSystemInDarkTheme) 0.48f else 0.62f),
+                            Capsule(),
+                        ),
+                )
 
 
                 // Mode B: Lyric Player
@@ -410,6 +464,9 @@ fun AppleMusicPlayer(
                                     mediaMetadata?.let {
                                         overlayHandler.showAddToPlaylist(it.id)
                                     }
+                                },
+                                onDownloadClick = {
+                                    overlayHandler.handleMoreAction(com.ljyh.mei.ui.model.MoreAction.DOWNLOAD)
                                 },
                                 onMoreClick = { overlayHandler.showMoreAction() },
                                 isCompact = isCompactHeight || isLandscape

@@ -11,7 +11,6 @@ import com.materialkolor.scheme.DynamicScheme
 val LastHomePageTime = longPreferencesKey("lastHomePageTime")
 val LastHomePageData_1 = stringPreferencesKey("lastHomePageData_1")
 val LastHomePageData_2 = stringPreferencesKey("lastHomePageData_2")
-val FirstLaunchKey = booleanPreferencesKey("firstLaunch")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val PauseListenHistoryKey = booleanPreferencesKey("pauseListenHistory")
 val DarkModeKey = stringPreferencesKey("darkMode")
@@ -24,6 +23,16 @@ val UserNicknameKey = stringPreferencesKey("userNickname")
 val UserAvatarUrlKey = stringPreferencesKey("userAvatarUrl")
 val UserPhotoKey = stringPreferencesKey("userPhoto")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
+val LyricVisualStyleKey = stringPreferencesKey("lyrics.visualStyle")
+val LyricTranslationEnabledKey = booleanPreferencesKey("lyrics.translationEnabled")
+val LyricRomanizationEnabledKey = booleanPreferencesKey("lyrics.romanizationEnabled")
+val LyricGlowEnabledKey = booleanPreferencesKey("lyrics.glowEnabled")
+val LyricLiftEnabledKey = booleanPreferencesKey("lyrics.liftEnabled")
+val LyricLongToneEnabledKey = booleanPreferencesKey("lyrics.longToneEnabled")
+val LyricAutoFollowEnabledKey = booleanPreferencesKey("lyrics.autoFollowEnabled")
+val FloatingLyricsTranslationKey = booleanPreferencesKey("floatingLyrics.showsTranslation")
+val FloatingLyricsNextLineKey = booleanPreferencesKey("floatingLyrics.showsNextLine")
+val FloatingLyricsFontScaleKey = floatPreferencesKey("floatingLyrics.fontScale")
 
 
 val CookieKey = stringPreferencesKey("cookie")
@@ -32,6 +41,7 @@ val MusicQualityKey = stringPreferencesKey("musicQuality")
 
 val CoverStyleKey = stringPreferencesKey("coverStyle")
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
+val AccentColorKey = longPreferencesKey("accentColor")
 val PlayerActionKey = stringPreferencesKey("playerBottomAction")
 
 val NormalLyricTextSizeKey = stringPreferencesKey("lyricTextSize")
@@ -45,6 +55,19 @@ val PreviousPlaybackKey = booleanPreferencesKey("previousPlayback")
 val NoAudioSourceKey = booleanPreferencesKey("noAudioSource")
 val IsShuffleModeKey = booleanPreferencesKey("shuffleMode")
 val RepeatModeKey = intPreferencesKey("repeatMode")
+val PlaybackSnapshotKey = stringPreferencesKey("playback.snapshot")
+val AutoMixEnabledKey = booleanPreferencesKey("autoMix.enabled")
+val AutoMixModeKey = stringPreferencesKey("autoMix.mode")
+val AutoMixDurationKey = floatPreferencesKey("autoMix.fixedDuration")
+val AutoMixFadeCurveKey = stringPreferencesKey("autoMix.fadeCurve")
+val AutoMixTempoMatchingKey = booleanPreferencesKey("autoMix.tempoMatchingEnabled")
+val AutoMixMaxTempoAdjustmentKey = floatPreferencesKey("autoMix.maximumTempoAdjustmentPercent")
+val AutoMixTransitionBarsKey = intPreferencesKey("autoMix.transitionBars")
+val AutoMixTailCutBarsKey = intPreferencesKey("autoMix.tailCutBars")
+val EqualizerEnabledKey = booleanPreferencesKey("equalizer.enabled")
+val EqualizerPresetKey = stringPreferencesKey("equalizer.preset")
+val EqualizerPreampKey = floatPreferencesKey("equalizer.preamp")
+val EqualizerBandGainsKey = stringPreferencesKey("equalizer.bandGains")
 
 val DeviceIdKey = stringPreferencesKey("deviceId")
 val DebugKey = booleanPreferencesKey("debug")
@@ -69,6 +92,21 @@ val TabletAnimationStyleKey = stringPreferencesKey("tabletAnimationStyle")
 
 val DownloadPathKey = stringPreferencesKey("downloadPath")
 val DownloadQualityKey = stringPreferencesKey("downloadQuality")
+val AutoCacheEnabledKey = booleanPreferencesKey("automaticCache.enabled")
+val AutoCachePlaybackThresholdKey = intPreferencesKey("automaticCache.playbackThreshold")
+val AutoCacheQualityKey = stringPreferencesKey("automaticCache.quality")
+val PodcastsEnabledKey = booleanPreferencesKey("content.podcastsEnabled")
+val DownloadsEnabledKey = booleanPreferencesKey("content.downloadsEnabled")
+val CloudMusicEnabledKey = booleanPreferencesKey("content.cloudMusicEnabled")
+val ListeningHistoryEnabledKey = booleanPreferencesKey("content.listeningHistoryEnabled")
+val PodcastsTabEnabledKey = booleanPreferencesKey("navigation.podcastsTabEnabled")
+val DownloadsTabEnabledKey = booleanPreferencesKey("navigation.downloadsTabEnabled")
+val CloudMusicTabEnabledKey = booleanPreferencesKey("navigation.cloudMusicTabEnabled")
+val ListeningHistoryTabEnabledKey = booleanPreferencesKey("navigation.listeningHistoryTabEnabled")
+val NavigationTabOrderKey = stringPreferencesKey("navigation.tabOrder")
+val AppAppearanceKey = stringPreferencesKey("application.appearance")
+val LastSelectedTabKey = stringPreferencesKey("navigation.lastSelectedTab")
+val RecognizeClipboardLinksKey = booleanPreferencesKey("application.recognizeClipboardLinks")
 val QqTimeoutKey = stringPreferencesKey("qq_timeout")
 
 enum class QqTimeout(val seconds: Int, val label: String) {
@@ -83,6 +121,11 @@ enum class PlayerStyle {
     AppleMusic,
     Classic
 }
+
+enum class AppAppearance { System, Light, Dark }
+
+enum class AutoMixMode { Smart, Fixed }
+enum class AutoMixFadeCurve { EqualPower, Smooth, Linear }
 
 
 enum class PlaylistCoverStyle {
@@ -100,6 +143,8 @@ enum class LyricTextAlignment {
     Center,
     Right
 }
+
+enum class LyricVisualStyle { AppleMusic, EVA, TextPV, Skyline }
 
 
 // standard, exhigh, lossless, hires, jyeffect(高清环绕声), sky(沉浸环绕声), jymaster(超清母带) 进行音质判断

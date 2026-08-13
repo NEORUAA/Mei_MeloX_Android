@@ -1,112 +1,129 @@
 package com.ljyh.mei.ui.screen.setting
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Kitesurfing
-import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.LibraryMusic
-import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.ljyh.mei.ui.component.IconButton
-import com.ljyh.mei.ui.component.PreferenceEntry
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import com.ljyh.mei.R
+import com.ljyh.mei.constants.CookieKey
+import com.ljyh.mei.constants.UserNicknameKey
+import com.ljyh.mei.ui.component.GlobalProfileAvatarButton
+import com.ljyh.mei.ui.glass.IosGroupedList
+import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.IosListRow
+import com.ljyh.mei.ui.glass.IosTypography
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.ui.screen.backToMain
+import com.ljyh.mei.ui.screen.account.logoutNetease
+import com.ljyh.mei.utils.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingScreen(
-    scrollBehavior: TopAppBarScrollBehavior,
+    @Suppress("UNUSED_PARAMETER") scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val navController = LocalNavController.current
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("设置") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+    val context = LocalContext.current
+    val (cookie) = rememberPreference(CookieKey, "")
+    val (userNickname) = rememberPreference(UserNicknameKey, "")
+    val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    IosPinnedListPage(
+        title = stringResource(R.string.settings),
+        bottomPadding = insets.calculateBottomPadding(),
+        actions = { GlobalProfileAvatarButton() },
+    ) {
+        item { SettingsSectionTitle(stringResource(R.string.settings_account)) }
+        item {
+            IosGroupedList {
+                if (cookie.isBlank()) {
+                    SettingsEntry(stringResource(R.string.netease_login), "person.crop.circle", false) {
+                        Screen.NeteaseLogin.navigate(navController)
                     }
-                },
-                scrollBehavior = scrollBehavior
-            )
+                } else {
+                    SettingsEntry(
+                        userNickname.ifBlank { stringResource(R.string.account_home) },
+                        "person.crop.circle",
+                        false,
+                    ) {
+                        Screen.AccountHome.navigate(navController)
+                    }
+                    SettingsEntry(stringResource(R.string.netease_logout), "rectangle.portrait.and.arrow.forward") {
+                        logoutNetease(context)
+                    }
+                }
+            }
         }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .verticalScroll(rememberScrollState())
-        ) {
-
-
-            PreferenceEntry(
-                title = { Text("外观") },
-                icon = { Icon(Icons.Rounded.Palette, contentDescription = null) },
-                onClick = {
-                    Screen.AppearanceSettings.navigate(navController)
-                }
-            )
-
-            PreferenceEntry(
-                title = { Text("内容") },
-                icon = { Icon(Icons.Rounded.Language, contentDescription = null) },
-                onClick = {
-                    Screen.ContentSettings.navigate(navController)
-                }
-            )
-            PreferenceEntry(
-                title = { Text("播放") },
-                icon = { Icon(Icons.Rounded.LibraryMusic, contentDescription = null) },
-                onClick = {
-                    Screen.PlaySettings.navigate(navController)
-                }
-            )
-
-            PreferenceEntry(
-                title = { Text("下载") },
-                icon = { Icon(Icons.Rounded.Download, contentDescription = null) },
-                onClick = {
-                    Screen.DownloadSettings.navigate(navController)
-                }
-            )
-
-            PreferenceEntry(
-                title = { Text("关于") },
-                icon = { Icon(Icons.Rounded.Info, contentDescription = null) },
-                onClick = {
-                    Screen.About.navigate(navController)
-                }
-            )
+        item { SettingsSectionTitle(stringResource(R.string.settings_application)) }
+        item {
+            IosGroupedList {
+                SettingsEntry(stringResource(R.string.general_settings), "gearshape", false) { Screen.GeneralSettings.navigate(navController) }
+                SettingsEntry(stringResource(R.string.settings_appearance), "paintbrush") { Screen.AppearanceSettings.navigate(navController) }
+                SettingsEntry(stringResource(R.string.settings_content), "rectangle.grid.1x2") { Screen.ContentSettings.navigate(navController) }
+                SettingsEntry(stringResource(R.string.settings_playback), "waveform") { Screen.PlaySettings.navigate(navController) }
+                SettingsEntry(stringResource(R.string.lyrics_settings), "quote.bubble") { Screen.LyricsSettings.navigate(navController) }
+                SettingsEntry(stringResource(R.string.settings_downloads), "arrow.down.circle") { Screen.DownloadSettings.navigate(navController) }
+                SettingsEntry(stringResource(R.string.storage_management), "internaldrive.fill") { Screen.StorageManagement.navigate(navController) }
+            }
+        }
+        item { SettingsSectionTitle(stringResource(R.string.settings_extensions)) }
+        item {
+            IosGroupedList {
+                SettingsEntry(stringResource(R.string.private_messages), "message", false) { Screen.PrivateMessages.navigate(navController) }
+                SettingsEntry(stringResource(R.string.listen_together), "person.2.wave.2") { Screen.ListenTogether.navigate(navController) }
+                SettingsEntry(stringResource(R.string.song_recognition), "waveform.badge.magnifyingglass") { Screen.SongRecognition.navigate(navController) }
+            }
+        }
+        item { SettingsSectionTitle(stringResource(R.string.settings_information)) }
+        item {
+            IosGroupedList {
+                SettingsEntry(stringResource(R.string.settings_about), "info.circle", false) { Screen.About.navigate(navController) }
+            }
         }
     }
 }
+
+@Composable
+internal fun SettingsSectionTitle(title: String) {
+    Text(
+        title,
+        style = IosTypography.subheadline,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 12.dp, start = 16.dp),
+    )
+}
+
+@Composable
+fun SettingsGroup(
+    title: String,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SettingsSectionTitle(title)
+        IosGroupedList(content = content)
+    }
+}
+
+@Composable
+private fun SettingsEntry(
+    title: String,
+    systemName: String,
+    showTopSeparator: Boolean = true,
+    onClick: () -> Unit,
+) = IosListRow(
+    title = title,
+    systemName = systemName,
+    showTopSeparator = showTopSeparator,
+    onClick = onClick,
+)

@@ -230,6 +230,9 @@ fun ClassicPhoneLayout(
                     overlayHandler.showAddToPlaylist(it.id)
                 }
             },
+            onDownloadClick = {
+                overlayHandler.handleMoreAction(com.ljyh.mei.ui.model.MoreAction.DOWNLOAD)
+            },
             onMoreClick = {
                 overlayHandler.showMoreAction()
             }

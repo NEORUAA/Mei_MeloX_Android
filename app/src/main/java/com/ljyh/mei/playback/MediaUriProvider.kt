@@ -35,7 +35,8 @@ class MediaUriProvider @Inject constructor(
             }
         }
 
-        urlCache[mediaId]?.let { return it.toUri() }
+        val cacheKey = "$mediaId:${quality.lowercase()}"
+        urlCache[cacheKey]?.let { return it.toUri() }
         return try {
             val response = apiService.getSongUrlV1(
                 GetSongUrlV1(ids = "[$mediaId]", level = quality)
@@ -47,7 +48,7 @@ class MediaUriProvider @Inject constructor(
                 throw SourceNotFoundException("API returned empty URL for $mediaId")
             }
 
-            urlCache[mediaId] = url
+            urlCache[cacheKey] = url
             url.toUri()
         } catch (e: Exception) {
             if (e is SourceNotFoundException) throw e

@@ -6,13 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Replay
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,6 +17,7 @@ import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.PlayerConnection
+import com.ljyh.mei.ui.glass.SfIcon
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -53,13 +47,11 @@ fun PlayerControls(
                         .align(Alignment.Center)
                         .clip(RoundedCornerShape(4.dp))
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.SkipPrevious,
+                    SfIcon(
+                        systemName = "backward.fill",
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.align(Alignment.Center)
-                            .size(48.dp)
-
+                        size = 32.dp,
                     )
                 }
             }
@@ -74,18 +66,13 @@ fun PlayerControls(
                             playerConnection.player.togglePlayPause()
                         }
                     },
-                    modifier = Modifier
-                        .size(84.dp)
-                        .align(Alignment.Center)
-                        .clip(RoundedCornerShape(4.dp))
+                    modifier = Modifier.size(84.dp).align(Alignment.Center).clip(RoundedCornerShape(4.dp)),
                 ) {
-                    Icon(
-                        imageVector = if (playbackState == STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    SfIcon(
+                        systemName = if (playbackState == STATE_ENDED) "arrow.counterclockwise" else if (isPlaying) "pause.fill" else "play.fill",
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(84.dp)
+                        size = 48.dp,
                     )
                 }
             }
@@ -101,12 +88,11 @@ fun PlayerControls(
                         .align(Alignment.Center)
                         .clip(RoundedCornerShape(4.dp))
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.SkipNext,
+                    SfIcon(
+                        systemName = "forward.fill",
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.align(Alignment.Center)
-                            .size(48.dp)
+                        size = 32.dp,
                     )
                 }
             }

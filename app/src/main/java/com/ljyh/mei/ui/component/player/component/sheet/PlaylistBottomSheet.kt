@@ -4,24 +4,23 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -34,44 +33,52 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
+import com.ljyh.mei.R
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.metadata
 import com.ljyh.mei.extensions.mediaItems
+import com.ljyh.mei.ui.glass.IosSheetSurface
+import com.ljyh.mei.ui.glass.IosModalSheetShape
+import com.ljyh.mei.ui.glass.IosTypography
+import com.ljyh.mei.ui.glass.LocalGlassColors
+import com.ljyh.mei.ui.glass.LocalGlassDimensions
+import com.ljyh.mei.ui.glass.SfIcon
+import com.kyant.shapes.Capsule
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.formatDuration
 import com.ljyh.mei.utils.smallImage
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.media3.common.util.UnstableApi
 
 @Composable
 fun PlaylistContent(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    showTitleBar: Boolean = true
+    showTitleBar: Boolean = true,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
+    val colors = LocalGlassColors.current
     val lazyListState = rememberLazyListState()
     val hapticFeedback = LocalHapticFeedback.current
     val mediaItems = remember {
-        mutableStateListOf<MediaItem>().apply {
-            addAll(playerConnection.player.mediaItems)
-        }
+        mutableStateListOf<MediaItem>().apply { addAll(playerConnection.player.mediaItems) }
     }
-
     val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
         mediaItems.move(from.index, to.index)
         playerConnection.player.moveMediaItem(from.index, to.index)
@@ -82,86 +89,92 @@ fun PlaylistContent(
     LaunchedEffect(playerConnection) {
         playerConnection.player.addListener(object : Player.Listener {
             override fun onTimelineChanged(timeline: Timeline, reason: Int) {
-                val newItems = playerConnection.player.mediaItems
                 mediaItems.clear()
-                mediaItems.addAll(newItems)
+                mediaItems.addAll(playerConnection.player.mediaItems)
             }
         })
     }
 
-    Column(modifier = modifier) {
+    Column(modifier) {
         if (showTitleBar) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "播放列表 (${mediaItems.size}首)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    stringResource(R.string.queue_title, mediaItems.size),
+                    style = IosTypography.headline,
                 )
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(24.dp)
+                Box(
+                    Modifier.align(Alignment.CenterEnd).size(44.dp)
+                        .clip(RoundedCornerShape(50))
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = "关闭",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+                    SfIcon("xmark.circle", stringResource(R.string.queue_close), size = 24.dp)
                 }
             }
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            state = lazyListState,
-        ) {
-            itemsIndexed(
-                mediaItems,
-                key = { _, item -> item.mediaId }) { index, mediaItem ->
-                ReorderableItem(
-                    reorderableLazyListState,
-                    key = mediaItem.mediaId
-                ) { isDragging ->
-                    mediaItem.metadata?.let {
-                        PlaylistItem(
-                            modifier = Modifier.longPressDraggableHandle(
-                                onDragStarted = {
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+        if (mediaItems.isEmpty()) {
+            Column(
+                Modifier.fillMaxWidth().weight(1f).padding(36.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                SfIcon("list.bullet", null, size = 40.dp, tint = colors.tertiaryContent)
+                Text(
+                    stringResource(R.string.queue_empty),
+                    style = IosTypography.subheadline,
+                    color = colors.secondaryContent,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp)
+                    .clip(RoundedCornerShape(LocalGlassDimensions.current.regularCornerRadius))
+                    .background(colors.elevatedBackground),
+                state = lazyListState,
+            ) {
+                itemsIndexed(mediaItems, key = { _, item -> item.mediaId }) { index, mediaItem ->
+                    ReorderableItem(reorderableLazyListState, key = mediaItem.mediaId) {
+                        mediaItem.metadata?.let { metadata ->
+                            PlaylistItem(
+                                modifier = Modifier.longPressDraggableHandle(
+                                    onDragStarted = {
+                                        hapticFeedback.performHapticFeedback(
+                                            HapticFeedbackType.GestureThresholdActivate,
+                                        )
+                                    },
+                                    onDragStopped = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                    },
+                                ),
+                                metadata = metadata,
+                                showTopSeparator = index != 0,
+                                isCurrentPlaying = index == currentMediaItemIndex,
+                                onItemClick = {
+                                    playerConnection.player.seekToDefaultPosition(index)
+                                    playerConnection.player.playWhenReady = true
                                 },
-                                onDragStopped = {
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                },
-                            ),
-                            metadata = it,
-                            isCurrentPlaying = index == currentMediaItemIndex,
-                            onItemClick = {
-                                playerConnection.player.seekToDefaultPosition(index)
-                                playerConnection.player.playWhenReady = true
-                            },
-                            onRemoveClick = {
-                                if (mediaItems.size > 1) {
-                                    playerConnection.player.removeMediaItem(index)
-                                    mediaItems.removeAt(index)
-                                    if (index == currentMediaItemIndex) {
-                                        playerConnection.seekToNext()
+                                onRemoveClick = {
+                                    if (mediaItems.size > 1) {
+                                        playerConnection.player.removeMediaItem(index)
+                                        mediaItems.removeAt(index)
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.queue_cannot_remove_last),
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
                                     }
-                                } else {
-                                    Toast.makeText(
-                                        context,
-                                        "不能移除最后一首歌曲",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
-                        )
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -172,23 +185,40 @@ fun PlaylistContent(
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlaylistBottomSheet(
-    onDismiss: () -> Unit
-) {
-    val sheetState = rememberModalBottomSheetState()
-
+fun PlaylistBottomSheet(onDismiss: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val screenShape = IosModalSheetShape
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
+        containerColor = Color.Transparent,
+        contentColor = LocalGlassColors.current.content,
+        shape = screenShape,
+        dragHandle = null,
+        contentWindowInsets = { WindowInsets(0) },
     ) {
-        PlaylistContent(
-            onDismiss = onDismiss,
-            modifier = Modifier.padding(
-                bottom = WindowInsets.systemBars.asPaddingValues()
-                    .calculateBottomPadding()
-            )
-        )
+        IosSheetSurface(
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.82f),
+            shape = screenShape,
+        ) {
+            Column(Modifier.fillMaxSize().navigationBarsPadding()) {
+                Box(
+                    Modifier.fillMaxWidth().height(16.dp),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Box(
+                        Modifier
+                            .padding(top = 5.dp)
+                            .size(width = 58.dp, height = 4.dp)
+                            .background(LocalGlassColors.current.tertiaryContent.copy(alpha = 0.55f), Capsule()),
+                    )
+                }
+                PlaylistContent(
+                    onDismiss = onDismiss,
+                    modifier = Modifier.fillMaxSize().padding(bottom = 8.dp),
+                )
+            }
+        }
     }
 }
 
@@ -196,85 +226,67 @@ fun PlaylistBottomSheet(
 fun PlaylistItem(
     modifier: Modifier,
     metadata: MediaMetadata,
+    showTopSeparator: Boolean,
     isCurrentPlaying: Boolean,
     onItemClick: () -> Unit,
-    onRemoveClick: () -> Unit
+    onRemoveClick: () -> Unit,
 ) {
-    val backgroundColor = if (isCurrentPlaying) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-    } else {
-        Color.Transparent
-    }
-
-    val textColor = if (isCurrentPlaying) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-
+    val colors = LocalGlassColors.current
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(backgroundColor)
-            .clickable(onClick = onItemClick),
+            .height(64.dp)
+            .drawBehind {
+                if (showTopSeparator) {
+                    drawLine(
+                        colors.separator,
+                        start = androidx.compose.ui.geometry.Offset(72.dp.toPx(), 0f),
+                        end = androidx.compose.ui.geometry.Offset(size.width - 16.dp.toPx(), 0f),
+                        strokeWidth = 1.dp.toPx(),
+                    )
+                }
+            }
+            .clickable(onClick = onItemClick)
+            .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 歌曲封面
         AsyncImage(
             model = metadata.coverUrl.smallImage(),
             contentDescription = null,
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(6.dp))
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.size(44.dp).clip(RoundedCornerShape(9.dp)),
         )
-
-        // 歌曲信息
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center
-        ) {
+        Column(Modifier.weight(1f)) {
             Text(
-                text = metadata.title,
-                fontSize = 14.sp,
-                fontWeight = if (isCurrentPlaying) FontWeight.Bold else FontWeight.Normal,
-                color = textColor,
+                metadata.title,
+                style = IosTypography.body,
+                fontWeight = if (isCurrentPlaying) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (isCurrentPlaying) colors.accent else colors.content,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
-
             Text(
-                text = "${metadata.artists.joinToString(", ") { it.name }} • ${
-                    formatDuration(
-                        metadata.duration
-                    )
-                }",
-                fontSize = 12.sp,
-                color = if (isCurrentPlaying) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                else MaterialTheme.colorScheme.secondary,
+                "${metadata.artists.joinToString(", ") { it.name }} · ${formatDuration(metadata.duration)}",
+                style = IosTypography.caption,
+                color = colors.secondaryContent,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
         }
-
-        // 移除按钮
-        IconButton(
-            onClick = onRemoveClick,
-            modifier = Modifier.size(24.dp)
+        if (isCurrentPlaying) {
+            SfIcon("speaker.wave.2.fill", null, size = 17.dp, tint = colors.accent)
+        }
+        Box(
+            Modifier.size(36.dp).clip(RoundedCornerShape(50)).clickable(onClick = onRemoveClick),
+            contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Icons.Filled.Close,
-                contentDescription = "移除",
-                tint = MaterialTheme.colorScheme.secondary
-            )
+            SfIcon("xmark.circle", stringResource(R.string.queue_remove), size = 20.dp, tint = colors.secondaryContent)
         }
     }
 }
 
 fun <T> MutableList<T>.move(from: Int, to: Int) {
     if (from == to) return
-    val item = removeAt(from)
-    add(to, item)
+    add(to, removeAt(from))
 }

@@ -95,7 +95,8 @@ class DownloadWorker(
         var failedCount = 0
 
         val sanitizedPlaylistName = specialReplace(playlistName).trim()
-        val relativePath = "Music/Mei/$sanitizedPlaylistName"
+        val configuredRoot = downloadPath.trim().trim('/').ifBlank { "Music/Mei" }
+        val relativePath = "$configuredRoot/$sanitizedPlaylistName"
         val tempDir = File(applicationContext.cacheDir, "download")
         if (!tempDir.exists()) tempDir.mkdirs()
 
@@ -377,5 +378,6 @@ data class SongDownloadInfo(
     val songCover: String,
     val duration: Long,
     val fileType: String = "",
+    val quality: String = "",
     val lyric: String = ""
 )

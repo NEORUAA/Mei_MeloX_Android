@@ -1,5 +1,6 @@
 package com.ljyh.mei.utils.lyric
 
+import com.google.gson.JsonParser
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeAlignment
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
@@ -30,7 +31,7 @@ object YRCParser : ILyricsParser {
     override fun parse(lines: List<String>): SyncedLyrics {
         val mainLyricsLines = lines.filter { line ->
             val trimmed = line.trim()
-            YRC_LINE_REGEX.matches(trimmed) || trimmed.startsWith("[bg:")
+            YRC_LINE_REGEX.matches(trimmed) || trimmed.startsWith("[bg:") || trimmed.startsWith("{")
         }
         val translationLines = lines.filter { translationLineRegex.matches(it.trim()) }
         return parse(
@@ -49,6 +50,25 @@ object YRCParser : ILyricsParser {
         for (raw in rawLinesSequence) {
             val line = raw.trim()
             if (line.isEmpty()) continue
+
+            if (line.startsWith("{")) {
+                parseCreditsLine(line)?.let(resultLines::add)
+                continue
+            }
+
+            if (line.startsWith("[bg:")) {
+                parseBackgroundLine(line)?.let { backgroundLine ->
+                    val last = resultLines.lastOrNull()
+                    if (last is KaraokeLine.MainKaraokeLine) {
+                        resultLines[resultLines.lastIndex] = last.copy(
+                            accompanimentLines = (last.accompanimentLines ?: emptyList()) + backgroundLine
+                        )
+                    } else {
+                        resultLines.add(backgroundLine)
+                    }
+                }
+                continue
+            }
 
             val match = YRC_LINE_REGEX.find(line) ?: continue
             val lineStart = match.groupValues[1].toInt()
@@ -69,6 +89,34 @@ object YRCParser : ILyricsParser {
         }
 
         return resultLines
+    }
+
+    private fun parseCreditsLine(line: String): KaraokeLine.MainKaraokeLine? {
+        val root = runCatching { JsonParser.parseString(line).asJsonObject }.getOrNull() ?: return null
+        val timestamp = root.get("t")?.takeIf { it.isJsonPrimitive }?.asInt ?: return null
+        val text = root.getAsJsonArray("c")
+            ?.mapNotNull { item ->
+                item.takeIf { it.isJsonObject }
+                    ?.asJsonObject
+                    ?.get("tx")
+                    ?.takeIf { it.isJsonPrimitive }
+                    ?.asString
+            }
+            ?.joinToString("")
+            ?.trim()
+            .orEmpty()
+        if (text.isEmpty()) return null
+
+        // Credit rows are annotations rather than timed singing. A minimal positive
+        // duration keeps translation matching from attaching lyric translations to them.
+        val syllable = KaraokeSyllable(text, timestamp, timestamp + 1)
+        return KaraokeLine.MainKaraokeLine(
+            syllables = listOf(syllable),
+            translation = null,
+            alignment = KaraokeAlignment.Unspecified,
+            start = timestamp,
+            end = timestamp + 1
+        )
     }
 
     private fun parseBackgroundLine(line: String): KaraokeLine.AccompanimentKaraokeLine? {

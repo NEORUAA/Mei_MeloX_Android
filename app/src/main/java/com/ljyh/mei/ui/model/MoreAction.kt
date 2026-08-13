@@ -1,46 +1,40 @@
 package com.ljyh.mei.ui.model
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Bedtime
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Comment
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.StringRes
+import com.ljyh.mei.R
 
 enum class MoreAction(
     val id: String,
-    val label: String,
-    val icon: ImageVector,
+    @StringRes val labelRes: Int,
+    val systemName: String,
     val frequency: Int, // 使用频率，数字越大表示越常用 (0-10)
     val riskLevel: Int, // 风险等级，数字越大表示误触风险越高 (0-10)
 ) {
     // --- 歌曲操作 ---
-    ADD_TO_PLAYLIST("add", "添加到歌单", Icons.Rounded.Add, 8, 2), // 常用，低风险
+    ADD_TO_PLAYLIST("add", R.string.more_action_add_playlist, "text.badge.plus", 8, 2),
 
-    SHARE("share", "分享", Icons.Rounded.Share, 5, 3),  // 中等使用，中等风险
+    SHARE("share", R.string.more_action_share, "square.and.arrow.up", 5, 3),
 
-    DOWNLOAD("download", "下载", Icons.Rounded.Download, 6, 4), // 离线，中等风险
+    DOWNLOAD("download", R.string.more_action_download, "arrow.down.circle", 6, 4),
 
-    DELETE("delete", "删除", Icons.Rounded.Delete, 1, 9), // 低频，高风险 (手滑就没了)
+    DELETE("delete", R.string.more_action_delete, "trash", 1, 9),
 
     // --- 播放列表操作 ---
-    VIEW_PLAYLIST("view_playlist", "查看歌单", Icons.AutoMirrored.Rounded.PlaylistAdd, 7, 1), // 跳转
+    VIEW_PLAYLIST("view_playlist", R.string.more_action_view_playlist, "list.bullet", 7, 1),
 
     // --- 高级功能 ---
-    SLEEP_TIMER("sleep", "睡眠定时", Icons.Rounded.Bedtime, 3, 2), // 辅助功能
+    SLEEP_TIMER("sleep", R.string.more_action_sleep_timer, "moon", 3, 2),
+    PICTURE_IN_PICTURE("pip", R.string.more_action_floating_lyrics, "pip", 4, 1),
     // 播放界面底部功能
-    BOTTOM_ACTION("bottom_action", "播放界面底部标签", Icons.Rounded.Tune, 4, 4),
+    BOTTOM_ACTION("bottom_action", R.string.more_action_bottom_actions, "switch.2", 4, 4),
 
     // --- 信息 ---
-    SONG_INFO("song_info", "歌曲信息", Icons.Rounded.Info, 4, 1),
+    SONG_INFO("song_info", R.string.more_action_song_info, "info.circle", 4, 1),
+
+    SONG_WIKI("song_wiki", R.string.song_wiki, "book.pages", 5, 1),
 
     // --- 评论 ---
-    COMMENT("comment", "查看评论", Icons.Rounded.Comment, 7, 1);
+    COMMENT("comment", R.string.more_action_comments, "bubble.left", 7, 1);
 
     companion object {
         // 简单工厂方法

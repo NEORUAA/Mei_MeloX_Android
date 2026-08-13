@@ -12,13 +12,17 @@ import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.playback.DownloadWorker
 import com.ljyh.mei.playback.SongDownloadInfo
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 
 object DownloadManager {
-    private const val WORK_NAME_PREFIX = "download_playlist_"
+    private const val SONG_WORK_NAME_PREFIX = "download_song_"
+    private val managementScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun getDefaultDownloadPath(): String {
         return "Music/Mei"
@@ -36,8 +40,6 @@ object DownloadManager {
         withContext(Dispatchers.IO) {
             val db = AppDatabase.getDatabase(context)
 
-            val uniqueWorkName = WORK_NAME_PREFIX + playlistId.ifEmpty { System.currentTimeMillis().toString() }
-
             val tasks = songs.map { info ->
                 DownloadTask(
                     songId = info.songId,
@@ -54,7 +56,7 @@ object DownloadManager {
                     songArtist = info.songArtist.joinToString("/"),
                     songAlbum = info.songAlbum,
                     songCover = info.songCover,
-                    quality = "",
+                    quality = info.quality,
                     createdAt = System.currentTimeMillis(),
                     updatedAt = System.currentTimeMillis()
                 )
@@ -62,28 +64,29 @@ object DownloadManager {
 
             db.downloadDao().insertAll(tasks)
 
-            val songIdsJson = Gson().toJson(songs.map { it.songId })
-
-            val workRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
-                .addTag("download")
-                .addTag(uniqueWorkName)
-                .setInputData(
-                    androidx.work.Data.Builder()
-                        .putString(DownloadWorker.KEY_SONG_IDS, songIdsJson)
-                        .putString(DownloadWorker.KEY_PLAYLIST_NAME, playlistName)
-                        .putString(DownloadWorker.KEY_DOWNLOAD_PATH, downloadPath)
-                        .build()
-                )
-                .build()
-
             val wm = WorkManager.getInstance(context)
-            wm.enqueueUniqueWork(uniqueWorkName, ExistingWorkPolicy.REPLACE, workRequest)
-            Timber.tag("DownloadManager").d("Work enqueued: name=$uniqueWorkName, songs=${songs.size}")
+            songs.forEach { song ->
+                val uniqueWorkName = SONG_WORK_NAME_PREFIX + song.songId
+                val workRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
+                    .addTag("download")
+                    .addTag(uniqueWorkName)
+                    .setInputData(
+                        androidx.work.Data.Builder()
+                            .putString(DownloadWorker.KEY_SONG_IDS, Gson().toJson(listOf(song.songId)))
+                            .putString(DownloadWorker.KEY_PLAYLIST_NAME, playlistName)
+                            .putString(DownloadWorker.KEY_DOWNLOAD_PATH, downloadPath)
+                            .build()
+                    )
+                    .build()
+                wm.enqueueUniqueWork(uniqueWorkName, ExistingWorkPolicy.REPLACE, workRequest)
+            }
+            Timber.tag("DownloadManager").d("Song work enqueued: playlist=$playlistId, songs=${songs.size}")
         }
     }
 
     fun pauseSong(context: Context, songId: String) {
-        kotlinx.coroutines.runBlocking {
+        WorkManager.getInstance(context).cancelUniqueWork(SONG_WORK_NAME_PREFIX + songId)
+        managementScope.launch {
             AppDatabase.getDatabase(context).downloadDao().updateStatus(songId, DownloadStatus.PAUSED)
         }
     }
@@ -107,7 +110,8 @@ object DownloadManager {
                     songArtist = task.songArtist.split("/").map { it.trim() }.filter { it.isNotBlank() },
                     songAlbum = task.songAlbum,
                     songCover = task.songCover,
-                    duration = 0
+                    duration = 0,
+                    quality = task.quality,
                 )
             ),
             playlistName = playlistName,
@@ -117,14 +121,42 @@ object DownloadManager {
     }
 
     fun deleteTask(context: Context, songId: String) {
-        kotlinx.coroutines.runBlocking {
-            AppDatabase.getDatabase(context).downloadDao().delete(songId)
+        WorkManager.getInstance(context).cancelUniqueWork(SONG_WORK_NAME_PREFIX + songId)
+        managementScope.launch {
+            val db = AppDatabase.getDatabase(context)
+            val song = db.songDao().getSong(songId).first()
+            song?.path?.let { path ->
+                runCatching {
+                    if (path.startsWith("content://")) {
+                        context.contentResolver.delete(android.net.Uri.parse(path), null, null)
+                    } else {
+                        File(path).takeIf(File::exists)?.delete()
+                    }
+                }.onFailure { Timber.w(it, "Unable to remove downloaded file for %s", songId) }
+            }
+            db.songDao().updatePath(songId, null)
+            db.downloadDao().delete(songId)
         }
     }
 
     fun deleteAll(context: Context) {
-        kotlinx.coroutines.runBlocking {
-            AppDatabase.getDatabase(context).downloadDao().deleteAll()
+        WorkManager.getInstance(context).cancelAllWorkByTag("download")
+        managementScope.launch {
+            val db = AppDatabase.getDatabase(context)
+            db.downloadDao().getAll().first().forEach { task ->
+                val song = db.songDao().getSong(task.songId).first()
+                song?.path?.let { path ->
+                    runCatching {
+                        if (path.startsWith("content://")) {
+                            context.contentResolver.delete(android.net.Uri.parse(path), null, null)
+                        } else {
+                            File(path).takeIf(File::exists)?.delete()
+                        }
+                    }.onFailure { Timber.w(it, "Unable to remove downloaded file for %s", task.songId) }
+                }
+                db.songDao().updatePath(task.songId, null)
+            }
+            db.downloadDao().deleteAll()
         }
     }
 

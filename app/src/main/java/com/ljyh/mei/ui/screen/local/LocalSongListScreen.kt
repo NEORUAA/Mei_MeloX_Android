@@ -70,8 +70,11 @@ import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistTrackList
+import com.ljyh.mei.ui.glass.GlassIconButton
+import com.ljyh.mei.ui.glass.IosTopToolbar
+import com.ljyh.mei.ui.glass.SfIcon
+import androidx.compose.ui.platform.LocalDensity
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,8 +102,12 @@ fun LocalSongListScreen(
 
     val lazyListState = rememberLazyListState()
     val device = rememberDeviceInfo()
-    val showTopBarTitle by remember {
-        derivedStateOf { lazyListState.firstVisibleItemIndex > 0 }
+    val collapseDistancePx = with(LocalDensity.current) { 180.dp.toPx() }
+    val topBarCollapseProgress by remember {
+        derivedStateOf {
+            if (lazyListState.firstVisibleItemIndex > 0) 1f
+            else (lazyListState.firstVisibleItemScrollOffset / collapseDistancePx).coerceIn(0f, 1f)
+        }
     }
 
     fun buildQueue(index: Int = 0): ListQueue {
@@ -121,37 +128,14 @@ fun LocalSongListScreen(
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        AnimatedVisibility(
-                            visible = showTopBarTitle,
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
-                            Text(
-                                text = title,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                IosTopToolbar(
+                    title = title,
+                    collapseProgress = topBarCollapseProgress,
+                    navigation = {
+                        GlassIconButton(onClick = navController::navigateUp) {
+                            SfIcon("chevron.left", null, mirrored = true)
                         }
                     },
-                    navigationIcon = {
-                        com.ljyh.mei.ui.component.IconButton(
-                            onClick = navController::navigateUp,
-                            onLongClick = navController::backToMain
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Rounded.ArrowBack,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
-                    )
                 )
             }
         ) { padding ->

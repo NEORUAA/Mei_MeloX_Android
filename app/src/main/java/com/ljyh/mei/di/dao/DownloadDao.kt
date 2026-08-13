@@ -10,6 +10,23 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DownloadDao {
+    @Query(
+        """
+        INSERT INTO playback_count(songId, playCount, lastPlayedAt)
+        VALUES(:songId, 1, :time)
+        ON CONFLICT(songId) DO UPDATE SET
+            playCount = playCount + 1,
+            lastPlayedAt = :time
+        """,
+    )
+    suspend fun recordPlayback(songId: String, time: Long = System.currentTimeMillis())
+
+    @Query("SELECT playCount FROM playback_count WHERE songId = :songId")
+    suspend fun playbackCount(songId: String): Int?
+
+    @Query("DELETE FROM playback_count")
+    suspend fun clearPlaybackCounts()
+
     @Query("SELECT * FROM download_task WHERE songId = :songId")
     suspend fun getBySongId(songId: String): DownloadTask?
 

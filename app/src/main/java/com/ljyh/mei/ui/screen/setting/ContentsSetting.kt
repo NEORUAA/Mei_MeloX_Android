@@ -1,142 +1,184 @@
 package com.ljyh.mei.ui.screen.setting
 
-import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Cookie
-import androidx.compose.material.icons.rounded.TipsAndUpdates
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.ljyh.mei.constants.CookieKey
-import com.ljyh.mei.constants.QqTimeout
-import com.ljyh.mei.constants.QqTimeoutKey
-import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.ui.ShareViewModel
-import com.ljyh.mei.ui.component.EditTextPreference
-import com.ljyh.mei.ui.component.IconButton
-import com.ljyh.mei.ui.component.ListPreference
-import com.ljyh.mei.ui.component.PreferenceEntry
-import com.ljyh.mei.ui.component.PreferenceGroupTitle
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.ljyh.mei.R
+import com.ljyh.mei.constants.CloudMusicEnabledKey
+import com.ljyh.mei.constants.CloudMusicTabEnabledKey
+import com.ljyh.mei.constants.DownloadsEnabledKey
+import com.ljyh.mei.constants.DownloadsTabEnabledKey
+import com.ljyh.mei.constants.ListeningHistoryEnabledKey
+import com.ljyh.mei.constants.ListeningHistoryTabEnabledKey
+import com.ljyh.mei.constants.NavigationTabOrderKey
+import com.ljyh.mei.constants.PodcastsEnabledKey
+import com.ljyh.mei.constants.PodcastsTabEnabledKey
+import com.ljyh.mei.ui.glass.GlassButton
+import com.ljyh.mei.ui.glass.GlassCard
+import com.ljyh.mei.ui.glass.GlassEmphasis
+import com.ljyh.mei.ui.glass.GlassIconButton
+import com.ljyh.mei.ui.glass.GlassToggle
+import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.SfIcon
+import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
-import com.ljyh.mei.ui.screen.backToMain
+import com.ljyh.mei.ui.navigation.ContentFeature
+import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.utils.rememberPreference
+
+private data class ContentFeatureSetting(
+    val feature: ContentFeature,
+    val titleRes: Int,
+    val descriptionRes: Int,
+    val symbol: String,
+)
+
+private val contentFeatureSettings = listOf(
+    ContentFeatureSetting(ContentFeature.Podcasts, R.string.content_podcasts, R.string.content_podcasts_description, "dot.radiowaves.left.and.right"),
+    ContentFeatureSetting(ContentFeature.Downloads, R.string.content_downloads, R.string.content_downloads_description, "arrow.down.circle"),
+    ContentFeatureSetting(ContentFeature.CloudMusic, R.string.content_cloud_music, R.string.content_cloud_music_description, "icloud"),
+    ContentFeatureSetting(ContentFeature.ListeningHistory, R.string.content_history, R.string.content_history_description, "clock"),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContentsSetting(
-    scrollBehavior: TopAppBarScrollBehavior,
-    viewModel: ShareViewModel = hiltViewModel()
+    @Suppress("UNUSED_PARAMETER") scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val navController = LocalNavController.current
-    val context = LocalContext.current
-    val (cookie, onCookie) = rememberPreference(
-        CookieKey,
-        defaultValue = ""
+    val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    val (podcasts, setPodcasts) = rememberPreference(PodcastsEnabledKey, true)
+    val (downloads, setDownloads) = rememberPreference(DownloadsEnabledKey, true)
+    val (cloud, setCloud) = rememberPreference(CloudMusicEnabledKey, true)
+    val (history, setHistory) = rememberPreference(ListeningHistoryEnabledKey, true)
+    val (podcastsTab, setPodcastsTab) = rememberPreference(PodcastsTabEnabledKey, false)
+    val (downloadsTab, setDownloadsTab) = rememberPreference(DownloadsTabEnabledKey, false)
+    val (cloudTab, setCloudTab) = rememberPreference(CloudMusicTabEnabledKey, false)
+    val (historyTab, setHistoryTab) = rememberPreference(ListeningHistoryTabEnabledKey, false)
+    val (order, setOrder) = rememberPreference(
+        NavigationTabOrderKey,
+        Index.DefaultOrder.joinToString(",", transform = Index::name),
     )
-    var userName by remember { mutableStateOf("") }
-    val userAccount by viewModel.userAccount.collectAsState()
-
-    userName = when (val result = userAccount) {
-        is Resource.Success -> {
-            if(result.data.code == 200 && result.data.profile != null){
-                Toast.makeText(context, "看上去还不错哦", Toast.LENGTH_SHORT).show()
-                result.data.profile.nickname
-            }else{
-                Toast.makeText(context, "cookie 可能存在错误", Toast.LENGTH_SHORT).show()
-                "error"
-            }
+    val enabledByFeature = mapOf(
+        ContentFeature.Podcasts to podcasts,
+        ContentFeature.Downloads to downloads,
+        ContentFeature.CloudMusic to cloud,
+        ContentFeature.ListeningHistory to history,
+    )
+    val setFeature: (ContentFeature, Boolean) -> Unit = { feature, value ->
+        when (feature) {
+            ContentFeature.Podcasts -> setPodcasts(value)
+            ContentFeature.Downloads -> setDownloads(value)
+            ContentFeature.CloudMusic -> setCloud(value)
+            ContentFeature.ListeningHistory -> setHistory(value)
         }
-
-        is Resource.Error -> "error"
-        Resource.Loading -> "~~~"
     }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("内容设置") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
+    val tabEnabled: (ContentFeature) -> Boolean = {
+        when (it) {
+            ContentFeature.Podcasts -> podcastsTab
+            ContentFeature.Downloads -> downloadsTab
+            ContentFeature.CloudMusic -> cloudTab
+            ContentFeature.ListeningHistory -> historyTab
         }
-    ) { paddingValues ->
-        Column(
-            Modifier
-                .padding(paddingValues)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .verticalScroll(rememberScrollState())
-        ) {
-            PreferenceGroupTitle(
-                title = "MUSIC"
-            )
+    }
+    val setTabEnabled: (ContentFeature, Boolean) -> Unit = { feature, value ->
+        when (feature) {
+            ContentFeature.Podcasts -> setPodcastsTab(value)
+            ContentFeature.Downloads -> setDownloadsTab(value)
+            ContentFeature.CloudMusic -> setCloudTab(value)
+            ContentFeature.ListeningHistory -> setHistoryTab(value)
+        }
+    }
 
-            EditTextPreference(
-                title = { Text("网易云Cookie: MUSIC_U") },
-                icon = { Icon(Icons.Rounded.Cookie, "网易云Cookie: MUSIC_U") },
-                value = cookie,
-                onValueChange = onCookie
-            )
-
-            PreferenceEntry(
-                title = { Text("测试Cookie") },
-                description = userName,
-                icon = { Icon(Icons.Rounded.TipsAndUpdates, "测试 Cookie") },
-                onClick = {
-                    if (cookie == "") {
-                        Toast.makeText(context, "还没有填写cookie", Toast.LENGTH_SHORT).show()
-                    } else {
-                        viewModel.getUserAccount()
+    IosPinnedListPage(
+        title = stringResource(R.string.content_settings),
+        onNavigateBack = navController::navigateUp,
+        bottomPadding = insets.calculateBottomPadding(),
+    ) {
+        item {
+            SettingsGroup(stringResource(R.string.content_modules)) {
+                contentFeatureSettings.forEach { setting ->
+                    val enabled = enabledByFeature.getValue(setting.feature)
+                    GlassCard(Modifier.fillMaxWidth(), onClick = { setFeature(setting.feature, !enabled) }) {
+                        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            SfIcon(setting.symbol, null)
+                            Column(Modifier.weight(1f)) {
+                                Text(stringResource(setting.titleRes), fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(setting.descriptionRes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            GlassToggle(enabled, onCheckedChange = { setFeature(setting.feature, it) })
+                        }
                     }
                 }
-            )
-
-            val (qqTimeout, onQqTimeoutChange) = rememberPreference(
-                QqTimeoutKey,
-                defaultValue = QqTimeout.Sec8.name
-            )
-            val currentTimeout = try { QqTimeout.valueOf(qqTimeout) } catch (_: Exception) { QqTimeout.Sec8 }
-
-            ListPreference(
-                title = { Text("QQ 超时") },
-                description = null,
-                icon = { Icon(Icons.Rounded.TipsAndUpdates, "QQ 超时") },
-                selectedValue = currentTimeout,
-                values = QqTimeout.entries.toList(),
-                valueText = { it.label },
-                onValueSelected = { onQqTimeoutChange(it.name) }
-            )
+            }
+        }
+        item {
+            SettingsGroup(stringResource(R.string.content_tab_bar)) {
+                contentFeatureSettings.forEach { setting ->
+                    val moduleEnabled = enabledByFeature.getValue(setting.feature)
+                    val enabled = tabEnabled(setting.feature)
+                    GlassCard(modifier = Modifier.fillMaxWidth(), onClick = if (moduleEnabled) ({ setTabEnabled(setting.feature, !enabled) }) else null) {
+                        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            SfIcon(setting.symbol, null)
+                            Text(stringResource(setting.titleRes), modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                            GlassToggle(checked = enabled && moduleEnabled, onCheckedChange = { setTabEnabled(setting.feature, it) }, enabled = moduleEnabled)
+                        }
+                    }
+                }
+                Text(stringResource(R.string.content_tab_order_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(14.dp))
+            }
+        }
+        val currentOrder = order.split(',')
+            .mapNotNull { name -> Index.entries.firstOrNull { it.name == name } }
+            .distinct()
+            .toMutableList()
+            .apply { Index.entries.forEach { if (it !in this) add(it) } }
+        val reorderable = currentOrder.filter {
+            it != Index.Home && it != Index.Settings && it != Index.Search
+        }
+        item {
+            SettingsGroup(stringResource(R.string.content_tab_order)) {
+                reorderable.forEachIndexed { visibleIndex, item ->
+                    val itemIndex = currentOrder.indexOf(item)
+                    GlassCard(Modifier.fillMaxWidth()) {
+                        Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            SfIcon(item.symbol, null)
+                            Text(stringResource(item.labelRes), modifier = Modifier.weight(1f).padding(horizontal = 12.dp))
+                            GlassButton(onClick = {
+                                if (itemIndex > 1) {
+                                    currentOrder[itemIndex] = currentOrder[itemIndex - 1].also { currentOrder[itemIndex - 1] = item }
+                                    setOrder(currentOrder.joinToString(",", transform = Index::name))
+                                }
+                            }, enabled = visibleIndex > 0, emphasis = GlassEmphasis.Regular) { SfIcon("chevron.up", stringResource(R.string.move_up), size = 16.dp) }
+                            GlassButton(onClick = {
+                                if (itemIndex in 1 until currentOrder.lastIndex - 1) {
+                                    currentOrder[itemIndex] = currentOrder[itemIndex + 1].also { currentOrder[itemIndex + 1] = item }
+                                    setOrder(currentOrder.joinToString(",", transform = Index::name))
+                                }
+                            }, enabled = visibleIndex < reorderable.lastIndex, emphasis = GlassEmphasis.Regular, modifier = Modifier.padding(start = 6.dp)) {
+                                SfIcon("chevron.down", stringResource(R.string.move_down), size = 16.dp)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

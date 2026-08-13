@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -25,12 +26,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import com.ljyh.mei.constants.PlaylistTrackTableHeaderKey
 import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.ui.glass.IosGroupedList
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.component.item.Track
 import com.ljyh.mei.utils.rememberPreference
 
@@ -100,8 +104,11 @@ fun PlaylistTrackList(
                         }
                     }
 
-                    is LoadState.Error -> {
-                        item { Text("加载更多失败，点击重试") }
+                    is LoadState.Error -> item {
+                        Text(
+                            androidx.compose.ui.res.stringResource(com.ljyh.mei.R.string.load_failed),
+                            color = LocalGlassColors.current.secondaryContent,
+                        )
                     }
 
                     else -> {}
@@ -122,6 +129,68 @@ fun PlaylistTrackList(
 
 }
 
+/**
+ * Adds playlist rows directly to a parent lazy list. The detail page uses this instead of
+ * nesting [PlaylistTrackList] in another LazyColumn, which keeps Paging append and the pinned
+ * iOS toolbar working together.
+ */
+fun LazyListScope.playlistTrackItems(
+    pagingItems: LazyPagingItems<MediaMetadata>?,
+    staticTracks: List<MediaMetadata>,
+    isTablet: Boolean,
+    showTableHeader: Boolean,
+    onTrackClick: (MediaMetadata, Int) -> Unit,
+    onMoreClick: (MediaMetadata) -> Unit,
+) {
+    item(key = "playlist-tracks") {
+        IosGroupedList {
+            if (isTablet && showTableHeader) {
+                TrackTableHeader()
+            }
+
+            val itemCount = pagingItems?.itemCount ?: staticTracks.size
+            repeat(itemCount) { index ->
+                val track = pagingItems?.get(index) ?: staticTracks.getOrNull(index)
+                if (track != null) {
+                    Track(
+                        track = track,
+                        index = index,
+                        isTablet = isTablet,
+                        onClick = { onTrackClick(track, index) },
+                        onMoreClick = { onMoreClick(track) },
+                    )
+                    if (index < itemCount - 1) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = if (isTablet) 56.dp else 64.dp),
+                            thickness = 0.5.dp,
+                            color = LocalGlassColors.current.separator,
+                        )
+                    }
+                }
+            }
+
+            if (pagingItems != null) {
+                when (pagingItems.loadState.append) {
+                    is LoadState.Loading -> Box(
+                        Modifier.fillMaxWidth().padding(18.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                    }
+
+                    is LoadState.Error -> Text(
+                        text = androidx.compose.ui.res.stringResource(com.ljyh.mei.R.string.load_failed),
+                        color = LocalGlassColors.current.secondaryContent,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
+
+                    else -> Unit
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 fun TrackTableHeader() {
@@ -137,13 +206,13 @@ fun TrackTableHeader() {
 
             // 这里的 paddingStart 必须和 Track 里的封面宽度 + 间距对齐
             // 40.dp (封面) + 16.dp (间距) = 56.dp
-            Text("标题", Modifier.weight(4f).padding(start = 56.dp),
+            Text(stringResource(com.ljyh.mei.R.string.playlist_table_title), Modifier.weight(4f).padding(start = 56.dp),
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            Text("专辑", Modifier.weight(3f).padding(horizontal = 8.dp),
+            Text(stringResource(com.ljyh.mei.R.string.playlist_table_album), Modifier.weight(3f).padding(horizontal = 8.dp),
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            Text("时长", Modifier.width(60.dp), textAlign = TextAlign.End,
+            Text(stringResource(com.ljyh.mei.R.string.playlist_table_duration), Modifier.width(60.dp), textAlign = TextAlign.End,
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             Spacer(Modifier.width(40.dp))

@@ -6,17 +6,23 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.ljyh.mei.R
 import com.ljyh.mei.constants.DownloadQuality
+import com.ljyh.mei.ui.glass.GlassButton
+import com.ljyh.mei.ui.glass.GlassEmphasis
+import com.ljyh.mei.ui.glass.IosAlertSurface
+import com.ljyh.mei.ui.glass.IosGroupedList
+import com.ljyh.mei.ui.glass.IosListRow
 
 @Composable
 fun DownloadConfirmDialog(
@@ -27,57 +33,44 @@ fun DownloadConfirmDialog(
     onGoToSettings: () -> Unit,
     onGoToDownloadManage: () -> Unit = {}
 ) {
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text("确认下载") },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "当前音质",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        IosAlertSurface(
+            title = stringResource(R.string.download_confirm_title),
+            modifier = Modifier.padding(horizontal = 24.dp),
+        ) {
+            IosGroupedList {
+                IosListRow(
+                    title = stringResource(R.string.download_current_quality),
+                    subtitle = currentQuality.description,
+                    detail = currentQuality.label,
+                    showTopSeparator = false,
                 )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = currentQuality.label,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = currentQuality.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-                Text(
-                    text = "保存位置",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = downloadPath,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                IosListRow(
+                    title = stringResource(R.string.download_save_location),
+                    subtitle = downloadPath,
                 )
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("开始下载")
+            Row(
+                Modifier.fillMaxWidth().padding(top = 12.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+            ) {
+                GlassButton(onClick = onGoToSettings, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.download_change_settings))
+                }
+                GlassButton(onClick = onGoToDownloadManage, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.download_view_queue))
+                }
             }
-        },
-        dismissButton = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onGoToSettings) {
-                    Text("修改设置")
-                }
-                TextButton(onClick = onGoToDownloadManage) {
-                    Text("查看队列")
-                }
+            GlassButton(
+                onClick = onConfirm,
+                emphasis = GlassEmphasis.Prominent,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) {
+                Text(stringResource(R.string.download_start))
             }
         }
-    )
+    }
 }

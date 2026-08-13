@@ -7,6 +7,7 @@ import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.playlist.AddToPlaylistSheet
+import com.ljyh.mei.ui.component.playlist.CreatePlaylistSheet
 import com.ljyh.mei.ui.component.playlist.TrackActionMenu
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
@@ -75,7 +76,16 @@ fun PlaylistActionOverlay(
             )
         }
 
-        // 可以在这里扩展 OverlayState.CreatePlaylist 等
+        OverlayState.CreatePlaylist -> {
+            CreatePlaylistSheet(
+                onDismiss = onDismiss,
+                onConfirm = { name, privacy ->
+                    viewModel.createPlaylist(name, privacy)
+                    onDismiss()
+                },
+            )
+        }
+
         else -> {}
     }
 }

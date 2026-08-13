@@ -8,17 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Repeat
-import androidx.compose.material.icons.rounded.RepeatOne
-import androidx.compose.material.icons.rounded.Replay
-import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -34,6 +23,7 @@ import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.PlayMode
 import com.ljyh.mei.playback.PlayerConnection
+import com.ljyh.mei.ui.glass.SfIcon
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -64,16 +54,17 @@ fun PlayerTableControls(
                         .clip(RoundedCornerShape(4.dp)),
                     onClick = { playerConnection.switchPlayMode() }
                 ) {
-                    val icon = when (playMode) {
-                        PlayMode.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne // 单曲循环
-                        PlayMode.REPEAT_MODE_ALL -> Icons.Rounded.Repeat    // 列表循环
-                        PlayMode.SHUFFLE_MODE_ALL -> Icons.Rounded.Shuffle  // 随机播放
+                    val systemName = when (playMode) {
+                        PlayMode.REPEAT_MODE_ONE -> "repeat.1"
+                        PlayMode.REPEAT_MODE_ALL -> "repeat"
+                        PlayMode.SHUFFLE_MODE_ALL -> "shuffle"
                     }
-                    AnimatedContent(targetState = icon, label = "PlayModeIcon") { targetIcon ->
-                        Icon(
-                            imageVector = targetIcon,
+                    AnimatedContent(targetState = systemName, label = "PlayModeIcon") { target ->
+                        SfIcon(
+                            systemName = target,
                             contentDescription = "播放模式",
-                            tint = Color.White
+                            tint = Color.White,
+                            size = 22.dp,
                         )
                     }
                 }
@@ -90,13 +81,11 @@ fun PlayerTableControls(
                         .align(Alignment.Center)
                         .clip(RoundedCornerShape(4.dp))
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.SkipPrevious,
+                    SfIcon(
+                        systemName = "backward.fill",
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.align(Alignment.Center)
-                            .size(48.dp)
-
+                        size = 30.dp,
                     )
                 }
             }
@@ -111,18 +100,13 @@ fun PlayerTableControls(
                             playerConnection.player.togglePlayPause()
                         }
                     },
-                    modifier = Modifier
-                        .size(84.dp)
-                        .align(Alignment.Center)
-                        .clip(RoundedCornerShape(4.dp))
+                    modifier = Modifier.size(84.dp).align(Alignment.Center).clip(RoundedCornerShape(4.dp)),
                 ) {
-                    Icon(
-                        imageVector = if (playbackState == STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    SfIcon(
+                        systemName = if (playbackState == STATE_ENDED) "arrow.counterclockwise" else if (isPlaying) "pause.fill" else "play.fill",
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(84.dp)
+                        size = 48.dp,
                     )
                 }
             }
@@ -138,12 +122,11 @@ fun PlayerTableControls(
                         .align(Alignment.Center)
                         .clip(RoundedCornerShape(4.dp))
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.SkipNext,
+                    SfIcon(
+                        systemName = "forward.fill",
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.align(Alignment.Center)
-                            .size(48.dp)
+                        size = 30.dp,
                     )
                 }
             }
@@ -156,10 +139,10 @@ fun PlayerTableControls(
                         .align(Alignment.Center)
                         .clip(RoundedCornerShape(4.dp))
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
+                    SfIcon(
+                        systemName = "music.note.list",
                         contentDescription = "播放队列",
-                        tint = Color.White
+                        tint = Color.White,
                     )
                 }
             }

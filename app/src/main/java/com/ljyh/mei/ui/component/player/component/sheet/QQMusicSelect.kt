@@ -15,15 +15,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,13 +37,13 @@ import com.ljyh.mei.data.model.qq.u.SearchResult
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.player.PlayerViewModel
+import com.ljyh.mei.ui.glass.IosModalSheet
 import com.ljyh.mei.utils.TimeUtils.formatDuration
 import com.ljyh.mei.utils.TimeUtils.formatSeconds
 import timber.log.Timber
 import kotlin.math.abs
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QQMusicSelectSheet(
     viewmodel: PlayerViewModel,
@@ -55,12 +51,9 @@ fun QQMusicSelectSheet(
     onDismiss: () -> Unit,
 ) {
     val searchNew by viewmodel.searchResult.collectAsState()
-    val sheetState = rememberModalBottomSheetState()
-    ModalBottomSheet(
+    IosModalSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = MaterialTheme.colorScheme.surface,
+        skipPartiallyExpanded = false,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             CurrentReferenceHeader(mediaMetadata.title, mediaMetadata.artists[0].name, mediaMetadata.duration)

@@ -102,6 +102,15 @@ object CacheManager {
         return cachedBytes >= contentLength
     }
 
+    @OptIn(UnstableApi::class)
+    fun clear() {
+        synchronized(LOCK) {
+            simpleCache?.keys?.toList()?.forEach { key ->
+                runCatching { simpleCache?.removeResource(key) }
+            }
+        }
+    }
+
     /**
      * 释放缓存资源。应该在应用进程结束时调用。
      */

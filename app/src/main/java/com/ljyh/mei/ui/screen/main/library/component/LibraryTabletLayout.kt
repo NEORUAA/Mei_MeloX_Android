@@ -304,7 +304,7 @@ fun QuickActionGrid() {
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         QuickActionItem(Icons.Rounded.Folder, "Local", onClick = { Screen.LocalMusic.navigate(navController) })
-        QuickActionItem(Icons.Rounded.Cloud, "Cloud", onClick = {})
+        QuickActionItem(Icons.Rounded.Cloud, "Cloud", onClick = { Screen.CloudMusic.navigate(navController) })
         QuickActionItem(
             Icons.Rounded.Download, "Down",
             onClick = { Screen.DownloadManage.navigate(navController) }

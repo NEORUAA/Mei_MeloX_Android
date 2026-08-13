@@ -207,7 +207,8 @@ fun PlaylistScreen(
                         songAlbum = track.album.title,
                         songCover = track.coverUrl,
                         duration = track.duration,
-                        fileType = encodeType
+                        fileType = encodeType,
+                        quality = downloadQuality.text,
                     )
                 } else null
             }
@@ -313,6 +314,7 @@ fun PlaylistScreen(
             // 收藏按钮逻辑
             headerActionIcon = if (isSubscribed) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
             headerActionLabel = if (isSubscribed) "取消收藏" else "收藏",
+            isSubscribed = isSubscribed,
             onHeaderAction = {
                 if(uiData.isCreator){
                     Toast.makeText(context, "不能收藏自己创建的歌单", Toast.LENGTH_SHORT).show()
@@ -330,8 +332,6 @@ fun PlaylistScreen(
                 }
             },
 
-            // 下载
-            onDownload = { handleDownload() },
             onTrackDownload = { track -> handleTrackDownload(track) },
 
             // 播放全部

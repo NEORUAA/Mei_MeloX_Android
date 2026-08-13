@@ -3,6 +3,7 @@ package com.ljyh.mei.ui.screen.main.library
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -17,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.ljyh.mei.constants.CookieKey
@@ -33,6 +35,7 @@ import com.ljyh.mei.ui.screen.main.library.component.ImmersiveBackground
 import com.ljyh.mei.ui.screen.main.library.component.LibraryMobileLayout
 import com.ljyh.mei.ui.screen.main.library.component.LibraryTabletLayout
 import com.ljyh.mei.ui.screen.main.library.component.PhotoPickerSheet
+import com.ljyh.mei.ui.navigation.LibraryPage
 import com.ljyh.mei.utils.rememberPreference
 
 @Composable
@@ -44,6 +47,8 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
     val localPlaylists by viewModel.localPlaylists.collectAsState()
     val albumList by viewModel.albumList.collectAsState()
     val userSubcount by viewModel.userSubcount.collectAsState()
+    val networkPlaylists by viewModel.networkPlaylistsState.collectAsState()
+    val likedSongs by viewModel.likedSongs.collectAsState()
 
     // Preferences
     val (userId, setUserId) = rememberPreference(UserIdKey, "")
@@ -54,14 +59,16 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
 
     // State
     var showPhotoPicker by remember { mutableStateOf(false) }
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedPage by remember { mutableStateOf(LibraryPage.Songs) }
     var subPlaylistCount by remember { mutableIntStateOf(0) }
-    val tabTitles = listOf("创建歌单", "收藏歌单", "收藏专辑")
-    val listState = rememberLazyListState()
 
-    val (createdPlaylists, collectedPlaylists) = remember(localPlaylists, userId) {
+    val likedPlaylistId = (networkPlaylists as? Resource.Success)?.data?.playlist?.firstOrNull()?.id
+    val visiblePlaylists = remember(localPlaylists, likedPlaylistId) {
+        localPlaylists.filterNot { it.id == likedPlaylistId?.toString() }
+    }
+    val (createdPlaylists, collectedPlaylists) = remember(visiblePlaylists, userId) {
         if (userId.isEmpty()) Pair(emptyList(), emptyList())
-        else localPlaylists.partition { it.author == userId }
+        else visiblePlaylists.partition { it.author == userId }
     }
 
     // --- 数据同步逻辑 ---
@@ -100,17 +107,16 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
         }
     }
 
+    LaunchedEffect(likedPlaylistId) {
+        likedPlaylistId?.let(viewModel::getLikedSongs)
+    }
+
     LaunchedEffect(subPlaylistCount) {
         if (userId.isNotEmpty() && localPlaylists.size != subPlaylistCount && subPlaylistCount != 0)
             viewModel.syncUserPlaylists(userId, subPlaylistCount)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-
-        // 1. 通用背景
-        if (userId.isNotEmpty() && userPhoto.isNotEmpty()) {
-            ImmersiveBackground(userPhoto)
-        }
 
         if (userId.isNotEmpty()) {
             if (device.isTablet && device.isLandscape) {
@@ -119,12 +125,9 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
                     userNickname = userNickname,
                     userAvatarUrl = userAvatarUrl,
                     userPhoto = userPhoto,
-                    selectedTabIndex = selectedTabIndex,
-                    onTabSelect = {selectedTabIndex = it},
-                    onAvatarClick = {
-                        viewModel.getPhotoAlbum(userId)
-                        showPhotoPicker = true
-                    },
+                    selectedTabIndex = if (selectedPage == LibraryPage.Playlists) 1 else 0,
+                    onTabSelect = { selectedPage = if (it == 1) LibraryPage.Playlists else LibraryPage.Songs },
+                    onAvatarClick = { Screen.AccountHome.navigate(navController) },
                     createdPlaylists = createdPlaylists,
                     collectedPlaylists = collectedPlaylists,
                     albums = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.map { it.toAlbum() } else emptyList(),
@@ -138,25 +141,20 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
             } else {
                 // 手机布局 (保持你原来的代码逻辑)
                 LibraryMobileLayout(
-                    userNickname = userNickname,
-                    userAvatarUrl = userAvatarUrl,
                     userPhoto = userPhoto,
-                    selectedTabIndex = selectedTabIndex,
-                    onTabSelect = {selectedTabIndex = it},
-                    tabTitles = tabTitles,
+                    selectedPage = selectedPage,
+                    onPageSelect = { selectedPage = it },
                     createdPlaylists = createdPlaylists,
                     collectedPlaylists = collectedPlaylists,
                     albums = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.map { it.toAlbum() } else emptyList(),
-                    onAvatarClick = {
-                        viewModel.getPhotoAlbum(userId)
-                        showPhotoPicker = true
-                    },
                     onPlaylistClick = { id->
                         Screen.PlayList.navigate(navController) { addPath(id) }
                     },
                     onAlbumClick = { id->
                         Screen.Album.navigate(navController) { addPath(id) }
-                    }
+                    },
+                    userId = userId,
+                    likedSongs = likedSongs,
                 )
             }
 
@@ -180,10 +178,20 @@ fun EmptyLoginState(navController: NavController) {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Button(
-            onClick = { Screen.ContentSettings.navigate(navController) }
+        com.ljyh.mei.ui.glass.GlassCard(
+            modifier = Modifier.padding(24.dp),
+            onClick = { Screen.NeteaseLogin.navigate(navController) },
         ) {
-            Text("去填写 Cookie 以同步数据")
+            androidx.compose.foundation.layout.Column(
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                com.ljyh.mei.ui.glass.SfIcon("person.crop.circle", null, size = 42.dp)
+                Text(
+                    androidx.compose.ui.res.stringResource(com.ljyh.mei.R.string.library_sign_in),
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+            }
         }
     }
 }

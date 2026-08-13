@@ -1,12 +1,12 @@
 @file:Suppress("UnstableApiUsage")
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 //    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
-
-    kotlin("plugin.serialization") version "2.0.0"
+    alias(libs.plugins.kotlin.serialization)
 
 }
 
@@ -18,11 +18,10 @@ android {
     compileSdk = 37
     defaultConfig {
         applicationId = "com.ljyh.mei"
-        minSdk = 29
+        minSdk = 33
         targetSdk = 37
         versionCode = 1
         versionName = "1.53.3"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -135,8 +134,8 @@ dependencies {
     }
     implementation(libs.logging.interceptor)
     // implementation(kotlin("reflect"))
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.21")
-    ksp("org.jetbrains.kotlin:kotlin-metadata-jvm:2.3.20")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.3.21")
+    ksp("org.jetbrains.kotlin:kotlin-metadata-jvm:2.3.21")
 
 
     // 列表拖拽
@@ -148,6 +147,9 @@ dependencies {
     implementation(libs.zoomable)
     implementation(libs.timber)
     implementation(libs.compose.cloudy)
+    implementation(libs.backdrop)
+    implementation(libs.shapes)
+    implementation(libs.onnxruntime.android)
 
 
 }

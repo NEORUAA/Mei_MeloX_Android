@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".ui.glass.SfSymbolAuditActivity"
+            android:exported="true"
+            android:label="SF Symbols Audit"
+            android:theme="@style/Theme.Music" />
+    </application>
+</manifest>

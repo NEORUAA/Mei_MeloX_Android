@@ -9,11 +9,9 @@ import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.DraggableState
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -60,6 +58,7 @@ fun BottomSheet(
     backgroundColor: Color = MaterialTheme.colorScheme.surface,
     onDismiss: (() -> Unit)? = null,
     onHorizontalSwipe: ((direction: HorizontalSwipeDirection) -> Unit)? = null,
+    backgroundContent: @Composable BoxScope.() -> Unit = {},
     collapsedContent: @Composable BoxScope.() -> Unit,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -119,8 +118,16 @@ fun BottomSheet(
                     topEnd = if (!state.isExpanded) 16.dp else 0.dp
                 )
             )
-            .background(backgroundColor)
+            // The collapsed player is a floating liquid-glass capsule. Keep the sheet host
+            // transparent at that anchor so the page remains visible around it, then restore
+            // the full player background continuously while expanding.
+            .background(backgroundColor.copy(alpha = state.progress.coerceIn(0f, 1f)))
     ) {
+        // Player backgrounds that need native-surface warm-up stay composed at the collapsed
+        // anchor. Their own alpha controls visibility; expanded foreground content can still
+        // be deferred below.
+        backgroundContent()
+
         if (!state.isCollapsed && !state.isDismissed) {
             BackHandler(onBack = state::collapseSoft)
         }
@@ -142,11 +149,6 @@ fun BottomSheet(
                     .graphicsLayer {
                         alpha = 1f - (state.progress * 4).coerceAtMost(1f)
                     }
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = state::expandSoft
-                    )
                     .fillMaxWidth()
                     .height(state.collapsedBound),
                 content = collapsedContent
@@ -161,7 +163,7 @@ class BottomSheetState(
     private val coroutineScope: CoroutineScope,
     private val animatable: Animatable<Dp, AnimationVector1D>,
     private val onAnchorChanged: (Int) -> Unit,
-    val collapsedBound: Dp
+    val collapsedBound: Dp,
 ) : DraggableState by draggableState {
     val dismissedBound: Dp
         get() = animatable.lowerBound!!
@@ -359,7 +361,7 @@ fun rememberBottomSheetState(
             onAnchorChanged = { previousAnchor = it },
             coroutineScope = coroutineScope,
             animatable = animatable,
-            collapsedBound = collapsedBound
+            collapsedBound = collapsedBound,
         )
     }
 }

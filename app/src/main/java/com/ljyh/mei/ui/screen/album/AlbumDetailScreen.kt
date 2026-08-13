@@ -156,7 +156,8 @@ fun AlbumDetailScreen(
                         songAlbum = track.album.title,
                         songCover = track.coverUrl,
                         duration = track.duration,
-                        fileType = encodeType
+                        fileType = encodeType,
+                        quality = downloadQuality.text,
                     )
                 } else null
             }
@@ -261,8 +262,8 @@ fun AlbumDetailScreen(
                 }
             },
 
-            // 下载
             onDownload = { handleDownload() },
+
             onTrackDownload = { track -> handleTrackDownload(track) },
 
             // 播放全部

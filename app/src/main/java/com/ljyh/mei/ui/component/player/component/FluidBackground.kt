@@ -30,6 +30,7 @@ fun FluidBackground(
     imageUrl: String?,
     audioVisualizerManager: AudioVisualizerManager,
     isPlaying: Boolean = true,
+    alpha: Float = 1f,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -71,6 +72,7 @@ fun FluidBackground(
     AndroidView(
         factory = { ctx ->
             MeshBackgroundView(ctx).apply {
+                this.alpha = alpha.coerceIn(0f, 1f)
                 // 初始化时的默认值
                 setFlowSpeed(flowSpeed)
                 setRenderScale(renderScale)
@@ -81,6 +83,9 @@ fun FluidBackground(
             }
         },
         update = { view ->
+            // GLSurfaceView owns a native Surface; driving the View alpha avoids a bright
+            // first frame escaping a Compose graphics layer during sheet expansion.
+            view.alpha = alpha.coerceIn(0f, 1f)
             albumBitmap?.let { bmp ->
                 view.setAlbum(bmp)
             }

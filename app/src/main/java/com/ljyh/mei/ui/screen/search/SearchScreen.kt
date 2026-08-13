@@ -14,16 +14,9 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.rounded.Album
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.MusicNote
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import com.ljyh.mei.R
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,7 +26,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -43,6 +35,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.constants.SuggestionItemHeight
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.SearchBarIconOffsetX
+import com.ljyh.mei.ui.glass.SfIcon
 import kotlinx.coroutines.flow.drop
 import timber.log.Timber
 
@@ -53,6 +46,7 @@ fun SearchScreen(
     onQueryChange: (TextFieldValue) -> Unit,
     onSearch: (String, Int) -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val searchSuggest by viewModel.searchSuggest.collectAsState()
@@ -73,6 +67,7 @@ fun SearchScreen(
     }
 
     LazyColumn(
+        modifier = modifier,
         state = lazyListState,
         contentPadding = WindowInsets.systemBars
             .only(WindowInsetsSides.Bottom)
@@ -188,8 +183,8 @@ fun SuggestionItem(
             .clickable(onClick = onClick)
             .padding(end = SearchBarIconOffsetX)
     ) {
-        Icon(
-            imageVector = type.icon,
+        SfIcon(
+            systemName = type.systemName,
             contentDescription = null,
             modifier = Modifier
                 .padding(horizontal = 16.dp)
@@ -204,35 +199,27 @@ fun SuggestionItem(
         )
 
         if (type == SearchType.History) {
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.alpha(0.5f)
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier.alpha(0.5f).clickable(onClick = onDelete).padding(12.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = null
-                )
+                SfIcon("xmark", contentDescription = null, size = 18.dp)
             }
         }
 
-        IconButton(
-            onClick = onFillTextField,
-            modifier = Modifier.alpha(0.5f)
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier.alpha(0.5f).clickable(onClick = onFillTextField).padding(12.dp),
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null
-            )
+            SfIcon("arrow.up.right", contentDescription = null, size = 18.dp)
         }
     }
 }
 //type: 搜索类型；默认为 1 即单曲 , 取值意义 : 1: 单曲, 10: 专辑, 100: 歌手, 1000: 歌单, 1002: 用户, 1004: MV, 1006: 歌词, 1009: 电台, 1014: 视频, 1018:综合, 2000:声音(搜索声音返回字段格式会不一样)
 
-enum class SearchType(val icon: ImageVector, val type: Int, val displayName: String) {
-    Song(Icons.Rounded.MusicNote, 1, "单曲"),
-    Artist(Icons.Rounded.Person, 100, "歌手"),
-    Album(Icons.Rounded.Album, 10, "专辑"),
-    Playlist(Icons.AutoMirrored.Filled.PlaylistPlay, 1000, "歌单"),
-    History(Icons.Rounded.History, -1, "历史")
+enum class SearchType(val systemName: String, val type: Int, @get:StringRes val labelRes: Int) {
+    Song("music.note", 1, R.string.search_type_song),
+    Artist("person", 100, R.string.search_type_artist),
+    Album("square.on.square", 10, R.string.search_type_album),
+    Playlist("music.note.list", 1000, R.string.search_type_playlist),
+    Podcast("dot.radiowaves.left.and.right", 1009, R.string.search_type_podcast),
+    History("clock", -1, R.string.search_type_history)
 }
-

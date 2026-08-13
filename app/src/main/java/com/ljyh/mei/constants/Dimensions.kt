@@ -18,7 +18,7 @@ val PlaylistCardSize = 120.dp
 val PlaylistCardSizeTablet = 170.dp
 
 val NavigationBarHeight = 80.dp
-val MiniPlayerHeight = 64.dp
+val MiniPlayerHeight = 48.dp
 val QueuePeekHeight = 64.dp
 val AppBarHeight = 64.dp
 

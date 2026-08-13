@@ -22,3 +22,5 @@ local.properties
 /.VSCodeCounterapplemusic-like-lyrics/
 tempapplemusic-like-lyrics/
 temp/
+/tools
+/app/release

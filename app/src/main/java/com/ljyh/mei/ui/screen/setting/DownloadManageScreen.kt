@@ -1,45 +1,22 @@
 package com.ljyh.mei.ui.screen.setting
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Error
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.Pending
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -51,157 +28,127 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.ljyh.mei.R
 import com.ljyh.mei.data.model.room.DownloadStatus
 import com.ljyh.mei.data.model.room.DownloadTask
 import com.ljyh.mei.di.AppDatabase
+import com.ljyh.mei.ui.glass.GlassButton
+import com.ljyh.mei.ui.glass.GlassCard
+import com.ljyh.mei.ui.glass.GlassEmphasis
+import com.ljyh.mei.ui.glass.GlassIconButton
+import com.ljyh.mei.ui.glass.SfIcon
+import com.ljyh.mei.ui.glass.SfSymbol
+import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.IosGroupedList
+import com.ljyh.mei.ui.glass.IosListRow
+import com.ljyh.mei.ui.glass.IosScrollableTabRow
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
-import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.DownloadManager
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-private enum class DownloadFilter(val label: String, val icon: ImageVector) {
-    ALL("全部", Icons.Rounded.Download),
-    ACTIVE("进行中", Icons.Rounded.Download),
-    PAUSED("已暂停", Icons.Rounded.Pause),
-    COMPLETED("已完成", Icons.Rounded.CheckCircle),
-    FAILED("失败", Icons.Rounded.Error),
+private enum class DownloadFilter(val titleRes: Int) {
+    All(R.string.download_filter_all),
+    Active(R.string.download_filter_active),
+    Paused(R.string.download_filter_paused),
+    Completed(R.string.download_filter_completed),
+    Failed(R.string.download_filter_failed),
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadManageScreen(
-    scrollBehavior: TopAppBarScrollBehavior
+    @Suppress("UNUSED_PARAMETER") scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val navController = LocalNavController.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val db = AppDatabase.getDatabase(context)
-    val allTasks by db.downloadDao().getAll().collectAsState(initial = emptyList())
-    var selectedFilter by remember { mutableStateOf(DownloadFilter.ALL) }
-
+    val allTasks by AppDatabase.getDatabase(context).downloadDao().getAll().collectAsState(initial = emptyList())
+    var selectedFilter by remember { mutableStateOf(DownloadFilter.All) }
+    val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val filteredTasks = remember(allTasks, selectedFilter) {
-        when (selectedFilter) {
-            DownloadFilter.ALL -> allTasks
-            DownloadFilter.ACTIVE -> allTasks.filter {
-                it.status == DownloadStatus.PENDING || it.status == DownloadStatus.DOWNLOADING
+        allTasks.filter { task ->
+            when (selectedFilter) {
+                DownloadFilter.All -> true
+                DownloadFilter.Active -> task.status == DownloadStatus.PENDING || task.status == DownloadStatus.DOWNLOADING
+                DownloadFilter.Paused -> task.status == DownloadStatus.PAUSED
+                DownloadFilter.Completed -> task.status == DownloadStatus.COMPLETED
+                DownloadFilter.Failed -> task.status == DownloadStatus.FAILED
             }
-            DownloadFilter.PAUSED -> allTasks.filter { it.status == DownloadStatus.PAUSED }
-            DownloadFilter.COMPLETED -> allTasks.filter { it.status == DownloadStatus.COMPLETED }
-            DownloadFilter.FAILED -> allTasks.filter { it.status == DownloadStatus.FAILED }
         }
     }
-
-    val statusCounts = remember(allTasks) {
-        DownloadFilter.entries.associateWith { filter ->
+    val count: (DownloadFilter) -> Int = { filter ->
+        allTasks.count { task ->
             when (filter) {
-                DownloadFilter.ALL -> allTasks.size
-                DownloadFilter.ACTIVE -> allTasks.count {
-                    it.status == DownloadStatus.PENDING || it.status == DownloadStatus.DOWNLOADING
-                }
-                DownloadFilter.PAUSED -> allTasks.count { it.status == DownloadStatus.PAUSED }
-                DownloadFilter.COMPLETED -> allTasks.count { it.status == DownloadStatus.COMPLETED }
-                DownloadFilter.FAILED -> allTasks.count { it.status == DownloadStatus.FAILED }
+                DownloadFilter.All -> true
+                DownloadFilter.Active -> task.status == DownloadStatus.PENDING || task.status == DownloadStatus.DOWNLOADING
+                DownloadFilter.Paused -> task.status == DownloadStatus.PAUSED
+                DownloadFilter.Completed -> task.status == DownloadStatus.COMPLETED
+                DownloadFilter.Failed -> task.status == DownloadStatus.FAILED
             }
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("下载管理") },
-                navigationIcon = {
-                    com.ljyh.mei.ui.component.IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
-                        )
-                    }
-                },
-                actions = {
-                    if (allTasks.isNotEmpty()) {
-                        IconButton(onClick = { DownloadManager.deleteAll(context) }) {
-                            Icon(Icons.Rounded.Delete, "清空", tint = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-                },
-                scrollBehavior = scrollBehavior
+    IosPinnedListPage(
+        title = stringResource(R.string.download_management),
+        bottomPadding = insets.calculateBottomPadding(),
+        onNavigateBack = navController::navigateUp,
+        actions = {
+            if (allTasks.isNotEmpty()) {
+                GlassIconButton({ DownloadManager.deleteAll(context) }) {
+                    SfIcon("trash", stringResource(R.string.clear_downloads))
+                }
+            }
+        },
+    ) {
+        item(key = "download-filters") {
+            IosScrollableTabRow(
+                items = DownloadFilter.entries.map { it to "${stringResource(it.titleRes)} ${count(it)}" },
+                selected = selectedFilter,
+                onSelected = { selectedFilter = it },
+                modifier = Modifier.fillMaxWidth(),
             )
         }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                DownloadFilter.entries.forEach { filter ->
-                    val count = statusCounts[filter] ?: 0
-                    FilterChip(
-                        selected = selectedFilter == filter,
-                        onClick = { selectedFilter = filter },
-                        label = {
-                            Text("${filter.label} $count")
-                        },
-                        leadingIcon = {
-                            Icon(
-                                filter.icon,
-                                null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
+        if (filteredTasks.isEmpty()) {
+            item(key = "download-empty") {
+                GlassCard(Modifier.fillMaxWidth().padding(vertical = 28.dp)) {
+                Column(
+                    Modifier.fillMaxWidth().padding(vertical = 52.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    SfIcon(SfSymbol.Download, null, size = 46.dp)
+                    Text(
+                        stringResource(R.string.no_download_tasks, stringResource(selectedFilter.titleRes)),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-
-            if (filteredTasks.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 64.dp),
-                    contentAlignment = Alignment.TopCenter
-                ) {
-                    Text(
-                        "没有${selectedFilter.label}的任务",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(filteredTasks, key = { it.songId }) { task ->
+            }
+        } else {
+            item(key = "download-group") {
+                IosGroupedList {
+                    filteredTasks.forEachIndexed { index, task ->
                         DownloadTaskItem(
                             task = task,
+                            showTopSeparator = index > 0,
                             onPause = { DownloadManager.pauseSong(context, task.songId) },
                             onResume = {
                                 scope.launch {
-                                    DownloadManager.resumeSong(context, task.songId, "恢复下载")
+                                    DownloadManager.resumeSong(
+                                        context,
+                                        task.songId,
+                                        context.getString(R.string.resumed_download),
+                                    )
                                 }
                             },
-                            onDelete = { DownloadManager.deleteTask(context, task.songId) }
+                            onDelete = { DownloadManager.deleteTask(context, task.songId) },
                         )
                     }
                 }
@@ -213,116 +160,61 @@ fun DownloadManageScreen(
 @Composable
 private fun DownloadTaskItem(
     task: DownloadTask,
+    showTopSeparator: Boolean,
     onPause: () -> Unit,
     onResume: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
 ) {
-    val (statusIcon, statusColor) = when (task.status) {
-        DownloadStatus.DOWNLOADING -> Icons.Rounded.Download to MaterialTheme.colorScheme.primary
-        DownloadStatus.COMPLETED -> Icons.Rounded.CheckCircle to Color(0xFF4CAF50)
-        DownloadStatus.FAILED -> Icons.Rounded.Error to MaterialTheme.colorScheme.error
-        DownloadStatus.PENDING -> Icons.Rounded.Pending to MaterialTheme.colorScheme.onSurfaceVariant
-        DownloadStatus.PAUSED -> Icons.Rounded.Pause to Color(0xFFFFA726)
+    val statusSymbol = when (task.status) {
+        DownloadStatus.DOWNLOADING -> "arrow.down.circle.fill"
+        DownloadStatus.COMPLETED -> "checkmark.circle.fill"
+        DownloadStatus.FAILED -> "exclamationmark.circle.fill"
+        DownloadStatus.PENDING -> "clock"
+        DownloadStatus.PAUSED -> "pause.circle.fill"
     }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(modifier = Modifier.size(44.dp)) {
-            AsyncImage(
-                model = task.songCover.ifEmpty { null },
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(6.dp))
-            )
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(18.dp)
-                    .background(Color.Black.copy(alpha = 0.55f), CircleShape)
-            ) {
-                Icon(
-                    statusIcon, null,
-                    tint = statusColor,
-                    modifier = Modifier.size(12.dp)
+    val statusText = when (task.status) {
+        DownloadStatus.PENDING -> stringResource(R.string.download_waiting)
+        DownloadStatus.DOWNLOADING -> "${task.progress}%"
+        DownloadStatus.PAUSED -> stringResource(R.string.download_paused)
+        DownloadStatus.COMPLETED -> stringResource(R.string.download_completed)
+        DownloadStatus.FAILED -> stringResource(R.string.download_failed)
+    }
+    IosListRow(
+        title = task.songTitle.ifBlank { task.songId },
+        subtitle = task.songArtist,
+        detail = statusText,
+        showTopSeparator = showTopSeparator,
+        leading = {
+            Box(Modifier.size(44.dp)) {
+                AsyncImage(
+                    model = task.songCover.ifBlank { null },
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)),
+                )
+                SfIcon(
+                    statusSymbol,
+                    null,
+                    size = 17.dp,
+                    modifier = Modifier.align(Alignment.BottomEnd),
                 )
             }
-        }
-
-        Spacer(Modifier.width(10.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                task.songTitle.ifEmpty { task.songId },
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                task.songArtist,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (task.status == DownloadStatus.DOWNLOADING) {
-                Spacer(Modifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = { task.progress / 100f },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-
-        Spacer(Modifier.width(4.dp))
-
-        Text(
-            when (task.status) {
-                DownloadStatus.PENDING -> "等待"
-                DownloadStatus.DOWNLOADING -> "${task.progress}%"
-                DownloadStatus.PAUSED -> "已暂停"
-                DownloadStatus.COMPLETED -> "完成"
-                DownloadStatus.FAILED -> "失败"
-            },
-            style = MaterialTheme.typography.labelSmall,
-            color = statusColor
-        )
-
-        Spacer(Modifier.width(4.dp))
-
-        when (task.status) {
-            DownloadStatus.PENDING, DownloadStatus.DOWNLOADING -> {
-                IconButton(onClick = onPause) {
-                    Icon(Icons.Rounded.Pause, "暂停", modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        },
+        trailing = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+            if (task.status == DownloadStatus.PENDING || task.status == DownloadStatus.DOWNLOADING) {
+                GlassIconButton(onPause, modifier = Modifier.padding(start = 6.dp)) {
+                    SfIcon("pause", stringResource(R.string.pause), size = 17.dp)
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Rounded.Delete, "删除", modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
+            } else if (task.status == DownloadStatus.PAUSED || task.status == DownloadStatus.FAILED) {
+                GlassIconButton(onResume, modifier = Modifier.padding(start = 6.dp)) {
+                    SfIcon("play.fill", stringResource(R.string.resume), size = 17.dp)
                 }
             }
-            DownloadStatus.PAUSED -> {
-                IconButton(onClick = onResume) {
-                    Icon(Icons.Rounded.PlayArrow, "恢复", modifier = Modifier.size(18.dp),
-                        tint = Color(0xFF4CAF50))
-                }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Rounded.Delete, "删除", modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
-                }
+            GlassIconButton(onDelete, modifier = Modifier.padding(start = 6.dp)) {
+                SfIcon("trash", stringResource(R.string.delete), size = 17.dp)
             }
-            DownloadStatus.COMPLETED, DownloadStatus.FAILED -> {
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Rounded.Delete, "删除", modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
-                }
             }
-        }
-    }
+        },
+    )
 }

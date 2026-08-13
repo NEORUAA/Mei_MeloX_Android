@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
+import android.content.Intent
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -20,6 +21,7 @@ import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.model.MoreAction
+import com.ljyh.mei.ui.component.player.enterFloatingLyricsPip
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 
@@ -137,8 +139,9 @@ class PlayerOverlayHandler(
                 }
             }
             MoreAction.SHARE -> {
-                dismiss()
-                android.widget.Toast.makeText(context, "暂未实现", android.widget.Toast.LENGTH_SHORT).show()
+                mediaMetadata?.let { metadata ->
+                    _currentOverlay.value = OverlayState.Share(metadata)
+                }
             }
             MoreAction.DOWNLOAD -> {
                 mediaMetadata?.let {
@@ -157,6 +160,10 @@ class PlayerOverlayHandler(
             }
             MoreAction.SLEEP_TIMER -> {
                 showSleepTimer()
+            }
+            MoreAction.PICTURE_IN_PICTURE -> {
+                dismiss()
+                enterFloatingLyricsPip(context, stateContainer.isPlaying.value)
             }
             MoreAction.BOTTOM_ACTION -> {
                 showBottomAction()

@@ -5,9 +5,11 @@ import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +38,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -79,7 +84,6 @@ fun LyricScreen(
         LyricTextSize.Size24
     )
     val (normalLyricTextBold, _) = rememberPreference(NormalLyricTextBoldKey, true)
-
     val (accompanimentLyricTextSize, _) = rememberEnumPreference(
         AccompanimentLyricTextSizeKey,
         LyricTextSize.Size18
@@ -135,6 +139,33 @@ fun LyricScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
+                .pointerInput(controlsVisible, onToggleControls) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(
+                            requireUnconsumed = false,
+                            pass = PointerEventPass.Initial,
+                        )
+                        val lowerHalf = down.position.y >= size.height / 2f
+                        var moved = false
+                        var released = false
+                        var pressed = true
+                        while (pressed && !released) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
+                                moved = true
+                            }
+                            if (change.changedToUpIgnoreConsumed()) {
+                                released = true
+                                if (lowerHalf && !moved) {
+                                    change.consume()
+                                    onToggleControls(!controlsVisible)
+                                }
+                            }
+                            pressed = event.changes.any { it.pressed }
+                        }
+                    }
+                }
         ) {
             if (lyricData.lyricLine.lines.isNotEmpty()) {
                 key(System.identityHashCode(lyricData.lyricLine)) {

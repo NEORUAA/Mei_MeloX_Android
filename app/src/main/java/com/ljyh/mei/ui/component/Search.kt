@@ -37,11 +37,9 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.SearchBarColors
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SearchBarDefaults.TonalElevation
-import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
@@ -77,6 +75,7 @@ import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.AppBarHeight
+import com.ljyh.mei.ui.glass.GlassSurface
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -96,7 +95,7 @@ fun SearchBar(
     trailingIcon: @Composable (() -> Unit)? = null,
     shape: Shape = SearchBarDefaults.inputFieldShape,
     colors: SearchBarColors = SearchBarDefaults.colors(),
-    tonalElevation: Dp = TonalElevation,
+    @Suppress("UNUSED_PARAMETER") tonalElevation: Dp = TonalElevation,
     windowInsets: WindowInsets = WindowInsets.systemBars,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     focusRequester: FocusRequester = remember { FocusRequester() },
@@ -179,11 +178,8 @@ fun SearchBar(
             endPadding = lerp((SearchBarHorizontalPadding + endInset).roundToPx().toFloat(), 0f, animationProgress).toDp()
         }
 
-        Surface(
+        GlassSurface(
             shape = animatedShape,
-            color = colors.containerColor,
-            contentColor = contentColorFor(colors.containerColor),
-            tonalElevation = tonalElevation,
             modifier = Modifier
                 .padding(
                     top = animatedSurfaceTopPadding,

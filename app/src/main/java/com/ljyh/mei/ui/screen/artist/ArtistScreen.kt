@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
@@ -75,6 +76,14 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.R
+import com.ljyh.mei.ui.component.player.OverlayState
+import com.ljyh.mei.ui.glass.GlassButton
+import com.ljyh.mei.ui.glass.GlassEmphasis
+import com.ljyh.mei.ui.glass.GlassIconButton
+import com.ljyh.mei.ui.glass.IosTopToolbar
+import com.ljyh.mei.ui.glass.SfIcon
+import com.ljyh.mei.ui.screen.playlist.component.StandaloneTrackActionOverlay
 import java.util.UUID
 
 
@@ -90,14 +99,18 @@ fun ArtistScreen(
     val artistDetail by viewModel.artistDetail.collectAsState()
     val artistAlbums by viewModel.artistAlbums.collectAsState()
     val artistSongs by viewModel.artistSongs.collectAsState()
+    val followMutation by viewModel.followMutation.collectAsState()
+    var isFollowed by remember(id) { mutableStateOf(false) }
+    var currentOverlay by remember { mutableStateOf<OverlayState>(OverlayState.None) }
 
     val scrollState = rememberLazyListState()
     // Hero 高度 320dp，当滚过约 60% 时显示 TopBar 标题
     val heroHeightPx = with(LocalDensity.current) { 320.dp.toPx() }
-    val showTopBarTitle by remember {
+    val topBarCollapseProgress by remember {
         derivedStateOf {
-            scrollState.firstVisibleItemIndex > 0 ||
-                    scrollState.firstVisibleItemScrollOffset > heroHeightPx * 0.6f
+            if (scrollState.firstVisibleItemIndex > 0) 1f
+            else (scrollState.firstVisibleItemScrollOffset / (heroHeightPx * 0.6f))
+                .coerceIn(0f, 1f)
         }
     }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -107,42 +120,26 @@ fun ArtistScreen(
         viewModel.getArtistAlbums(id)
         viewModel.getArtistSongs(id)
     }
+    LaunchedEffect(artistDetail) {
+        (artistDetail as? Resource.Success)?.data?.data?.user?.followed?.let {
+            isFollowed = it
+        }
+    }
+    LaunchedEffect(followMutation) {
+        (followMutation as? Resource.Success)?.data?.let { isFollowed = it }
+    }
 
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    AnimatedVisibility(
-                        visible = showTopBarTitle,
-                        enter = fadeIn(),
-                        exit = fadeOut()
-                    ) {
-                        val name =
-                            (artistDetail as? Resource.Success)?.data?.data?.artist?.name ?: ""
-                        Text(
-                            text = name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+            IosTopToolbar(
+                title = (artistDetail as? Resource.Success)?.data?.data?.artist?.name.orEmpty(),
+                collapseProgress = topBarCollapseProgress,
+                navigation = {
+                    GlassIconButton(onClick = navController::popBackStack) {
+                        SfIcon("chevron.left", "Back", mirrored = true)
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                scrollBehavior = scrollBehavior
             )
         }
     ) { paddingValues ->
@@ -161,6 +158,11 @@ fun ArtistScreen(
                 when (val detail = artistDetail) {
                     is Resource.Success -> ArtistHeader(
                         artist = detail.data.data.artist,
+                        isFollowed = isFollowed,
+                        isFollowLoading = followMutation is Resource.Loading,
+                        onFollowClick = {
+                            viewModel.setArtistFollowed(detail.data.data.artist.id.toLong(), !isFollowed)
+                        },
                         expertIdentities = detail.data.data.secondaryExpertIdentiy
                             .filter { it.expertIdentiyCount > 0 }
                     )
@@ -194,7 +196,7 @@ fun ArtistScreen(
                                     }
                                 )
                             },
-                            onMoreClick = {}
+                            onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(song.toMediaMetadata()) }
                         )
                     }
                 }
@@ -244,6 +246,12 @@ fun ArtistScreen(
             }
         }
     }
+    StandaloneTrackActionOverlay(
+        overlay = currentOverlay,
+        onDismiss = { currentOverlay = OverlayState.None },
+        onUpdateOverlay = { currentOverlay = it },
+    )
+    }
 }
 
 
@@ -253,7 +261,10 @@ fun ArtistScreen(
 @Composable
 fun ArtistHeader(
     artist: ArtistDetail.Data.Artist,
-    expertIdentities: List<ArtistDetail.Data.SecondaryExpertIdentiy>
+    expertIdentities: List<ArtistDetail.Data.SecondaryExpertIdentiy>,
+    isFollowed: Boolean,
+    isFollowLoading: Boolean,
+    onFollowClick: () -> Unit,
 ) {
     var descExpanded by remember { mutableStateOf(false) }
     val bgColor = MaterialTheme.colorScheme.background
@@ -372,14 +383,20 @@ fun ArtistHeader(
                 .padding(horizontal = 20.dp)
         ) {
             // 关注按钮
-            OutlinedButton(
-                onClick = { /* TODO */ },
-                shape = RoundedCornerShape(50),
+            GlassButton(
+                onClick = onFollowClick,
+                enabled = !isFollowLoading,
+                emphasis = if (isFollowed) GlassEmphasis.Prominent else GlassEmphasis.Regular,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 4.dp, bottom = 16.dp)
             ) {
-                Text("关注", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    stringResource(
+                        if (isFollowed) R.string.artist_following else R.string.artist_follow,
+                    ),
+                    style = MaterialTheme.typography.labelLarge,
+                )
             }
 
             // 创作领域 chips

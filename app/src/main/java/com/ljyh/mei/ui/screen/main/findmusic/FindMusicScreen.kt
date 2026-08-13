@@ -1,15 +1,14 @@
 package com.ljyh.mei.ui.screen.main.findmusic
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,23 +18,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -44,236 +37,181 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import com.ljyh.mei.R
 import com.ljyh.mei.data.model.weapi.Playlists
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.ui.component.GlobalProfileAvatarButton
+import com.ljyh.mei.ui.glass.IosTypography
+import com.ljyh.mei.ui.glass.IosPinnedPage
+import com.ljyh.mei.ui.glass.LocalGlassColors
+import com.ljyh.mei.ui.glass.SfIcon
+import com.ljyh.mei.ui.glass.rememberIosGridCollapseProgress
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** MeloX Discover layout: large title, compact filter pills, one hero and a two-column grid. */
 @Composable
 fun FindMusicScreen(
-    viewModel: FindMusicViewModel = hiltViewModel()
+    viewModel: FindMusicViewModel = hiltViewModel(),
+    modifier: Modifier = Modifier,
 ) {
     val navController = LocalNavController.current
     val playlistState by viewModel.highQualityPlaylist.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
-    val categories = viewModel.categories
-
     val listState = rememberLazyGridState()
-    LaunchedEffect(selectedCategory) {
-        listState.scrollToItem(0)
-    }
+    val collapseProgress = rememberIosGridCollapseProgress(listState)
+    val title = stringResource(R.string.app_tab_explore)
+    val bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+    LaunchedEffect(selectedCategory) { listState.scrollToItem(0) }
 
-    Scaffold(
-        topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text("发现音乐") }
-                )
-                // 分类选择器
-                CategorySelector(
-                    categories = categories,
-                    selectedCategory = selectedCategory,
-                    onCategorySelected = viewModel::onCategorySelected
-                )
-            }
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
+    IosPinnedPage(
+        title = title,
+        bottomPadding = bottom,
+        modifier = modifier,
+        collapseProgress = collapseProgress,
+        backgroundColor = Color.White,
+        actions = { GlobalProfileAvatarButton() },
+    ) { contentPadding ->
+        Box(Modifier.fillMaxSize()) {
             when (val state = playlistState) {
-                is Resource.Loading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-
-                is Resource.Success -> {
-                    PlaylistGrid(
-                        playlists = state.data.playlists,
-                        listState = listState,
-                        onPlaylistClick = { playlistId ->
-                            Screen.PlayList.navigate(navController) {
-                                addPath(playlistId.toString())
-                            }
-                        }
-                    )
-
-                }
-
-                is Resource.Error -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "加载失败", style = MaterialTheme.typography.titleMedium)
-                            Text(text = state.message, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
+                Resource.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                is Resource.Success -> PlaylistGrid(
+                    playlists = state.data.playlists,
+                    listState = listState,
+                    title = title,
+                    topPadding = contentPadding.calculateTopPadding(),
+                    categories = viewModel.categories,
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = viewModel::onCategorySelected,
+                    onPlaylistClick = { id -> Screen.PlayList.navigate(navController) { addPath(id.toString()) } },
+                )
+                is Resource.Error -> Column(
+                    Modifier.align(Alignment.Center).padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(stringResource(R.string.load_failed), style = IosTypography.headline)
+                    Text(state.message, style = IosTypography.subheadline, color = LocalGlassColors.current.secondaryContent)
                 }
             }
         }
     }
 }
 
-/**
- * 横向滚动的分类选择器
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CategorySelector(
+private fun CategorySelector(
     categories: List<String>,
     selectedCategory: String,
-    onCategorySelected: (String) -> Unit
+    onCategorySelected: (String) -> Unit,
 ) {
     LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        contentPadding = PaddingValues(
-            horizontal = 16.dp
-        ),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxWidth(),
+//        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(categories) { category ->
-            val isSelected = category == selectedCategory
-            FilterChip(
-                selected = isSelected,
-                onClick = { onCategorySelected(category) },
-                label = { Text(category) },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isSelected,
-                    borderColor = Color.Transparent,
-                    selectedBorderColor = Color.Transparent
-                )
+            val selected = category == selectedCategory
+            Text(
+                text = category,
+                color = if (selected) Color.White else LocalGlassColors.current.content,
+                style = IosTypography.subheadline,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(if (selected) MaterialTheme.colorScheme.primary else LocalGlassColors.current.groupedBackground)
+                    .clickable { onCategorySelected(category) }
+                    .padding(horizontal = 15.dp, vertical = 7.dp),
             )
         }
     }
 }
 
-/**
- * 歌单网格列表
- */
 @Composable
-fun PlaylistGrid(
+private fun PlaylistGrid(
     playlists: List<Playlists>,
     listState: LazyGridState,
-    onPlaylistClick: (Long) -> Unit
+    title: String,
+    topPadding: androidx.compose.ui.unit.Dp,
+    categories: List<String>,
+    selectedCategory: String,
+    onCategorySelected: (String) -> Unit,
+    onPlaylistClick: (Long) -> Unit,
 ) {
-    val systemBarsPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    val bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 140.dp), // 自适应宽度，每行至少160dp
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            bottom = systemBarsPadding.calculateBottomPadding()
-        ),
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(start = 16.dp, top = topPadding, end = 16.dp, bottom = bottom),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         state = listState,
     ) {
-        items(
-            items = playlists,
-            key = { it.id } // 优化性能，使用唯一ID
-        ) { playlist ->
-            PlaylistCard(playlist = playlist, onClick = onPlaylistClick)
+        item(key = "discover-large-title", span = { GridItemSpan(maxLineSpan) }) {
+            Text(title, style = IosTypography.largeTitle, modifier = Modifier.padding(vertical = 6.dp))
         }
-    }
-}
-
-/**
- * 单个歌单卡片
- */
-@Composable
-fun PlaylistCard(
-    playlist: Playlists,
-    onClick: (Long) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                onClick = { onClick(playlist.id) },
-                interactionSource = null,
-                indication = null // 也可以加上点击涟漪效果
-            )
-    ) {
-        // 封面图容器
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f) // 1:1 正方形
-                .clip(RoundedCornerShape(12.dp))
-        ) {
-            AsyncImage(
-                model = playlist.coverImgUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // 播放量遮罩 (右上角)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(6.dp)
-                    .background(
-                        color = Color.Black.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Rounded.PlayArrow,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = formatPlayCount(playlist.playCount),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+        item(key = "discover-categories", span = { GridItemSpan(maxLineSpan) }) {
+            CategorySelector(categories, selectedCategory, onCategorySelected)
+        }
+        playlists.firstOrNull()?.let { featured ->
+            item(key = "featured-${featured.id}", span = { GridItemSpan(maxLineSpan) }) {
+                FeaturedPlaylistCard(featured, onPlaylistClick)
             }
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // 歌单标题
-        Text(
-            text = playlist.name,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        items(items = playlists.drop(1), key = { it.id }) { playlist ->
+            PlaylistCard(playlist, onPlaylistClick)
+        }
     }
 }
 
-// 辅助函数：格式化播放量
-fun formatPlayCount(count: Int): String {
-    return when {
-        count >= 1_0000_0000 -> String.format(Locale.getDefault(), "%.1f亿", count / 1_0000_0000.0)
-        count >= 1_0000 -> String.format(Locale.getDefault(), "%.1f万", count / 1_0000.0)
-        else -> count.toString()
+@Composable
+private fun FeaturedPlaylistCard(playlist: Playlists, onClick: (Long) -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .aspectRatio(1.12f)
+            .clip(RoundedCornerShape(22.dp))
+            .clickable { onClick(playlist.id) },
+    ) {
+        AsyncImage(playlist.coverImgUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.72f)), startY = 280f)))
+        SfIcon("music.note", null, Modifier.align(Alignment.TopStart).padding(18.dp), tint = Color.White, size = 38.dp, weight = FontWeight.Bold)
+        Column(Modifier.align(Alignment.BottomStart).padding(18.dp)) {
+            Text(playlist.copywriter.ifBlank { stringResource(R.string.app_tab_explore) }, style = IosTypography.caption, color = Color.White.copy(alpha = 0.82f))
+            Text(playlist.name, style = IosTypography.title2, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text("▶  ${formatPlayCount(playlist.playCount)}", style = IosTypography.subheadline, color = Color.White.copy(alpha = 0.82f), modifier = Modifier.padding(top = 6.dp))
+        }
     }
+}
+
+@Composable
+private fun PlaylistCard(playlist: Playlists, onClick: (Long) -> Unit) {
+    Column(Modifier.fillMaxWidth().clickable { onClick(playlist.id) }) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(16.dp))) {
+            AsyncImage(playlist.coverImgUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            Row(
+                Modifier.align(Alignment.TopEnd).padding(6.dp).background(Color.Black.copy(alpha = 0.42f), RoundedCornerShape(50)).padding(horizontal = 7.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SfIcon("play.fill", null, tint = Color.White, size = 11.dp)
+                Spacer(Modifier.width(3.dp))
+                Text(formatPlayCount(playlist.playCount), style = IosTypography.caption, color = Color.White, fontWeight = FontWeight.SemiBold)
+            }
+        }
+        Spacer(Modifier.height(7.dp))
+        Text(playlist.name, style = IosTypography.subheadline, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+private fun formatPlayCount(count: Int): String = when {
+    count >= 100_000_000 -> String.format(Locale.getDefault(), "%.1f亿", count / 100_000_000.0)
+    count >= 10_000 -> String.format(Locale.getDefault(), "%.1f万", count / 10_000.0)
+    else -> count.toString()
 }

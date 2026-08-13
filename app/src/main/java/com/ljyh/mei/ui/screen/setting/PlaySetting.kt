@@ -1,128 +1,173 @@
 package com.ljyh.mei.ui.screen.setting
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.HideSource
-import androidx.compose.material.icons.rounded.HighQuality
-import androidx.compose.material.icons.rounded.Loop
-import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.ljyh.mei.R
+import com.ljyh.mei.constants.AutoMixDurationKey
+import com.ljyh.mei.constants.AutoMixEnabledKey
+import com.ljyh.mei.constants.AutoMixFadeCurve
+import com.ljyh.mei.constants.AutoMixFadeCurveKey
+import com.ljyh.mei.constants.AutoMixMaxTempoAdjustmentKey
+import com.ljyh.mei.constants.AutoMixMode
+import com.ljyh.mei.constants.AutoMixModeKey
+import com.ljyh.mei.constants.AutoMixTailCutBarsKey
+import com.ljyh.mei.constants.AutoMixTempoMatchingKey
+import com.ljyh.mei.constants.AutoMixTransitionBarsKey
 import com.ljyh.mei.constants.LoopPlaybackKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.constants.NoAudioSourceKey
 import com.ljyh.mei.constants.PreviousPlaybackKey
-import com.ljyh.mei.ui.component.EnumListPreference
-import com.ljyh.mei.ui.component.IconButton
-import com.ljyh.mei.ui.component.PreferenceGroupTitle
-import com.ljyh.mei.ui.component.SwitchPreference
+import com.ljyh.mei.ui.glass.GlassButton
+import com.ljyh.mei.ui.glass.GlassCard
+import com.ljyh.mei.ui.glass.GlassIconButton
+import com.ljyh.mei.ui.glass.GlassSegmentedControl
+import com.ljyh.mei.ui.glass.GlassSlider
+import com.ljyh.mei.ui.glass.GlassToggle
+import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.SfIcon
+import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
-import com.ljyh.mei.ui.screen.backToMain
+import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaySetting(
-    scrollBehavior: TopAppBarScrollBehavior
-){
-
+    @Suppress("UNUSED_PARAMETER") scrollBehavior: TopAppBarScrollBehavior,
+) {
     val navController = LocalNavController.current
+    val (musicQuality, onMusicQualityChange) = rememberEnumPreference(MusicQualityKey, MusicQuality.EXHIGH)
+    val (loopPlayback, onLoopPlaybackChange) = rememberPreference(LoopPlaybackKey, true)
+    val (previousPlayback, onPreviousPlaybackChange) = rememberPreference(PreviousPlaybackKey, true)
+    val (noAudioSource, onNoAudioSourceChange) = rememberPreference(NoAudioSourceKey, false)
+    val (autoMixEnabled, onAutoMixEnabledChange) = rememberPreference(AutoMixEnabledKey, false)
+    val (autoMixMode, onAutoMixModeChange) = rememberEnumPreference(AutoMixModeKey, AutoMixMode.Smart)
+    val (autoMixDuration, onAutoMixDurationChange) = rememberPreference(AutoMixDurationKey, 8f)
+    val (fadeCurve, onFadeCurveChange) = rememberEnumPreference(AutoMixFadeCurveKey, AutoMixFadeCurve.EqualPower)
+    val (tempoMatching, onTempoMatchingChange) = rememberPreference(AutoMixTempoMatchingKey, true)
+    val (maximumTempo, onMaximumTempoChange) = rememberPreference(AutoMixMaxTempoAdjustmentKey, 5f)
+    val (transitionBars, onTransitionBarsChange) = rememberPreference(AutoMixTransitionBarsKey, 8)
+    val (tailCutBars, onTailCutBarsChange) = rememberPreference(AutoMixTailCutBarsKey, 4)
+    val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
 
-    val (musicQuality, onMusicQualityChange) = rememberEnumPreference(
-        key = MusicQualityKey,
-        defaultValue = MusicQuality.EXHIGH,
-    )
-    val (loopPlayback, onLoopPlaybackChange) = rememberPreference(
-        key = LoopPlaybackKey,
-        defaultValue = true
-    )
-
-    val (previousPlayback, onPreviousPlaybackChange) = rememberPreference(
-        key = PreviousPlaybackKey,
-        defaultValue = true
-    )
-
-    val (noAudioSource, onNoAudioSourceChange) = rememberPreference(
-        NoAudioSourceKey,
-        defaultValue = false
-    )
-
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("播放设置") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
-                        )
+    IosPinnedListPage(
+        title = stringResource(R.string.playback_settings),
+        onNavigateBack = navController::navigateUp,
+        bottomPadding = insets.calculateBottomPadding(),
+    ) {
+        item {
+            SettingsGroup(stringResource(R.string.playback_behavior)) {
+                GlassCard(modifier = Modifier.fillMaxWidth(), onClick = { Screen.EqualizerSettings.navigate(navController) }) {
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        SfIcon("slider.vertical.3", contentDescription = null)
+                        Text(stringResource(R.string.equalizer), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
+                        SfIcon("chevron.forward", contentDescription = null, size = 16.dp)
                     }
-                },
-                scrollBehavior = scrollBehavior
-            )
+                }
+                ToggleRow(stringResource(R.string.loop_playback), "arrow.trianglehead.2.clockwise.rotate.90", loopPlayback, onLoopPlaybackChange)
+                ToggleRow(stringResource(R.string.skip_unavailable), "waveform.slash", noAudioSource, onNoAudioSourceChange)
+                ToggleRow(stringResource(R.string.previous_behavior), "backward.fill", previousPlayback, onPreviousPlaybackChange)
+                ValueRow(stringResource(R.string.music_quality), "waveform") {
+                    val values = MusicQuality.entries
+                    val next = values[(values.indexOf(musicQuality) + 1) % values.size]
+                    GlassButton(onClick = { onMusicQualityChange(next) }) { Text("${musicQuality.explanation} · ${musicQuality.text}") }
+                }
+            }
         }
-    ) { paddingValues ->
+        item {
+            SettingsGroup(stringResource(R.string.automix)) {
+                ToggleRow(stringResource(R.string.automix_enabled), "waveform.path", autoMixEnabled, onAutoMixEnabledChange)
+            }
+        }
+        if (autoMixEnabled) {
+            item {
+                com.ljyh.mei.ui.glass.IosGroupedList {
+                    GlassSegmentedControl(
+                        items = listOf(AutoMixMode.Smart to stringResource(R.string.automix_smart), AutoMixMode.Fixed to stringResource(R.string.automix_fixed)),
+                        selected = autoMixMode, onSelected = onAutoMixModeChange,
+                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+                    )
+                    SliderRow(stringResource(R.string.automix_duration, autoMixDuration.roundToInt()), autoMixDuration, onAutoMixDurationChange, 3f..20f)
+                    GlassSegmentedControl(
+                        items = listOf(
+                            AutoMixFadeCurve.EqualPower to stringResource(R.string.fade_equal_power),
+                            AutoMixFadeCurve.Smooth to stringResource(R.string.fade_smooth),
+                            AutoMixFadeCurve.Linear to stringResource(R.string.fade_linear),
+                        ), selected = fadeCurve, onSelected = onFadeCurveChange,
+                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+                    )
+                    GlassSegmentedControl(
+                        items = listOf(4, 8, 16).map { it to stringResource(R.string.automix_bars, it) },
+                        selected = transitionBars, onSelected = onTransitionBarsChange,
+                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+                    )
+                    GlassSegmentedControl(
+                        items = listOf(0, 2, 4, 8).map { it to if (it == 0) stringResource(R.string.automix_tail_none) else stringResource(R.string.automix_tail_bars, it) },
+                        selected = tailCutBars, onSelected = onTailCutBarsChange,
+                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+                    )
+                    ToggleRow(stringResource(R.string.tempo_matching), "waveform.path", tempoMatching, onTempoMatchingChange)
+                    if (tempoMatching) SliderRow(stringResource(R.string.maximum_tempo_adjustment, maximumTempo.roundToInt()), maximumTempo, onMaximumTempoChange, 1f..8f)
+                }
+            }
+        }
+    }
+}
 
-        Column(
-            Modifier
-                .padding(paddingValues)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .verticalScroll(rememberScrollState())
-        ) {
-            PreferenceGroupTitle(
-                title = "PLAY"
-            )
-            SwitchPreference(
-                title = { Text("循环播放") },
-                icon = { Icon(Icons.Rounded.Loop, null) },
-                checked = loopPlayback,
-                onCheckedChange = onLoopPlaybackChange
-            )
-            SwitchPreference(
-                title = { Text("无音频源时下一首歌曲") },
-                description = "无音频源时下一首歌曲，否则暂停",
-                icon = { Icon(Icons.Rounded.HideSource, null) },
-                checked = noAudioSource,
-                onCheckedChange = onNoAudioSourceChange
-            )
-            SwitchPreference(
-                title = { Text("上一首切换逻辑")},
-                description = "关闭时，切换上一首如果大于3秒，会重头开始播放",
-                icon = { Icon(Icons.Rounded.SkipPrevious, null) },
-                checked = previousPlayback,
-                onCheckedChange = onPreviousPlaybackChange
-            )
+@Composable
+private fun SettingsHeading(title: String) {
+    Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp, start = 4.dp))
+}
 
-            EnumListPreference(
-                title = { Text("音乐质量") },
-                icon = { Icon(Icons.Rounded.HighQuality, null) },
-                selectedValue = musicQuality,
-                onValueSelected = onMusicQualityChange,
-                valueText = { "${it.text} ${it.explanation}" }
-            )
+@Composable
+private fun ToggleRow(title: String, symbol: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    GlassCard(Modifier.fillMaxWidth(), onClick = { onCheckedChange(!checked) }) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            SfIcon(symbol, contentDescription = null)
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
+            GlassToggle(checked, onCheckedChange)
+        }
+    }
+}
+
+@Composable
+private fun ValueRow(title: String, symbol: String, value: @Composable () -> Unit) {
+    GlassCard(Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            SfIcon(symbol, contentDescription = null)
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
+            value()
+        }
+    }
+}
+
+@Composable
+private fun SliderRow(title: String, value: Float, onValueChange: (Float) -> Unit, range: ClosedFloatingPointRange<Float>) {
+    GlassCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp)) {
+            Text(title, fontWeight = FontWeight.SemiBold)
+            GlassSlider(value, onValueChange, modifier = Modifier.fillMaxWidth(), valueRange = range)
         }
     }
 }

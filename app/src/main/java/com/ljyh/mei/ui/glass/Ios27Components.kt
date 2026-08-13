@@ -1,0 +1,962 @@
+package com.ljyh.mei.ui.glass
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.lerp as lerpDp
+import androidx.compose.ui.util.lerp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.zIndex
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.colorControls
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.InnerShadow
+import com.kyant.backdrop.shadow.Shadow
+import com.kyant.shapes.Capsule
+import com.kyant.shapes.RoundedRectangle
+import com.ljyh.mei.ui.liquidglass.InteractiveHighlight
+import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.sin
+
+val IosModalSheetShape = RoundedCornerShape(
+    topStart = 34.dp,
+    topEnd = 34.dp,
+    bottomStart = 58.dp,
+    bottomEnd = 58.dp,
+)
+
+private val LocalIosPopupMenuInteractive = staticCompositionLocalOf { true }
+
+private class IosPopupPositionProvider(
+    private val targetMenuHeightPx: Int,
+    private val onDirectionResolved: (opensAbove: Boolean) -> Unit,
+) : PopupPositionProvider {
+    private var opensAbove: Boolean? = null
+
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset {
+        val resolvedDirection = opensAbove ?: run {
+            val roomBelow = windowSize.height - anchorBounds.bottom
+            val roomAbove = anchorBounds.top
+            (roomBelow < targetMenuHeightPx && roomAbove > roomBelow).also {
+                opensAbove = it
+                onDirectionResolved(it)
+            }
+        }
+        val x = (anchorBounds.right - popupContentSize.width)
+            .coerceIn(0, (windowSize.width - popupContentSize.width).coerceAtLeast(0))
+        val y = if (resolvedDirection) {
+            anchorBounds.bottom - popupContentSize.height
+        } else {
+            anchorBounds.top
+        }.coerceIn(0, (windowSize.height - popupContentSize.height).coerceAtLeast(0))
+        return IntOffset(x, y)
+    }
+}
+
+/** Scrollable iOS capsule tabs for sets that cannot fit a segmented control. */
+@Composable
+fun <T> IosScrollableTabRow(
+    items: List<Pair<T, String>>,
+    selected: T,
+    onSelected: (T) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalGlassColors.current
+    LazyRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(items, key = { it.first.toString() }) { (value, label) ->
+            val isSelected = value == selected
+            Text(
+                text = label,
+                color = if (isSelected) Color.White else colors.content,
+                style = IosTypography.subheadline,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                modifier = Modifier
+                    .background(
+                        if (isSelected) colors.prominentContainer.copy(alpha = 1f)
+                        else colors.elevatedBackground,
+                        Capsule(),
+                    )
+                    .clickable(
+                        interactionSource = null,
+                        indication = null,
+                        role = Role.Tab,
+                    ) { onSelected(value) }
+                    .padding(horizontal = 15.dp, vertical = 7.dp),
+            )
+        }
+    }
+}
+
+enum class IosTopBarStyle { Default, CompactLargeTitle, LargeTitle, TwoLine, TwoLineLeading }
+
+enum class IosBottomToolbarStyle { Text, Symbols, Search }
+
+/** The five top-toolbar variants from Figma node 5661:41970. */
+@Composable
+fun IosTopToolbar(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    style: IosTopBarStyle = IosTopBarStyle.Default,
+    collapseProgress: Float = 1f,
+    navigation: (@Composable () -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {},
+) {
+    val progress = collapseProgress.coerceIn(0f, 1f)
+    CompositionLocalProvider(LocalGlassSurfaceBrightness provides 1f) {
+    when (style) {
+        IosTopBarStyle.LargeTitle -> Column(modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+            Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { navigation?.invoke() }
+                Row(content = actions)
+            }
+            Text(title, style = IosTypography.largeTitle)
+            subtitle?.let { Text(it, style = IosTypography.subheadline, color = LocalGlassColors.current.secondaryContent) }
+        }
+        IosTopBarStyle.CompactLargeTitle -> Row(
+            modifier.fillMaxWidth().height(54.dp).padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(title, style = IosTypography.largeTitle, modifier = Modifier.weight(1f))
+            Row(content = actions)
+        }
+        else -> Box(modifier.fillMaxWidth().height(54.dp).padding(horizontal = 16.dp)) {
+            Row(Modifier.align(Alignment.CenterStart), verticalAlignment = Alignment.CenterVertically) { navigation?.invoke() }
+            Column(
+                Modifier
+                    .align(if (style == IosTopBarStyle.TwoLineLeading) Alignment.CenterStart else Alignment.Center)
+                    .graphicsLayer {
+                        alpha = progress
+                        val scale = 0.92f + 0.08f * progress
+                        scaleX = scale
+                        scaleY = scale
+                    }
+                    .blur(8.dp * (1f - progress)),
+                horizontalAlignment = if (style == IosTopBarStyle.TwoLineLeading) Alignment.Start else Alignment.CenterHorizontally,
+            ) {
+                Text(title, style = if (subtitle == null) IosTypography.headline else IosTypography.subheadline.copy(fontWeight = FontWeight.SemiBold))
+                subtitle?.let { Text(it, style = IosTypography.caption, color = LocalGlassColors.current.secondaryContent) }
+            }
+            Row(Modifier.align(Alignment.CenterEnd), content = actions)
+        }
+    }
+    }
+}
+
+/** Figma node 2517:14528. Floating bottom toolbar variants share the liquid capsule. */
+@Composable
+fun IosBottomToolbar(
+    modifier: Modifier = Modifier,
+    style: IosBottomToolbarStyle = IosBottomToolbarStyle.Symbols,
+    backdrop: Backdrop = LocalGlassBackdrop.current,
+    content: @Composable RowScope.() -> Unit,
+) {
+    GlassSurface(
+        modifier = modifier.height(if (style == IosBottomToolbarStyle.Search) 64.dp else 56.dp),
+        backdrop = backdrop,
+        shape = Capsule(),
+    ) {
+        Row(
+            Modifier.fillMaxSize().padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            content = content,
+        )
+    }
+}
+
+@Composable
+fun IosBottomSearchToolbar(
+    query: TextFieldValue,
+    onQueryChange: (TextFieldValue) -> Unit,
+    onSearch: (String) -> Unit,
+    onCancel: () -> Unit,
+    @Suppress("UNUSED_PARAMETER") cancelLabel: String,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    focusRequester: FocusRequester = remember { FocusRequester() },
+) {
+    val colors = LocalGlassColors.current
+    val backdrop = LocalGlassBackdrop.current
+    Row(
+        modifier.height(64.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        GlassSurface(
+            modifier = Modifier.weight(1f).height(56.dp),
+            backdrop = backdrop,
+            shape = Capsule(),
+        ) {
+            Row(
+                Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SfIcon("magnifyingglass", null, size = 21.dp, tint = colors.secondaryContent)
+                Spacer(Modifier.width(8.dp))
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    modifier = Modifier.weight(1f).focusRequester(focusRequester),
+                    singleLine = true,
+                    textStyle = IosTypography.body.copy(color = colors.content),
+                    cursorBrush = androidx.compose.ui.graphics.SolidColor(colors.accent),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSearch(query.text) }),
+                    decorationBox = { inner ->
+                        if (query.text.isEmpty()) {
+                            Text(placeholder, style = IosTypography.body, color = colors.tertiaryContent)
+                        }
+                        inner()
+                    },
+                )
+                if (query.text.isNotEmpty()) {
+                    Box(
+                        Modifier.size(32.dp).clickable { onQueryChange(TextFieldValue()) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        SfIcon("xmark.circle", null, size = 18.dp, tint = colors.secondaryContent)
+                    }
+                }
+            }
+        }
+        GlassIconButton(
+            onClick = onCancel,
+            backdrop = backdrop,
+            modifier = Modifier.size(56.dp),
+        ) {
+            SfIcon("xmark", null, size = 20.dp, tint = colors.content)
+        }
+    }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+}
+
+/** Figma node 5661:33949: 52dp table text field with iOS separators. */
+@Composable
+fun IosTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "",
+    enabled: Boolean = true,
+    trailing: (@Composable () -> Unit)? = null,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+) {
+    val colors = LocalGlassColors.current
+    Row(
+        modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .drawBehind { drawLine(colors.separator, androidx.compose.ui.geometry.Offset.Zero, androidx.compose.ui.geometry.Offset(size.width, 0f), 1.dp.toPx()) }
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        BasicTextField(
+            value,
+            onValueChange,
+            modifier = Modifier.weight(1f),
+            enabled = enabled,
+            textStyle = IosTypography.body.copy(color = colors.content),
+            singleLine = true,
+            visualTransformation = visualTransformation,
+            decorationBox = { inner ->
+                if (value.isEmpty()) Text(placeholder, style = IosTypography.body, color = colors.tertiaryContent)
+                inner()
+            },
+        )
+        trailing?.invoke()
+    }
+}
+
+/** Figma node 781:15374 grouped-list container. Use ordinary rows inside for GPU efficiency. */
+@Composable
+fun IosGroupedList(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = LocalGlassColors.current
+    val shape = RoundedCornerShape(26.dp)
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.elevatedBackground, shape)
+            .drawWithContent {
+                drawContent()
+                // Hide only the first merged row's inset separator. Clipping the container
+                // prevents the cover from leaking across the rounded top corners.
+                val inset = 16.dp.toPx()
+                drawRect(
+                    color = colors.elevatedBackground,
+                    topLeft = androidx.compose.ui.geometry.Offset(inset, 0f),
+                    size = Size((size.width - inset * 2f).coerceAtLeast(0f), 1.dp.toPx()),
+                )
+            }
+            // Rows own their horizontal insets. This avoids the accidental double inset
+            // produced by secondary-page cards while preserving the Settings geometry.
+            .padding(horizontal = 0.dp),
+    ) {
+        CompositionLocalProvider(
+            LocalMergedGlassCards provides true,
+            LocalGroupedListIconColor provides colors.accent,
+        ) { content() }
+    }
+}
+
+@Composable
+fun IosListRow(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    detail: String? = null,
+    systemName: String? = null,
+    leading: (@Composable () -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    showTopSeparator: Boolean = true,
+) {
+    val colors = LocalGlassColors.current
+    Row(
+        modifier
+            .fillMaxWidth()
+            .height(if (subtitle == null) 52.dp else 62.dp)
+            .drawBehind {
+                if (showTopSeparator) {
+                    drawLine(
+                        colors.separator,
+                        androidx.compose.ui.geometry.Offset(16.dp.toPx(), 0f),
+                        androidx.compose.ui.geometry.Offset(size.width - 16.dp.toPx(), 0f),
+                        1.dp.toPx(),
+                    )
+                }
+            }
+            .padding(horizontal = 16.dp)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        leading?.let { it(); Spacer(Modifier.width(12.dp)) }
+        systemName?.let {
+            SfIcon(it, null, size = 23.dp, tint = colors.accent)
+            Spacer(Modifier.width(12.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(title, style = IosTypography.body)
+            subtitle?.let { Text(it, style = IosTypography.subheadline, color = colors.secondaryContent) }
+        }
+        detail?.let { Text(it, style = IosTypography.subheadline, color = colors.secondaryContent) }
+        trailing?.invoke()
+        if (onClick != null && trailing == null) {
+            Spacer(Modifier.width(8.dp)); SfIcon("chevron.forward", null, size = 12.dp, tint = colors.accent)
+        }
+    }
+}
+
+/** Figma node 5661:43368 stepper. */
+@Composable
+fun IosStepper(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    range: IntRange = Int.MIN_VALUE..Int.MAX_VALUE,
+) {
+    val fill = if (isSystemInDarkTheme()) Color.White.copy(alpha = 0.12f) else Color(0x14747480)
+    Row(modifier.background(fill, Capsule()).height(32.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(width = 46.dp, height = 32.dp).clickable(enabled = value > range.first) { onValueChange(value - 1) }, contentAlignment = Alignment.Center) {
+            SfIcon("minus", null, size = 17.dp)
+        }
+        Box(Modifier.width(1.dp).height(22.dp).background(LocalGlassColors.current.separator))
+        Box(Modifier.size(width = 46.dp, height = 32.dp).clickable(enabled = value < range.last) { onValueChange(value + 1) }, contentAlignment = Alignment.Center) {
+            SfIcon("plus", null, size = 17.dp)
+        }
+    }
+}
+
+/** Figma nodes 770:21901 and 754:62668. */
+@Composable
+fun IosContextMenu(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    backdrop: Backdrop = LocalGlassBackdrop.current,
+    animationProgress: Float = 1f,
+    animationVelocity: Float = 0f,
+    opensAbove: Boolean = false,
+    collapsedSize: IntSize = IntSize(44, 44),
+    itemCount: Int = 1,
+    content: @Composable ColumnScope.(LayerBackdrop) -> Unit,
+) {
+    if (!visible) return
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val geometryProgress = animationProgress.coerceIn(-0.10f, 1.12f)
+    val progress = animationProgress.coerceIn(0f, 1f)
+    val normalizedVelocity = (animationVelocity / 12f).coerceIn(-1f, 1f)
+    val pulse = max(
+        sin(PI.toFloat() * progress),
+        abs(normalizedVelocity) * 0.82f,
+    ).coerceIn(0f, 1f)
+    val collapsedWidth = with(density) { collapsedSize.width.toDp() }
+    val collapsedHeight = with(density) { collapsedSize.height.toDp() }
+    val menuWidth = 238.dp
+    val menuHeight = 20.dp + 44.dp * itemCount
+    val width = lerpDp(collapsedWidth, menuWidth, geometryProgress)
+    val height = lerpDp(collapsedHeight, menuHeight, geometryProgress)
+    val radius = 34.dp
+    // Content follows both directions continuously. Delaying it until 34% made the rows
+    // disappear near the beginning of close while the glass shell was still visibly shrinking.
+    val contentProgress = progress
+    val childBackdrop = rememberLayerBackdrop()
+    val elevatedBackground = LocalGlassColors.current.elevatedBackground
+    Column(
+        modifier
+            .size(width = width, height = height)
+            .drawBackdrop(
+                backdrop = backdrop,
+                exportedBackdrop = childBackdrop,
+                shape = { RoundedRectangle(radius) },
+                effects = {
+                    vibrancy()
+                    blur(lerp(3.dp.toPx(), 16.dp.toPx(), progress))
+                    lens(
+                        refractionHeight = lerp(10.dp.toPx(), 18.dp.toPx(), progress) +
+                            4.dp.toPx() * pulse,
+                        refractionAmount = lerp(16.dp.toPx(), 26.dp.toPx(), progress) +
+                            8.dp.toPx() * pulse,
+                        depthEffect = pulse > 0.01f,
+                        chromaticAberration = true,
+                    )
+                },
+                highlight = {
+                    Highlight.Default.copy(alpha = progress * (0.46f + 0.30f * pulse))
+                },
+                shadow = { Shadow(radius = 48.dp, alpha = 0.25f * progress) },
+                innerShadow = { InnerShadow(radius = 8.dp, alpha = 0.10f * progress) },
+                layerBlock = {
+                    transformOrigin = TransformOrigin(1f, if (opensAbove) 1f else 0f)
+                    scaleX = 1f + 0.026f * pulse
+                    scaleY = 1f - 0.012f * pulse
+                    scaleX /= 1f - (normalizedVelocity * 0.75f).coerceIn(-0.16f, 0.16f)
+                    scaleY *= 1f - (normalizedVelocity * 0.25f).coerceIn(-0.12f, 0.12f)
+                },
+                onDrawSurface = {
+                    drawRect(elevatedBackground.copy(alpha = 0.70f * progress))
+                },
+            )
+            .clip(RoundedCornerShape(radius))
+            .padding(10.dp)
+            .graphicsLayer {
+                alpha = contentProgress
+                transformOrigin = TransformOrigin(1f, if (opensAbove) 1f else 0f)
+                val contentScale = 0.92f + 0.08f * contentProgress
+                scaleX = contentScale
+                scaleY = contentScale
+            }
+            .blur(5.dp * (1f - contentProgress)),
+    ) {
+        if (contentProgress > 0.001f) content(childBackdrop)
+    }
+}
+
+/**
+ * Anchored iOS popup whose refractive surface grows out of the trigger itself.
+ * Closing immediately removes the interactive Popup window, then an in-tree visual shell
+ * finishes the reverse spring behind the trigger. This keeps the trigger clickable throughout.
+ */
+@Composable
+fun IosPopupMenu(
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    itemCount: Int,
+    modifier: Modifier = Modifier,
+    backdrop: Backdrop = LocalGlassBackdrop.current,
+    anchor: @Composable (onClick: () -> Unit) -> Unit,
+    content: @Composable ColumnScope.(LayerBackdrop, close: () -> Unit) -> Unit,
+) {
+    var anchorSize by remember { mutableStateOf(IntSize.Zero) }
+    var popupComposed by remember { mutableStateOf(expanded) }
+    var closingOverlay by remember { mutableStateOf(false) }
+    var opensAbove by remember { mutableStateOf(false) }
+    val progress = remember { Animatable(if (expanded) 1f else 0f) }
+
+    LaunchedEffect(expanded) {
+        if (expanded) {
+            closingOverlay = false
+            popupComposed = true
+            progress.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = 0.46f,
+                    stiffness = 260f,
+                    visibilityThreshold = 0.001f,
+                ),
+            )
+        } else if (popupComposed) {
+            // A Popup owns a separate input window. Remove it before animating the visual copy,
+            // otherwise its nearly transparent tail can still cover the trigger.
+            popupComposed = false
+            closingOverlay = true
+            progress.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(
+                    dampingRatio = 0.48f,
+                    stiffness = 300f,
+                    visibilityThreshold = 0.001f,
+                ),
+            )
+            closingOverlay = false
+        }
+    }
+
+    Box(modifier.onSizeChanged { anchorSize = it }) {
+        Box(
+            Modifier
+                .zIndex(if (closingOverlay) 1f else 0f)
+                .graphicsLayer { alpha = if (popupComposed && expanded) 0f else 1f },
+        ) {
+            anchor { onExpandedChange(!expanded) }
+        }
+        if (closingOverlay && anchorSize != IntSize.Zero) {
+            val closingContent: @Composable ColumnScope.(LayerBackdrop) -> Unit = { childBackdrop ->
+                CompositionLocalProvider(LocalIosPopupMenuInteractive provides false) {
+                    Column { content(childBackdrop) { } }
+                }
+            }
+            // This visual tail lives in the anchor window (not a Popup), so it cannot consume
+            // input. A zero-reported layout used to clip it completely and made close look like
+            // an instant disappearance; draw it in a fixed anchor-sized overflow layer instead.
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .zIndex(0f),
+            ) {
+                IosContextMenu(
+                    visible = true,
+                    modifier = Modifier.layout { measurable, _ ->
+                        val placeable = measurable.measure(Constraints())
+                        layout(anchorSize.width, anchorSize.height) {
+                            placeable.place(
+                                x = anchorSize.width - placeable.width,
+                                y = if (opensAbove) anchorSize.height - placeable.height else 0,
+                            )
+                        }
+                    },
+                    backdrop = backdrop,
+                    animationProgress = progress.value,
+                    animationVelocity = progress.velocity,
+                    opensAbove = opensAbove,
+                    collapsedSize = anchorSize,
+                    itemCount = itemCount,
+                    content = closingContent,
+                )
+            }
+        }
+        if (popupComposed && anchorSize != IntSize.Zero) {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            val targetMenuHeightPx = with(density) { (20.dp + 44.dp * itemCount).roundToPx() }
+            val positionProvider = remember(expanded, anchorSize, targetMenuHeightPx) {
+                IosPopupPositionProvider(targetMenuHeightPx) { resolved ->
+                    opensAbove = resolved
+                }
+            }
+            Popup(
+                popupPositionProvider = positionProvider,
+                onDismissRequest = { onExpandedChange(false) },
+                properties = PopupProperties(
+                    focusable = expanded,
+                    dismissOnBackPress = expanded,
+                    dismissOnClickOutside = expanded,
+                ),
+            ) {
+                IosContextMenu(
+                    visible = true,
+                    backdrop = backdrop,
+                    animationProgress = progress.value,
+                    animationVelocity = progress.velocity,
+                    opensAbove = opensAbove,
+                    collapsedSize = anchorSize,
+                    itemCount = itemCount,
+                ) { childBackdrop ->
+                    content(childBackdrop) { onExpandedChange(false) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun <T> IosPopupButton(
+    selected: T,
+    items: List<T>,
+    onSelected: (T) -> Unit,
+    label: @Composable (T) -> String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    backdrop: Backdrop = LocalGlassBackdrop.current,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    IosPopupMenu(
+        expanded = expanded,
+        onExpandedChange = { if (enabled || !it) expanded = it },
+        itemCount = items.size,
+        modifier = modifier,
+        backdrop = backdrop,
+        anchor = { openMenu ->
+            Row(
+                Modifier
+                    .clickable(
+                        enabled = enabled,
+                        interactionSource = null,
+                        indication = null,
+                        role = Role.Button,
+                        onClick = openMenu,
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = label(selected),
+                    style = IosTypography.body.copy(fontWeight = FontWeight.SemiBold),
+                    color = if (enabled) LocalGlassColors.current.accent
+                    else LocalGlassColors.current.secondaryContent,
+                )
+                SfIcon(
+                    "chevron.up.chevron.down",
+                    contentDescription = null,
+                    size = 15.dp,
+                    tint = if (enabled) LocalGlassColors.current.accent
+                    else LocalGlassColors.current.secondaryContent,
+                    modifier = Modifier.padding(start = 7.dp),
+                )
+            }
+        },
+    ) { childBackdrop, close ->
+        items.forEach { item ->
+            IosMenuItem(
+                title = label(item),
+                onClick = {
+                    onSelected(item)
+                    close()
+                },
+                systemName = if (item == selected) "checkmark" else null,
+                backdrop = childBackdrop,
+            )
+        }
+    }
+}
+
+@Composable
+fun IosMenuItem(
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    systemName: String? = null,
+    destructive: Boolean = false,
+    backdrop: Backdrop = LocalGlassBackdrop.current,
+) {
+    val scope = rememberCoroutineScope()
+    val interactive = LocalIosPopupMenuInteractive.current
+    val highlight = remember(scope) { InteractiveHighlight(scope) }
+    Row(
+        modifier
+            .fillMaxWidth()
+            .drawBackdrop(
+                backdrop,
+                shape = { RoundedCornerShape(16.dp) },
+                effects = {
+                    val p = highlight.pressProgress
+                    if (p > 0.01f) { blur(2.dp.toPx() * p); lens(6.dp.toPx() * p, 10.dp.toPx() * p) }
+                },
+                highlight = { Highlight.Default.copy(alpha = 0.38f * highlight.pressProgress) },
+                shadow = null,
+                innerShadow = { InnerShadow(radius = 3.dp * highlight.pressProgress, alpha = 0.2f * highlight.pressProgress) },
+                onDrawSurface = { drawRect(Color.Black.copy(alpha = 0.04f * highlight.pressProgress)) },
+            )
+            .then(if (interactive) highlight.modifier else Modifier)
+            .then(
+                if (interactive) {
+                    Modifier
+                        .clickable(interactionSource = null, indication = null, onClick = onClick)
+                        .then(highlight.gestureModifier)
+                } else {
+                    Modifier
+                },
+            )
+            .height(44.dp)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        systemName?.let { SfIcon(it, null, size = 20.dp, tint = if (destructive) LocalGlassColors.current.destructive else LocalGlassColors.current.content); Spacer(Modifier.width(12.dp)) }
+        Text(title, style = IosTypography.body, color = if (destructive) LocalGlassColors.current.destructive else LocalGlassColors.current.content)
+    }
+}
+
+/** Figma node 770:21495 alert and node 754:62559 action-sheet surface. */
+@Composable
+fun IosAlertSurface(
+    modifier: Modifier = Modifier,
+    backdrop: Backdrop = LocalGlassBackdrop.current,
+    title: String,
+    message: String? = null,
+    content: @Composable ColumnScope.() -> Unit = {},
+) {
+    val light = !isSystemInDarkTheme()
+    val elevatedBackground = LocalGlassColors.current.elevatedBackground
+    Column(
+        modifier
+            .widthIn(min = 300.dp, max = 360.dp)
+            .drawBackdrop(
+                backdrop,
+                shape = { RoundedRectangle(38.dp) },
+                effects = {
+                    colorControls(brightness = if (light) 0.2f else 0f, saturation = 1.5f)
+                    blur(if (light) 16.dp.toPx() else 8.dp.toPx())
+                    lens(24.dp.toPx(), 48.dp.toPx(), depthEffect = true)
+                },
+                highlight = { Highlight.Plain },
+                shadow = { Shadow(radius = 48.dp, alpha = 0.25f) },
+                onDrawSurface = { drawRect(elevatedBackground.copy(alpha = if (light) 0.72f else 0.54f)) },
+            )
+            .padding(14.dp),
+    ) {
+        Column(Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
+            Text(title, style = IosTypography.headline)
+            message?.let { Text(it, style = IosTypography.body, modifier = Modifier.padding(top = 8.dp)) }
+        }
+        content()
+    }
+}
+
+@Composable
+fun IosModalOverlay(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    if (!visible) return
+    Box(modifier.fillMaxSize().background(Color(0x3B29293A)), contentAlignment = Alignment.Center, content = content)
+}
+
+/** Figma node 10525:1632. The glass shell reaches behind system navigation. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun IosModalSheet(
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    skipPartiallyExpanded: Boolean = true,
+    backdrop: Backdrop = LocalGlassBackdrop.current,
+    contentWindowInsets: @Composable () -> WindowInsets = { WindowInsets(0) },
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded),
+        modifier = modifier,
+        containerColor = Color.Transparent,
+        contentColor = LocalGlassColors.current.content,
+        shape = IosModalSheetShape,
+        dragHandle = null,
+        contentWindowInsets = contentWindowInsets,
+    ) {
+        IosSheetSurface(
+            modifier = Modifier.fillMaxWidth(),
+            backdrop = backdrop,
+            shape = IosModalSheetShape,
+        ) {
+            Column(
+                Modifier.fillMaxWidth().navigationBarsPadding(),
+            ) {
+                Box(
+                    Modifier.fillMaxWidth().height(16.dp),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Box(
+                        Modifier
+                            .padding(top = 5.dp)
+                            .size(width = 58.dp, height = 4.dp)
+                            .background(LocalGlassColors.current.tertiaryContent.copy(alpha = 0.55f), Capsule()),
+                    )
+                }
+                content()
+            }
+        }
+    }
+}
+
+/** Figma node 770:21908. The shell is glass; rows inside remain ordinary grouped content. */
+@Composable
+fun IosSheetSurface(
+    modifier: Modifier = Modifier,
+    backdrop: Backdrop = LocalGlassBackdrop.current,
+    shape: Shape = RoundedRectangle(38.dp),
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val colors = LocalGlassColors.current
+    val isLight = !isSystemInDarkTheme()
+    Box(
+        modifier
+            .fillMaxWidth()
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { shape },
+                effects = {
+                    vibrancy()
+                    blur(16.dp.toPx())
+                    lens(20.dp.toPx(), 34.dp.toPx(), depthEffect = true)
+                },
+                highlight = { Highlight.Default.copy(alpha = if (isLight) 0.58f else 0.38f) },
+                shadow = { Shadow(radius = 48.dp, alpha = 0.25f) },
+                innerShadow = { InnerShadow(radius = 8.dp, alpha = 0.12f) },
+                onDrawSurface = {
+                    drawRect(
+                        colors.elevatedBackground.copy(alpha = if (isLight) 0.72f else 0.54f),
+                    )
+                    drawRect(Color.White.copy(alpha = if (isLight) 0.12f else 0.04f))
+                },
+            ),
+        content = content,
+    )
+}
+
+/** Figma node 754:62559: title, optional message, and a vertically grouped action list. */
+@Composable
+fun IosActionSheet(
+    title: String,
+    modifier: Modifier = Modifier,
+    message: String? = null,
+    backdrop: Backdrop = LocalGlassBackdrop.current,
+    shape: Shape = IosModalSheetShape,
+    showHandle: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    IosSheetSurface(modifier, backdrop, shape) {
+        IosActionSheetContent(
+            title = title,
+            message = message,
+            showHandle = showHandle,
+            content = content,
+        )
+    }
+}
+
+@Composable
+fun IosActionSheetContent(
+    title: String,
+    modifier: Modifier = Modifier,
+    message: String? = null,
+    showHandle: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(
+            top = if (showHandle) 4.dp else 18.dp,
+            bottom = 18.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (showHandle) {
+            Box(Modifier.fillMaxWidth().height(12.dp), contentAlignment = Alignment.TopCenter) {
+                Box(
+                    Modifier
+                        .size(width = 58.dp, height = 4.dp)
+                        .background(LocalGlassColors.current.tertiaryContent.copy(alpha = 0.55f), Capsule()),
+                )
+            }
+        }
+        Column(Modifier.padding(horizontal = 8.dp)) {
+            Text(title, style = IosTypography.headline)
+            message?.let {
+                Text(
+                    it,
+                    style = IosTypography.subheadline,
+                    color = LocalGlassColors.current.secondaryContent,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
+            }
+        }
+        IosGroupedList(content = content)
+    }
+}

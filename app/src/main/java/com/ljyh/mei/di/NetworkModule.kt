@@ -3,11 +3,14 @@ package com.ljyh.mei.di
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
+import com.ljyh.mei.BuildConfig
 import com.ljyh.mei.constants.AndroidUserAgent
 import com.ljyh.mei.data.network.QQMusicUApiService
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.EApiService
 import com.ljyh.mei.data.network.api.WeApiService
+import com.ljyh.mei.data.network.api.MeloXDirectService
+import com.ljyh.mei.data.network.api.AudioMatchService
 import com.ljyh.mei.utils.log.NetworkLogInterceptor
 import dagger.Module
 import dagger.Provides
@@ -34,8 +37,6 @@ object RetrofitModule {
 
     private const val APIDOMAIN = "https://interface.music.163.com"
     private const val DOMAIN = "https://music.163.com"
-    private const val DEBUG = true
-
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
@@ -47,7 +48,7 @@ object RetrofitModule {
 
             // 日志拦截器
             addInterceptor(HttpLoggingInterceptor().apply {
-                level = if (DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+                level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
             })
 
             // 核心业务拦截器 (使用我们提取出来的类)
@@ -57,7 +58,7 @@ object RetrofitModule {
             addInterceptor(NetworkLogInterceptor())
 
             // SSL 配置 (仅在 Debug 模式下忽略证书，防止中间人攻击)
-            if (DEBUG) {
+            if (BuildConfig.DEBUG) {
                 configureUnsafeSSL(this)
             }
         }.build()
@@ -122,6 +123,58 @@ object RetrofitModule {
         return retrofit.create(ApiService::class.java)
     }
 
+    @Provides
+    @Singleton
+    @Named("MeloXEapi")
+    fun provideMeloXEapiService(retrofit: Retrofit): MeloXDirectService =
+        retrofit.create(MeloXDirectService::class.java)
+
+    @Provides
+    @Singleton
+    @Named("MeloXWeapi")
+    fun provideMeloXWeapiService(
+        @Named("WeApiRetrofit") retrofit: Retrofit,
+    ): MeloXDirectService = retrofit.create(MeloXDirectService::class.java)
+
+    @Provides
+    @Singleton
+    @Named("AudioMatchRetrofit")
+    fun provideAudioMatchRetrofit(): Retrofit {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header("User-Agent", AndroidUserAgent)
+                        .build(),
+                )
+            }
+            .addInterceptor(NetworkLogInterceptor())
+            .build()
+        return Retrofit.Builder()
+            .baseUrl(APIDOMAIN)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(client)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAudioMatchService(
+        @Named("AudioMatchRetrofit") retrofit: Retrofit,
+    ): AudioMatchService = retrofit.create(AudioMatchService::class.java)
+
+    @Provides
+    @Singleton
+    @Named("CloudUploadClient")
+    fun provideCloudUploadClient(): OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(200, TimeUnit.SECONDS)
+        .writeTimeout(200, TimeUnit.SECONDS)
+        .addInterceptor(NetworkLogInterceptor())
+        .build()
+
 
     @Singleton
     @Provides
@@ -153,7 +206,7 @@ object RetrofitModule {
                 chain.proceed(request)
             }
             .addInterceptor(HttpLoggingInterceptor().apply {
-                level = if (DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+                level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
             })
             .build()
     }
