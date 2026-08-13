@@ -5,7 +5,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -32,6 +31,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -190,43 +190,56 @@ fun IosTopToolbar(
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     val progress = collapseProgress.coerceIn(0f, 1f)
-    CompositionLocalProvider(LocalGlassSurfaceBrightness provides 1f) {
-    when (style) {
-        IosTopBarStyle.LargeTitle -> Column(modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-            Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f)) { navigation?.invoke() }
+    CompositionLocalProvider(
+        LocalGlassSurfaceBrightness provides 1f,
+        LocalContentColor provides LocalGlassColors.current.content,
+    ) {
+        when (style) {
+            IosTopBarStyle.LargeTitle -> Column(modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) { navigation?.invoke() }
+                    Row(content = actions)
+                }
+                Text(title, style = IosTypography.largeTitle, color = LocalGlassColors.current.content)
+                subtitle?.let { Text(it, style = IosTypography.subheadline, color = LocalGlassColors.current.secondaryContent) }
+            }
+            IosTopBarStyle.CompactLargeTitle -> Row(
+                modifier.fillMaxWidth().height(54.dp).padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    title,
+                    style = IosTypography.largeTitle,
+                    color = LocalGlassColors.current.content,
+                    modifier = Modifier.weight(1f),
+                )
                 Row(content = actions)
             }
-            Text(title, style = IosTypography.largeTitle)
-            subtitle?.let { Text(it, style = IosTypography.subheadline, color = LocalGlassColors.current.secondaryContent) }
-        }
-        IosTopBarStyle.CompactLargeTitle -> Row(
-            modifier.fillMaxWidth().height(54.dp).padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(title, style = IosTypography.largeTitle, modifier = Modifier.weight(1f))
-            Row(content = actions)
-        }
-        else -> Box(modifier.fillMaxWidth().height(54.dp).padding(horizontal = 16.dp)) {
-            Row(Modifier.align(Alignment.CenterStart), verticalAlignment = Alignment.CenterVertically) { navigation?.invoke() }
-            Column(
-                Modifier
-                    .align(if (style == IosTopBarStyle.TwoLineLeading) Alignment.CenterStart else Alignment.Center)
-                    .graphicsLayer {
-                        alpha = progress
-                        val scale = 0.92f + 0.08f * progress
-                        scaleX = scale
-                        scaleY = scale
-                    }
-                    .blur(8.dp * (1f - progress)),
-                horizontalAlignment = if (style == IosTopBarStyle.TwoLineLeading) Alignment.Start else Alignment.CenterHorizontally,
-            ) {
-                Text(title, style = if (subtitle == null) IosTypography.headline else IosTypography.subheadline.copy(fontWeight = FontWeight.SemiBold))
-                subtitle?.let { Text(it, style = IosTypography.caption, color = LocalGlassColors.current.secondaryContent) }
+            else -> Box(modifier.fillMaxWidth().height(54.dp).padding(horizontal = 16.dp)) {
+                Row(Modifier.align(Alignment.CenterStart), verticalAlignment = Alignment.CenterVertically) { navigation?.invoke() }
+                Column(
+                    Modifier
+                        .align(if (style == IosTopBarStyle.TwoLineLeading) Alignment.CenterStart else Alignment.Center)
+                        .graphicsLayer {
+                            alpha = progress
+                            val scale = 0.92f + 0.08f * progress
+                            scaleX = scale
+                            scaleY = scale
+                        }
+                        .blur(8.dp * (1f - progress)),
+                    horizontalAlignment = if (style == IosTopBarStyle.TwoLineLeading) Alignment.Start else Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        title,
+                        style = if (subtitle == null) IosTypography.headline
+                        else IosTypography.subheadline.copy(fontWeight = FontWeight.SemiBold),
+                        color = LocalGlassColors.current.content,
+                    )
+                    subtitle?.let { Text(it, style = IosTypography.caption, color = LocalGlassColors.current.secondaryContent) }
+                }
+                Row(Modifier.align(Alignment.CenterEnd), content = actions)
             }
-            Row(Modifier.align(Alignment.CenterEnd), content = actions)
         }
-    }
     }
 }
 
@@ -386,6 +399,7 @@ fun IosGroupedList(
         CompositionLocalProvider(
             LocalMergedGlassCards provides true,
             LocalGroupedListIconColor provides colors.accent,
+            LocalContentColor provides colors.content,
         ) { content() }
     }
 }
@@ -427,7 +441,7 @@ fun IosListRow(
             Spacer(Modifier.width(12.dp))
         }
         Column(Modifier.weight(1f)) {
-            Text(title, style = IosTypography.body)
+            Text(title, style = IosTypography.body, color = colors.content)
             subtitle?.let { Text(it, style = IosTypography.subheadline, color = colors.secondaryContent) }
         }
         detail?.let { Text(it, style = IosTypography.subheadline, color = colors.secondaryContent) }
@@ -446,7 +460,7 @@ fun IosStepper(
     modifier: Modifier = Modifier,
     range: IntRange = Int.MIN_VALUE..Int.MAX_VALUE,
 ) {
-    val fill = if (isSystemInDarkTheme()) Color.White.copy(alpha = 0.12f) else Color(0x14747480)
+    val fill = if (LocalGlassColors.current.isDark) Color.White.copy(alpha = 0.12f) else Color(0x14747480)
     Row(modifier.background(fill, Capsule()).height(32.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(width = 46.dp, height = 32.dp).clickable(enabled = value > range.first) { onValueChange(value - 1) }, contentAlignment = Alignment.Center) {
             SfIcon("minus", null, size = 17.dp)
@@ -783,8 +797,9 @@ fun IosAlertSurface(
     message: String? = null,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
-    val light = !isSystemInDarkTheme()
-    val elevatedBackground = LocalGlassColors.current.elevatedBackground
+    val colors = LocalGlassColors.current
+    val light = !colors.isDark
+    val elevatedBackground = colors.elevatedBackground
     Column(
         modifier
             .widthIn(min = 300.dp, max = 360.dp)
@@ -802,11 +817,20 @@ fun IosAlertSurface(
             )
             .padding(14.dp),
     ) {
-        Column(Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
-            Text(title, style = IosTypography.headline)
-            message?.let { Text(it, style = IosTypography.body, modifier = Modifier.padding(top = 8.dp)) }
+        CompositionLocalProvider(LocalContentColor provides colors.content) {
+            Column(Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
+                Text(title, style = IosTypography.headline, color = colors.content)
+                message?.let {
+                    Text(
+                        it,
+                        style = IosTypography.body,
+                        color = colors.content,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            }
+            content()
         }
-        content()
     }
 }
 
@@ -875,7 +899,7 @@ fun IosSheetSurface(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val colors = LocalGlassColors.current
-    val isLight = !isSystemInDarkTheme()
+    val isLight = !colors.isDark
     Box(
         modifier
             .fillMaxWidth()
@@ -897,7 +921,14 @@ fun IosSheetSurface(
                     drawRect(Color.White.copy(alpha = if (isLight) 0.12f else 0.04f))
                 },
             ),
-        content = content,
+        content = {
+            CompositionLocalProvider(
+                LocalContentColor provides colors.content,
+                LocalGlassContentColor provides colors.content,
+            ) {
+                content()
+            }
+        },
     )
 }
 
@@ -930,33 +961,36 @@ fun IosActionSheetContent(
     showHandle: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(
-        modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(
-            top = if (showHandle) 4.dp else 18.dp,
-            bottom = 18.dp,
-        ),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (showHandle) {
-            Box(Modifier.fillMaxWidth().height(12.dp), contentAlignment = Alignment.TopCenter) {
-                Box(
-                    Modifier
-                        .size(width = 58.dp, height = 4.dp)
-                        .background(LocalGlassColors.current.tertiaryContent.copy(alpha = 0.55f), Capsule()),
-                )
+    val colors = LocalGlassColors.current
+    CompositionLocalProvider(LocalContentColor provides colors.content) {
+        Column(
+            modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(
+                top = if (showHandle) 4.dp else 18.dp,
+                bottom = 18.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (showHandle) {
+                Box(Modifier.fillMaxWidth().height(12.dp), contentAlignment = Alignment.TopCenter) {
+                    Box(
+                        Modifier
+                            .size(width = 58.dp, height = 4.dp)
+                            .background(LocalGlassColors.current.tertiaryContent.copy(alpha = 0.55f), Capsule()),
+                    )
+                }
             }
-        }
-        Column(Modifier.padding(horizontal = 8.dp)) {
-            Text(title, style = IosTypography.headline)
-            message?.let {
-                Text(
-                    it,
-                    style = IosTypography.subheadline,
-                    color = LocalGlassColors.current.secondaryContent,
-                    modifier = Modifier.padding(top = 3.dp),
-                )
+            Column(Modifier.padding(horizontal = 8.dp)) {
+                Text(title, style = IosTypography.headline, color = colors.content)
+                message?.let {
+                    Text(
+                        it,
+                        style = IosTypography.subheadline,
+                        color = LocalGlassColors.current.secondaryContent,
+                        modifier = Modifier.padding(top = 3.dp),
+                    )
+                }
             }
+            IosGroupedList(content = content)
         }
-        IosGroupedList(content = content)
     }
 }

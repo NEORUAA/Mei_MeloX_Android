@@ -148,7 +148,9 @@ fun IosColorPicker(
                         modifier = Modifier.weight(1f),
                     )
                     Box(
-                        Modifier.background(Color.White, RoundedCornerShape(8.dp)).padding(horizontal = 14.dp, vertical = 6.dp),
+                        Modifier
+                            .background(LocalGlassColors.current.elevatedBackground, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
                     ) {
                         Text("${(opacity * 100).toInt()}%", style = IosTypography.headline)
                     }
@@ -171,7 +173,13 @@ fun IosColorPicker(
                                 }
                                 if (rowIndex == 1) {
                                     Box(
-                                        Modifier.size(30.dp).clip(CircleShape).background(Color(0xFFE5E5EA)),
+                                        Modifier
+                                            .size(30.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (LocalGlassColors.current.isDark) Color(0xFF2C2C2E)
+                                                else Color(0xFFE5E5EA),
+                                            ),
                                         contentAlignment = Alignment.Center,
                                     ) { SfIcon("plus", null, size = 17.dp) }
                                 }

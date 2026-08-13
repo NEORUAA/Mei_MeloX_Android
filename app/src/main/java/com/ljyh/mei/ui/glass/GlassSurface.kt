@@ -1,7 +1,6 @@
 package com.ljyh.mei.ui.glass
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
@@ -67,7 +66,7 @@ fun GlassSurface(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val colors = LocalGlassColors.current
-    val isLight = !isSystemInDarkTheme()
+    val isLight = !colors.isDark
     val brightness = LocalGlassSurfaceBrightness.current.coerceIn(0f, 1f)
     val animationScope = rememberCoroutineScope()
     val interactiveHighlight = remember(animationScope) {

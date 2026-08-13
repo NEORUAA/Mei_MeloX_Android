@@ -56,6 +56,7 @@ import com.ljyh.mei.ui.glass.GlassIconButton
 import com.ljyh.mei.ui.glass.IosPinnedListPage
 import com.ljyh.mei.ui.glass.IosGroupedList
 import com.ljyh.mei.ui.glass.IosListRow
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.GlassSegmentedControl
 import com.ljyh.mei.ui.glass.GlassSurface
 import com.ljyh.mei.ui.glass.SfIcon
@@ -212,7 +213,13 @@ private fun AccountHero(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.size(132.dp).clip(CircleShape),
             )
-            Text(profile.nickname, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text(
+                profile.nickname,
+                style = MaterialTheme.typography.headlineSmall,
+                color = LocalGlassColors.current.content,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+            )
             profile.signature?.takeIf(String::isNotBlank)?.let {
                 Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, maxLines = 3)
             }

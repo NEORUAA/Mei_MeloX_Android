@@ -3,7 +3,6 @@ package com.ljyh.mei.ui.glass
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -105,12 +104,8 @@ fun <T> GlassBottomBar(
     val selectedIndex = items.indexOfFirst { it.key == selectedKey }.takeIf { it >= 0 } ?: 0
     val selectedItem = items[selectedIndex]
     val colors = LocalGlassColors.current
-    val isLight = !isSystemInDarkTheme()
-    val containerColor = if (isLight) {
-        Color(0xFFFAFAFA).copy(alpha = 0.44f)
-    } else {
-        Color(0xFF121212).copy(alpha = 0.44f)
-    }
+    val isLight = !colors.isDark
+    val containerColor = colors.container
     val tabsBackdrop = rememberLayerBackdrop()
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
     val animationScope = rememberCoroutineScope()

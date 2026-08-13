@@ -3,7 +3,6 @@ package com.ljyh.mei.ui.glass
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -19,6 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.progressSemantics
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
@@ -82,7 +83,7 @@ fun GlassToggle(
     enabled: Boolean = true,
     backdrop: Backdrop = LocalGlassBackdrop.current,
 ) {
-    val light = !isSystemInDarkTheme()
+    val light = !LocalGlassColors.current.isDark
     val accent = if (light) Color(0xFF34C759) else Color(0xFF30D158)
     val track = if (light) Color(0xFF787878).copy(alpha = 0.20f)
     else Color(0xFF787880).copy(alpha = 0.36f)
@@ -200,8 +201,9 @@ fun GlassSlider(
     backdrop: Backdrop = LocalGlassBackdrop.current,
 ) {
     require(valueRange.start < valueRange.endInclusive)
-    val light = !isSystemInDarkTheme()
-    val accent = LocalGlassColors.current.accent
+    val colors = LocalGlassColors.current
+    val light = !colors.isDark
+    val accent = colors.accent
     val track = if (light) Color(0xFF787878).copy(alpha = 0.20f)
     else Color(0xFF787880).copy(alpha = 0.36f)
     val trackBackdrop = rememberLayerBackdrop()
@@ -343,7 +345,14 @@ fun GlassCard(
                     onClick = onClick,
                 ) else Modifier,
             ),
-        content = content,
+        content = {
+            CompositionLocalProvider(
+                LocalContentColor provides colors.content,
+                LocalGlassContentColor provides colors.content,
+            ) {
+                content()
+            }
+        },
     )
 }
 
@@ -363,7 +372,8 @@ fun <T> GlassSegmentedControl(
     backdrop: Backdrop = LocalGlassBackdrop.current,
 ) {
     require(items.isNotEmpty())
-    val isLight = !isSystemInDarkTheme()
+    val colors = LocalGlassColors.current
+    val isLight = !colors.isDark
     val selectedIndex = items.indexOfFirst { it.first == selected }.coerceAtLeast(0)
     val currentItems by rememberUpdatedState(items)
     val currentOnSelected by rememberUpdatedState(onSelected)
@@ -471,7 +481,7 @@ fun <T> GlassSegmentedControl(
                 items = items,
                 selected = selected,
                 onSelected = onSelected,
-                selectedBackground = Color.White,
+                selectedBackground = if (isLight) Color.White else Color(0xFF636366),
             )
         }
 

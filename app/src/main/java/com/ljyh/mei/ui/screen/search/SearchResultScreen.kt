@@ -305,6 +305,9 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
 @Composable
 fun EmptyView() {
     Box(Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
-        Text(stringResource(R.string.no_search_results), color = androidx.compose.ui.graphics.Color.Gray)
+        Text(
+            stringResource(R.string.no_search_results),
+            color = com.ljyh.mei.ui.glass.LocalGlassColors.current.secondaryContent,
+        )
     }
 }

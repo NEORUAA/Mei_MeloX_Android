@@ -72,6 +72,7 @@ fun FindMusicScreen(
     val collapseProgress = rememberIosGridCollapseProgress(listState)
     val title = stringResource(R.string.app_tab_explore)
     val bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+    val glassColors = LocalGlassColors.current
     LaunchedEffect(selectedCategory) { listState.scrollToItem(0) }
 
     IosPinnedPage(
@@ -79,7 +80,7 @@ fun FindMusicScreen(
         bottomPadding = bottom,
         modifier = modifier,
         collapseProgress = collapseProgress,
-        backgroundColor = Color.White,
+        backgroundColor = if (glassColors.isDark) glassColors.groupedBackground else Color.White,
         actions = { GlobalProfileAvatarButton() },
     ) { contentPadding ->
         Box(Modifier.fillMaxSize()) {

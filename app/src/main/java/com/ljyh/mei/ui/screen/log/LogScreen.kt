@@ -2,7 +2,6 @@ package com.ljyh.mei.ui.screen.log
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,6 +27,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.glass.GlassIconButton
 import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.SfIcon
 import androidx.compose.foundation.layout.asPaddingValues
 import java.io.File
@@ -42,12 +42,13 @@ fun LogScreen(
     val fileList by viewModel.logFiles.collectAsState()
     val content by viewModel.currentFileContent.collectAsState()
     val navController = LocalNavController.current
-    val darkTheme = isSystemInDarkTheme()
+    val colors = LocalGlassColors.current
+    val darkTheme = colors.isDark
 
     val crashColor = if (darkTheme) Color(0xFFCF6679) else Color.Red
     val logColor = if (darkTheme) Color(0xFFBB86FC) else Color.Blue
-    val secondaryTextColor = if (darkTheme) Color(0xFFB0B0B0) else Color.Gray
-    val logBackgroundColor = if (darkTheme) Color(0xFF1E1E1E) else Color(0xFFEEEEEE)
+    val secondaryTextColor = colors.secondaryContent
+    val logBackgroundColor = colors.elevatedBackground
 
     IosPinnedListPage(
         title = "日志收集",

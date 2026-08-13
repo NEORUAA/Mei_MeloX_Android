@@ -80,6 +80,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.glass.IosPinnedPage
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.DateUtils.getGreeting
 import com.ljyh.mei.utils.positionComparator
@@ -107,6 +108,7 @@ fun HomeScreen(
     val userId by rememberPreference(UserIdKey, "")
     val isRefreshing by remember { mutableStateOf(false) }
     val device = rememberDeviceInfo()
+    val glassColors = LocalGlassColors.current
 
     // 滚动到顶部逻辑
     LaunchedEffect(scrollToTop) {
@@ -133,7 +135,7 @@ fun HomeScreen(
         title = stringResource(R.string.app_tab_home),
         bottomPadding = systemBarsPadding.calculateBottomPadding(),
         collapseProgress = collapseProgress,
-        backgroundColor = Color.White,
+        backgroundColor = if (glassColors.isDark) glassColors.groupedBackground else Color.White,
         actions = { GlobalProfileAvatarButton() },
     ) { pinnedPadding ->
         PullToRefreshBox(

@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material3.Text
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
@@ -139,6 +140,7 @@ fun IosPinnedListPage(
                             text = title,
                             style = IosTypography.largeTitle,
                             fontWeight = FontWeight.Bold,
+                            color = LocalGlassColors.current.content,
                         )
                         subtitle?.let {
                             Text(
@@ -188,43 +190,45 @@ fun IosPinnedPage(
         bottom = bottomPadding + 24.dp,
     )
 
-    Box(modifier.fillMaxSize().background(pageBackground)) {
-        Box(Modifier.fillMaxSize().layerBackdrop(pageBackdrop)) {
-            content(contentPadding)
-        }
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(toolbarHeight + 34.dp)
-                .align(Alignment.TopCenter)
-                .drawPlainBackdrop(
-                    backdrop = pageBackdrop,
-                    shape = { RectangleShape },
-                    effects = {
-                        blur(10.dp.toPx())
-                        runtimeShaderEffect("IosTopBarAlphaMask", AlphaMaskShader, "content") {
-                            setFloatUniform("size", size.width, size.height)
-                            setColorUniform("tint", pageBackground)
-                            setFloatUniform("tintIntensity", 0.78f)
+    CompositionLocalProvider(LocalContentColor provides colors.content) {
+        Box(modifier.fillMaxSize().background(pageBackground)) {
+            Box(Modifier.fillMaxSize().layerBackdrop(pageBackdrop)) {
+                content(contentPadding)
+            }
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(toolbarHeight + 34.dp)
+                    .align(Alignment.TopCenter)
+                    .drawPlainBackdrop(
+                        backdrop = pageBackdrop,
+                        shape = { RectangleShape },
+                        effects = {
+                            blur(10.dp.toPx())
+                            runtimeShaderEffect("IosTopBarAlphaMask", AlphaMaskShader, "content") {
+                                setFloatUniform("size", size.width, size.height)
+                                setColorUniform("tint", pageBackground)
+                                setFloatUniform("tintIntensity", 0.78f)
+                            }
+                        },
+                    ),
+            )
+            CompositionLocalProvider(LocalGlassBackdrop provides topBarBackdrop) {
+                IosTopToolbar(
+                    title = title,
+                    subtitle = subtitle,
+                    modifier = Modifier.fillMaxWidth().statusBarsPadding().align(Alignment.TopCenter),
+                    collapseProgress = collapseProgress,
+                    navigation = onNavigateBack?.let { navigateBack ->
+                        {
+                            GlassIconButton(navigateBack) {
+                                SfIcon(SfSymbol.ChevronBack, null, mirrored = true)
+                            }
                         }
                     },
-                ),
-        )
-        CompositionLocalProvider(LocalGlassBackdrop provides topBarBackdrop) {
-            IosTopToolbar(
-                title = title,
-                subtitle = subtitle,
-                modifier = Modifier.fillMaxWidth().statusBarsPadding().align(Alignment.TopCenter),
-                collapseProgress = collapseProgress,
-                navigation = onNavigateBack?.let { navigateBack ->
-                    {
-                        GlassIconButton(navigateBack) {
-                            SfIcon(SfSymbol.ChevronBack, null, mirrored = true)
-                        }
-                    }
-                },
-                actions = actions,
-            )
+                    actions = actions,
+                )
+            }
         }
     }
 }

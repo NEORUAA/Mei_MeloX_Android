@@ -13,6 +13,7 @@ import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
@@ -51,6 +52,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -345,13 +347,21 @@ class MainActivity : ComponentActivity() {
 
 
             val systemDark = isSystemInDarkTheme()
+            val effectiveDark = when (appAppearance) {
+                AppAppearance.System -> systemDark
+                AppAppearance.Light -> false
+                AppAppearance.Dark -> true
+            }
+            SideEffect {
+                val transparent = android.graphics.Color.TRANSPARENT
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(transparent, transparent) { effectiveDark },
+                    navigationBarStyle = SystemBarStyle.auto(transparent, transparent) { effectiveDark },
+                )
+            }
             MusicTheme(
                 seedColor = if (dynamicTheme) targetThemeColor else Color(accentColorArgb.toInt()),
-                isDark = when (appAppearance) {
-                    AppAppearance.System -> systemDark
-                    AppAppearance.Light -> false
-                    AppAppearance.Dark -> true
-                },
+                isDark = effectiveDark,
             ) {
                 val glassBackdrop = rememberLayerBackdrop()
                 // Keep the base page backdrop and the bottom controls' sample
@@ -361,7 +371,8 @@ class MainActivity : ComponentActivity() {
                 val bottomBackdrop = rememberLayerBackdrop()
                 val bottomControlsBackdrop = rememberCombinedBackdrop(glassBackdrop, bottomBackdrop)
                 val glassColors = defaultGlassColors(
-                    if (systemDark) Color(0xFFFF453A) else Color(0xFFFF3B30),
+                    isDark = effectiveDark,
+                    accent = if (effectiveDark) Color(0xFFFF4245) else Color(0xFFFF3B30),
                 )
                 CompositionLocalProvider(
                     LocalGlassBackdrop provides glassBackdrop,

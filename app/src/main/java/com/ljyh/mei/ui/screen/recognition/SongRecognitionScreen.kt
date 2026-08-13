@@ -43,6 +43,7 @@ import com.ljyh.mei.ui.glass.GlassEmphasis
 import com.ljyh.mei.ui.glass.GlassIconButton
 import com.ljyh.mei.ui.glass.GlassSegmentedControl
 import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
@@ -90,6 +91,7 @@ fun SongRecognitionScreen(viewModel: SongRecognitionViewModel = hiltViewModel())
                     Text(
                         text = stringResource(state.phase.textResource()),
                         style = MaterialTheme.typography.titleLarge,
+                        color = LocalGlassColors.current.content,
                         fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center,
                     )
@@ -128,7 +130,13 @@ fun SongRecognitionScreen(viewModel: SongRecognitionViewModel = hiltViewModel())
                         modifier = Modifier.size(58.dp).clip(RoundedCornerShape(14.dp)),
                     )
                     Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                        Text(song.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            song.name,
+                            color = LocalGlassColors.current.content,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                         Text(
                             song.artists.joinToString(" / "),
                             style = MaterialTheme.typography.bodySmall,

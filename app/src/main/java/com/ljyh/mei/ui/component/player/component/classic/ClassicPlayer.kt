@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.os.Build
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +25,7 @@ import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
@@ -48,7 +48,7 @@ fun ClassicPlayer(
 
     val device = rememberDeviceInfo()
 
-    val isSystemInDarkTheme = isSystemInDarkTheme()
+    val isDark = LocalGlassColors.current.isDark
 
 
 
@@ -59,8 +59,8 @@ fun ClassicPlayer(
 
     // 背景颜色计算
     val colorScheme = MaterialTheme.colorScheme
-    val backgroundColor = remember(isSystemInDarkTheme, state.value, state.collapsedBound) {
-        if (isSystemInDarkTheme && state.value > state.collapsedBound) {
+    val backgroundColor = remember(isDark, state.value, state.collapsedBound) {
+        if (isDark && state.value > state.collapsedBound) {
             lerp(colorScheme.surfaceContainer, Color.Black, state.progress)
         } else {
             colorScheme.surfaceContainer

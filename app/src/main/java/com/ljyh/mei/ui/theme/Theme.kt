@@ -5,11 +5,13 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -63,7 +65,7 @@ fun MusicTheme(
 ) {
     // MeloX uses the system red tint globally. Keep it independent from artwork-derived
     // colors so navigation, tabs, popup buttons and prominent controls never drift blue.
-    val targetAccent = if (isDark) Color(0xFFFF453A) else Color(0xFFFF3B30)
+    val targetAccent = if (isDark) Color(0xFFFF4245) else Color(0xFFFF3B30)
     val accent by animateColorAsState(targetAccent, tween(600), label = "iOS accent")
     val colorScheme = if (isDark) {
         darkColorScheme(
@@ -75,9 +77,17 @@ fun MusicTheme(
             surface = Color.Black,
             onSurface = Color.White,
             surfaceVariant = Color(0xFF1C1C1E),
-            onSurfaceVariant = Color.White.copy(alpha = 0.66f),
-            outlineVariant = Color.White.copy(alpha = 0.16f),
-            error = Color(0xFFFF453A),
+            onSurfaceVariant = Color(0xB2EBEBF5),
+            surfaceDim = Color.Black,
+            surfaceBright = Color(0xFF2C2C2E),
+            surfaceContainerLowest = Color.Black,
+            surfaceContainerLow = Color(0xFF1C1C1E),
+            surfaceContainer = Color(0xFF1C1C1E),
+            surfaceContainerHigh = Color(0xFF2C2C2E),
+            surfaceContainerHighest = Color(0xFF3A3A3C),
+            outline = Color(0xFF8E8E93),
+            outlineVariant = Color(0x2BFFFFFF),
+            error = Color(0xFFFF4245),
         )
     } else {
         val groupedBackground = Color(0xFFF2F2F7)
@@ -99,6 +109,10 @@ fun MusicTheme(
         colorScheme = colorScheme,
         typography = AppTypography,
         shapes = AppShapes,
-        content = content,
-    )
+    ) {
+        CompositionLocalProvider(
+            LocalContentColor provides colorScheme.onBackground,
+            content = content,
+        )
+    }
 }

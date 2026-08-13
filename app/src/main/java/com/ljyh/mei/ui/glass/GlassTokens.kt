@@ -1,7 +1,5 @@
 package com.ljyh.mei.ui.glass
 
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -16,6 +14,7 @@ import com.ljyh.mei.R
 
 @Immutable
 data class GlassColors(
+    val isDark: Boolean,
     val accent: Color,
     val content: Color,
     val secondaryContent: Color,
@@ -92,6 +91,7 @@ object IosTypography {
 
 val LocalGlassColors = staticCompositionLocalOf {
     GlassColors(
+        isDark = false,
         accent = Color(0xFFFF3B30),
         content = Color.Black,
         secondaryContent = Color.Black.copy(alpha = 0.62f),
@@ -112,35 +112,35 @@ val LocalGroupedListIconColor = staticCompositionLocalOf<Color?> { null }
 
 val LocalGlassDimensions = staticCompositionLocalOf { GlassDimensions() }
 
-@Composable
 fun defaultGlassColors(
-    accent: Color = if (isSystemInDarkTheme()) Color(0xFFFF453A) else Color(0xFFFF3B30),
+    isDark: Boolean,
+    accent: Color = if (isDark) Color(0xFFFF4245) else Color(0xFFFF3B30),
 ): GlassColors {
-    val isDark = isSystemInDarkTheme()
     return GlassColors(
+        isDark = isDark,
         accent = accent,
         content = if (isDark) Color.White else Color.Black,
         secondaryContent = if (isDark) {
-            Color.White.copy(alpha = 0.66f)
+            Color(0xB2EBEBF5)
         } else {
             Color.Black.copy(alpha = 0.58f)
         },
         container = if (isDark) {
-            Color(0xFF18181A).copy(alpha = 0.48f)
+            Color(0xFF1C1C1E).copy(alpha = 0.54f)
         } else {
             Color(0xFFF8F8FA).copy(alpha = 0.46f)
         },
-        prominentContainer = (if (isDark) Color(0xFFFF453A) else Color(0xFFFF3B30))
+        prominentContainer = (if (isDark) Color(0xFFFF4245) else Color(0xFFFF3B30))
             .copy(alpha = if (isDark) 0.76f else 0.84f),
         subtleStroke = if (isDark) {
-            Color.White.copy(alpha = 0.26f)
+            Color(0x2BFFFFFF)
         } else {
             Color.White.copy(alpha = 0.64f)
         },
         groupedBackground = if (isDark) Color.Black else Color(0xFFF2F2F7),
         elevatedBackground = if (isDark) Color(0xFF1C1C1E) else Color.White,
-        separator = if (isDark) Color.White.copy(alpha = 0.16f) else Color(0xFFE6E6E6),
-        tertiaryContent = if (isDark) Color.White.copy(alpha = 0.30f) else Color(0x4D3C3C43),
-        destructive = if (isDark) Color(0xFFFF453A) else Color(0xFFFF383C),
+        separator = if (isDark) Color(0x2BFFFFFF) else Color(0xFFE6E6E6),
+        tertiaryContent = if (isDark) Color(0x4DEBEBF5) else Color(0x4D3C3C43),
+        destructive = if (isDark) Color(0xFFFF4245) else Color(0xFFFF383C),
     )
 }

@@ -21,7 +21,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -85,6 +84,7 @@ import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.utils.lerp
 import com.ljyh.mei.ui.model.LyricSource
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.utils.UnitUtils.toPx
 import kotlin.math.min
 import com.kyant.backdrop.Backdrop
@@ -108,7 +108,7 @@ fun AppleMusicPlayer(
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
-    val isSystemInDarkTheme = isSystemInDarkTheme()
+    val isDark = LocalGlassColors.current.isDark
     val configuration = LocalConfiguration.current
 
     // --- Apple Music 特定状态 ---
@@ -147,8 +147,8 @@ fun AppleMusicPlayer(
     val sheetProgress = state.progress
 
     val colorScheme = MaterialTheme.colorScheme
-    val backgroundColor = remember(isSystemInDarkTheme, state.value, state.collapsedBound) {
-        if (isSystemInDarkTheme && state.value > state.collapsedBound) {
+    val backgroundColor = remember(isDark, state.value, state.collapsedBound) {
+        if (isDark && state.value > state.collapsedBound) {
             lerp(colorScheme.surfaceContainer, Color.Black, state.progress)
         } else {
             colorScheme.surfaceContainer
@@ -293,7 +293,7 @@ fun AppleMusicPlayer(
                         .padding(top = with(density) { topSafeArea.toDp() } + 7.dp)
                         .size(width = 58.dp, height = 4.dp)
                         .background(
-                            Color.White.copy(alpha = if (isSystemInDarkTheme) 0.48f else 0.62f),
+                            Color.White.copy(alpha = if (isDark) 0.48f else 0.62f),
                             Capsule(),
                         ),
                 )

@@ -40,7 +40,10 @@ class SfSymbolAuditActivity : ComponentActivity() {
                 val backdrop = rememberLayerBackdrop()
                 CompositionLocalProvider(
                     LocalGlassBackdrop provides backdrop,
-                    LocalGlassColors provides defaultGlassColors(Color(0xFF0088FF)),
+                    LocalGlassColors provides defaultGlassColors(
+                        isDark = false,
+                        accent = Color(0xFF0088FF),
+                    ),
                 ) {
                     Column(
                         Modifier

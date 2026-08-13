@@ -118,7 +118,12 @@ fun LibraryMobileLayout(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item(key = "library-title") {
-                Text(title, style = IosTypography.largeTitle, modifier = Modifier.padding(vertical = 6.dp))
+                Text(
+                    title,
+                    style = IosTypography.largeTitle,
+                    color = LocalGlassColors.current.content,
+                    modifier = Modifier.padding(vertical = 6.dp),
+                )
             }
             item(key = "library-pages") {
                 GlassSegmentedControl(
@@ -212,7 +217,13 @@ fun LibraryMobileLayout(
             }
 
             if (selectedPage == LibraryPage.Playlists && albums.isNotEmpty()) {
-                item { Text(stringResource(R.string.library_collected_albums), style = IosTypography.headline) }
+                item {
+                    Text(
+                        stringResource(R.string.library_collected_albums),
+                        style = IosTypography.headline,
+                        color = LocalGlassColors.current.content,
+                    )
+                }
                 items(albums, key = { "album-${it.id}" }) { album ->
                     LibraryMediaRow(
                         album.cover,
@@ -292,7 +303,13 @@ private fun LibraryMediaRow(
         )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = IosTypography.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                title,
+                style = IosTypography.body,
+                color = LocalGlassColors.current.content,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             Text(
                 subtitle,
                 style = IosTypography.caption,
