@@ -7,10 +7,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.unit.Density
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import java.util.WeakHashMap
 
 val LocalGlassBackdrop = staticCompositionLocalOf<Backdrop> {
     error("Glass controls must be hosted by GlassBackdropHost or GlassBackdropProvider")
@@ -50,3 +59,44 @@ fun GlassBackdropHost(
 }
 
 fun Modifier.glassBackdropSource(backdrop: LayerBackdrop): Modifier = layerBackdrop(backdrop)
+
+/** Window-space positions of backdrop source layers, for cross-window sampling. */
+private val backdropSourcePositions = WeakHashMap<LayerBackdrop, LayoutCoordinates>()
+
+/** Attach next to a [layerBackdrop] recording so dialog-window glass can locate the source. */
+fun Modifier.trackBackdropPosition(backdrop: LayerBackdrop): Modifier =
+    onGloballyPositioned { coordinates ->
+        if (coordinates.isAttached) {
+            backdropSourcePositions[backdrop] = coordinates
+        }
+    }
+
+/**
+ * Samples a [LayerBackdrop] that was recorded in another window (e.g. app content from a
+ * dialog/sheet window). LayerBackdrop maps coordinates with localPositionOf, which cannot
+ * cross compose owners and silently yields a wrong offset there, so glass in a dialog
+ * samples nothing. Both windows share the screen origin, making window-space subtraction
+ * the correct mapping.
+ */
+class CrossWindowBackdrop(
+    private val source: LayerBackdrop,
+) : Backdrop {
+
+    override val isCoordinatesDependent: Boolean get() = true
+
+    override fun DrawScope.drawBackdrop(
+        density: Density,
+        coordinates: LayoutCoordinates?,
+        layerBlock: (GraphicsLayerScope.() -> Unit)?,
+    ) {
+        val glassCoordinates = coordinates ?: return
+        if (!glassCoordinates.isAttached) return
+        val sourceCoordinates = backdropSourcePositions[source]?.takeIf { it.isAttached } ?: return
+        val offset = glassCoordinates.positionInWindow() - sourceCoordinates.positionInWindow()
+        withTransform({
+            translate(-offset.x, -offset.y)
+        }) {
+            drawLayer(source.graphicsLayer)
+        }
+    }
+}

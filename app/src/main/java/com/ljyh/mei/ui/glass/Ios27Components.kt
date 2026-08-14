@@ -924,6 +924,12 @@ fun IosModalSheet(
     contentWindowInsets: @Composable () -> WindowInsets = { WindowInsets(0) },
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    // ModalBottomSheet renders in a dialog window; wrap the shared backdrop so the glass
+    // samples the app window's recording with window-space coordinates instead of the
+    // library's localPositionOf, which cannot cross compose owners and sampled nothing.
+    val samplingBackdrop = remember(backdrop) {
+        (backdrop as? LayerBackdrop)?.let(::CrossWindowBackdrop) ?: backdrop
+    }
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded),
@@ -936,7 +942,7 @@ fun IosModalSheet(
     ) {
         IosSheetSurface(
             modifier = Modifier.fillMaxWidth(),
-            backdrop = backdrop,
+            backdrop = samplingBackdrop,
             shape = IosModalSheetShape,
         ) {
             Column(

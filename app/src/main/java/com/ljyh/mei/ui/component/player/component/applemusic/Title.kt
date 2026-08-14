@@ -1,10 +1,12 @@
 package com.ljyh.mei.ui.component.player.component.applemusic
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
@@ -16,9 +18,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,9 +43,9 @@ fun Title(
     iconColor: Color = Color.White // 新增：控制图标颜色，方便在不同背景下调整
 ) {
     val shadowStyle = if (needShadow) Shadow(
-        color = Color.Black.copy(alpha = 0.5f),
+        color = Color.Black.copy(alpha = 0.3f),
         offset = Offset(2f, 2f),
-        blurRadius = 8f
+        blurRadius = 12f
     ) else null
 
     Row(

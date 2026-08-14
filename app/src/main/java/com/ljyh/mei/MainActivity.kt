@@ -145,6 +145,7 @@ import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.defaultGlassColors
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
+import com.ljyh.mei.ui.glass.trackBackdropPosition
 import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.navigationBuilder
@@ -161,6 +162,7 @@ import com.ljyh.mei.utils.rememberEnumPreference
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.ljyh.mei.ui.glass.trackBackdropPosition
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -584,7 +586,8 @@ class MainActivity : ComponentActivity() {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .layerBackdrop(glassBackdrop),
+                                .layerBackdrop(glassBackdrop)
+                                .trackBackdropPosition(glassBackdrop),
                         ) {
                             if (pictureInPictureMode && playerConnection != null) {
                                 FloatingLyricsPipBackdrop(playerConnection = playerConnection!!)

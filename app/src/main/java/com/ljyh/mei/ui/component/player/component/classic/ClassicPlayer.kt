@@ -26,6 +26,7 @@ import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.glass.LocalGlassColors
+import com.ljyh.mei.ui.glass.trackBackdropPosition
 import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
@@ -113,7 +114,9 @@ fun ClassicPlayer(
             imageUrl = coverUrl,
             audioVisualizerManager = audioVisualizerManager,
             isPlaying = isPlaying,
-            modifier = Modifier.layerBackdrop(playerBackdrop),
+            modifier = Modifier
+                .layerBackdrop(playerBackdrop)
+                .trackBackdropPosition(playerBackdrop),
         )
 
 

@@ -87,6 +87,7 @@ import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.utils.lerp
 import com.ljyh.mei.ui.glass.LocalGlassColors
+import com.ljyh.mei.ui.glass.trackBackdropPosition
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.utils.UnitUtils.toPx
 import com.ljyh.mei.utils.audio.AudioVisualizerManager
@@ -216,7 +217,7 @@ fun AppleMusicPlayer(
 
         // C. Header (Top Left Small)
         val headerSize = with(density) { 46.dp.toPx() }
-        val headerTop = topSafeArea + with(density) { 12.dp.toPx() }
+        val headerTop = topSafeArea + with(density) { 40.dp.toPx() }
         val headerStart = with(density) { PlayerHorizontalPadding.toPx() }
         val headerRadius = with(density) { 4.dp.toPx() }
 
@@ -268,7 +269,9 @@ fun AppleMusicPlayer(
                     audioVisualizerManager = audioVisualizerManager,
                     isPlaying = isPlaying,
                     alpha = playerBackgroundAlpha,
-                    modifier = Modifier.layerBackdrop(playerBackdrop),
+                    modifier = Modifier
+                        .layerBackdrop(playerBackdrop)
+                        .trackBackdropPosition(playerBackdrop),
                 )
             },
             collapsedContent = {
@@ -447,6 +450,7 @@ fun AppleMusicPlayer(
                                             .fillMaxWidth()
                                             .padding(horizontal = PlayerHorizontalPadding)
                                             .padding(bottom = 12.dp)
+                                            .padding(start = 8.dp)
                                     )
                                 }
                             }

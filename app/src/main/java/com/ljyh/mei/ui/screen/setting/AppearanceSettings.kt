@@ -84,7 +84,7 @@ fun AppearanceSettings(
     val (meshSubdivision, setMeshSubdivision) = rememberPreference(MeshSubdivisionKey, 50)
     val (meshStatic, setMeshStatic) = rememberPreference(MeshStaticModeKey, false)
     val (meshPlaying, setMeshPlaying) = rememberPreference(MeshPlayingKey, true)
-    val (primarySize, setPrimarySize) = rememberEnumPreference(NormalLyricTextSizeKey, LyricTextSize.Size24)
+    val (primarySize, setPrimarySize) = rememberEnumPreference(NormalLyricTextSizeKey, LyricTextSize.Size28)
     val (primaryBold, setPrimaryBold) = rememberPreference(NormalLyricTextBoldKey, true)
     val (secondarySize, setSecondarySize) = rememberEnumPreference(AccompanimentLyricTextSizeKey, LyricTextSize.Size18)
     val (secondaryBold, setSecondaryBold) = rememberPreference(AccompanimentLyricTextBoldKey, true)

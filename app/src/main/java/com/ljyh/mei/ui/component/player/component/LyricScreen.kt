@@ -85,7 +85,7 @@ fun LyricScreen(
     var animatedPosition by remember { mutableLongStateOf(0) }
     val (normalLyricTextSize, _) = rememberEnumPreference(
         NormalLyricTextSizeKey,
-        LyricTextSize.Size24
+        LyricTextSize.Size28
     )
     val (normalLyricTextBold, _) = rememberPreference(NormalLyricTextBoldKey, true)
     val (accompanimentLyricTextSize, _) = rememberEnumPreference(
@@ -96,7 +96,7 @@ fun LyricScreen(
 
     LaunchedEffect(controlsVisible) {
         if (controlsVisible) {
-            delay(3000)
+            delay(5000)
             onToggleControls(false)
         }
     }
@@ -225,7 +225,8 @@ fun LyricScreen(
                         fontSize = accompanimentLyricTextSize.text.sp,
                         fontWeight = if (accompanimentLyricTextBold) FontWeight.Bold else FontWeight.Normal,
                         textMotion = TextMotion.Animated,
-                    )
+                    ),
+                    offset = 48.dp
                 )
                 }
 
@@ -233,7 +234,7 @@ fun LyricScreen(
                     source = lyricData.source,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding( start = 8.dp)
+                        .padding( bottom = 8.dp)
                         .onGloballyPositioned { badgeBounds = it.boundsInParent() },
                     onClick = onClick,
                     onLongClick = onLongClick
