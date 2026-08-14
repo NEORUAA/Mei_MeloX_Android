@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,6 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.data.model.weapi.CommentX
 import com.ljyh.mei.data.model.weapi.FComment
 import com.ljyh.mei.data.network.Resource
@@ -120,7 +120,7 @@ fun CommentItem(
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
+                            .clip(ContinuousRoundedRectangle(4.dp))
                             .clickable { onToggleFloor(comment.commentId, floorCount) }
                             .padding(horizontal = 4.dp, vertical = 2.dp)
                     )
@@ -139,7 +139,7 @@ fun CommentItem(
                     .padding(start = 62.dp, end = 16.dp, bottom = 4.dp) // 增加底部边距，防止视觉贴边
                     .background(
                         MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f),
-                        RoundedCornerShape(8.dp)
+                        ContinuousRoundedRectangle(8.dp)
                     )
             ) {
                 when (floorComments) {

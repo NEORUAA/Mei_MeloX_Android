@@ -25,14 +25,13 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -41,36 +40,36 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp as lerpDp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Popup
@@ -88,16 +87,17 @@ import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.kyant.shapes.Capsule
 import com.kyant.shapes.RoundedRectangle
 import com.ljyh.mei.ui.liquidglass.InteractiveHighlight
-import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.sin
+import kotlinx.coroutines.launch
 
-val IosModalSheetShape = RoundedCornerShape(
+val IosModalSheetShape = ContinuousRoundedRectangle(
     topStart = 34.dp,
     topEnd = 34.dp,
     bottomStart = 58.dp,
@@ -375,7 +375,7 @@ fun IosGroupedList(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = LocalGlassColors.current
-    val shape = RoundedCornerShape(26.dp)
+    val shape = ContinuousRoundedRectangle(26.dp)
     Column(
         modifier
             .fillMaxWidth()
@@ -541,7 +541,7 @@ fun IosContextMenu(
                     drawRect(elevatedBackground.copy(alpha = 0.70f * progress))
                 },
             )
-            .clip(RoundedCornerShape(radius))
+            .clip(ContinuousRoundedRectangle(radius))
             .padding(10.dp)
             .graphicsLayer {
                 alpha = contentProgress
@@ -759,7 +759,7 @@ fun IosMenuItem(
             .fillMaxWidth()
             .drawBackdrop(
                 backdrop,
-                shape = { RoundedCornerShape(16.dp) },
+                shape = { ContinuousRoundedRectangle(16.dp) },
                 effects = {
                     val p = highlight.pressProgress
                     if (p > 0.01f) { blur(2.dp.toPx() * p); lens(6.dp.toPx() * p, 10.dp.toPx() * p) }

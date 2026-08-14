@@ -26,7 +26,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -54,35 +53,36 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
+import com.ljyh.mei.R
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.item.Track
+import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.shimmer.ListItemPlaceHolder
 import com.ljyh.mei.ui.component.shimmer.ShimmerHost
 import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
-import com.ljyh.mei.ui.local.LocalNavController
-import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
-import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.ui.model.Album
-import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.R
-import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.glass.GlassButton
 import com.ljyh.mei.ui.glass.GlassEmphasis
 import com.ljyh.mei.ui.glass.GlassIconButton
 import com.ljyh.mei.ui.glass.IosTopToolbar
 import com.ljyh.mei.ui.glass.SfIcon
+import com.ljyh.mei.ui.local.LocalNavController
+import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.model.Album
+import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.playlist.component.StandaloneTrackActionOverlay
 import java.util.UUID
 
@@ -450,7 +450,7 @@ private fun HeroBadge(text: String) {
         modifier = Modifier
             .background(
                 color = MaterialTheme.colorScheme.background.copy(alpha = 0.45f),
-                shape = RoundedCornerShape(20.dp)
+                shape = ContinuousRoundedRectangle(20.dp)
             )
             .padding(horizontal = 10.dp, vertical = 4.dp)
     )
@@ -486,7 +486,7 @@ private fun ExpertiseChip(name: String, count: Int) {
         modifier = Modifier
             .background(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(6.dp)
+                shape = ContinuousRoundedRectangle(6.dp)
             )
             .padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -520,7 +520,7 @@ fun AlbumCard(album: Album, onClick: (Long) -> Unit) {
             contentDescription = album.title,
             modifier = Modifier
                 .size(116.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(ContinuousRoundedRectangle(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentScale = ContentScale.Crop
         )
@@ -548,7 +548,7 @@ fun AlbumCardShimmer() {
         Spacer(
             modifier = Modifier
                 .size(116.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(ContinuousRoundedRectangle(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         )
         Spacer(modifier = Modifier.height(6.dp))
@@ -612,7 +612,7 @@ fun ArtistHeaderShimmer() {
                         .padding(vertical = 16.dp)
                         .fillMaxWidth()
                         .height(40.dp)
-                        .clip(RoundedCornerShape(50))
+                        .clip(ContinuousRoundedRectangle(50))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 )
                 TextPlaceholder(Modifier.fillMaxWidth().height(13.dp))

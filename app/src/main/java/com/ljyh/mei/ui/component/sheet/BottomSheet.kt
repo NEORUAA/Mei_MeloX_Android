@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
@@ -46,6 +45,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.constants.NavigationBarAnimationSpec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -113,7 +113,7 @@ fun BottomSheet(
                 )
             }
             .clip(
-                RoundedCornerShape(
+                ContinuousRoundedRectangle(
                     topStart = if (!state.isExpanded) 16.dp else 0.dp,
                     topEnd = if (!state.isExpanded) 16.dp else 0.dp
                 )

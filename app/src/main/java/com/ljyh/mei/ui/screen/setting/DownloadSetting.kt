@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.AutoCacheEnabledKey
 import com.ljyh.mei.constants.AutoCachePlaybackThresholdKey
@@ -34,8 +34,8 @@ import com.ljyh.mei.ui.glass.GlassIconButton
 import com.ljyh.mei.ui.glass.GlassSegmentedControl
 import com.ljyh.mei.ui.glass.GlassSurface
 import com.ljyh.mei.ui.glass.GlassToggle
-import com.ljyh.mei.ui.glass.IosStepper
 import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.IosStepper
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
@@ -73,7 +73,7 @@ fun DownloadSetting(
     ) {
         item {
             SettingsGroup(stringResource(R.string.download_storage)) {
-                GlassSurface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
+                GlassSurface(Modifier.fillMaxWidth(), shape = ContinuousRoundedRectangle(20.dp)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             SfIcon("folder", null, size = 19.dp)

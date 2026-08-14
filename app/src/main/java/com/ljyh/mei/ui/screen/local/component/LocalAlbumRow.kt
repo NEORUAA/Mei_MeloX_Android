@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material3.Card
@@ -27,6 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.data.model.room.Song
 
 @Composable
@@ -46,7 +46,7 @@ internal fun AlbumRow(albums: List<String>, songs: List<Song>, onAlbumClick: (St
 @Composable
 internal fun AlbumCard(title: String, count: String, coverUrl: String?, onClick: () -> Unit = {}) {
     Column(modifier = Modifier.clickable(onClick = onClick)) {
-        Card(Modifier.size(120.dp), shape = RoundedCornerShape(10.dp),
+        Card(Modifier.size(120.dp), shape = ContinuousRoundedRectangle(10.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             if (coverUrl != null) {

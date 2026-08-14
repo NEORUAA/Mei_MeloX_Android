@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ContentCopy
@@ -36,11 +35,12 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.ui.glass.IosModalSheet
 import com.ljyh.mei.utils.TimeUtils
-import com.ljyh.mei.utils.setClipboard
 import com.ljyh.mei.utils.image.saveImageToGallery
+import com.ljyh.mei.utils.setClipboard
 import kotlinx.coroutines.launch
 
 @Composable
@@ -86,10 +86,10 @@ fun SongInfoSheet(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(140.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(ContinuousRoundedRectangle(12.dp))
                 )
                 Surface(
-                    shape = RoundedCornerShape(topStart = 12.dp, bottomEnd = 12.dp),
+                    shape = ContinuousRoundedRectangle(topStart = 12.dp, bottomEnd = 12.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.85f),
                 ) {
                     IconButton(

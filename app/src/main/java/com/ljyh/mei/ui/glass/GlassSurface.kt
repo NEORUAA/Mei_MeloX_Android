@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -21,12 +21,10 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.util.lerp
-import androidx.compose.material3.LocalContentColor
-import com.ljyh.mei.ui.liquidglass.InteractiveHighlight
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.drawBackdrop
@@ -36,7 +34,9 @@ import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.kyant.shapes.Capsule
+import com.ljyh.mei.ui.liquidglass.InteractiveHighlight
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -54,7 +54,7 @@ internal val LocalGlassSurfaceBrightness = staticCompositionLocalOf { 0f }
 fun GlassSurface(
     modifier: Modifier = Modifier,
     backdrop: Backdrop = LocalGlassBackdrop.current,
-    shape: Shape = RoundedCornerShape(LocalGlassDimensions.current.regularCornerRadius),
+    shape: Shape = ContinuousRoundedRectangle(LocalGlassDimensions.current.regularCornerRadius),
     emphasis: GlassEmphasis = GlassEmphasis.Regular,
     enabled: Boolean = true,
     refractionHeight: Dp = 12.dp,

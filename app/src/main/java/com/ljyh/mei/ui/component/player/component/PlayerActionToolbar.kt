@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,10 +32,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.constants.PlayerActionKey
 import com.ljyh.mei.playback.PlayMode
-import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.glass.SfIcon
+import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.PlayerAction
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import com.ljyh.mei.utils.rememberPreference
@@ -152,7 +152,7 @@ fun PlayerActionToolbar(
                             if (isEnabled) {
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(50))
+                                        .clip(ContinuousRoundedRectangle(50))
                                         .background(Color.White.copy(alpha = 0.2f))
                                         .clickable(onClick = sleepTimer::clear)
                                         .padding(horizontal = 8.dp, vertical = 4.dp)

@@ -1,11 +1,10 @@
 package com.ljyh.mei.ui.theme
 
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
@@ -15,21 +14,22 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 
 private val SfProFamily = FontFamily(Font(R.font.sf_pro, FontWeight.Normal))
 
 private val AppShapes = Shapes(
-    extraSmall = RoundedCornerShape(2.dp),
-    small = RoundedCornerShape(4.dp),
-    medium = RoundedCornerShape(8.dp),
-    large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(32.dp)
+    extraSmall = ContinuousRoundedRectangle(2.dp),
+    small = ContinuousRoundedRectangle(4.dp),
+    medium = ContinuousRoundedRectangle(8.dp),
+    large = ContinuousRoundedRectangle(16.dp),
+    extraLarge = ContinuousRoundedRectangle(32.dp)
 )
 
 

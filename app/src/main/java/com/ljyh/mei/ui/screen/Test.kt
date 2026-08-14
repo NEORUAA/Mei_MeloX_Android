@@ -3,13 +3,13 @@ package com.ljyh.mei.ui.screen
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 
 
 @Composable
@@ -19,8 +19,8 @@ fun Test2(){
         contentDescription = null,
         modifier = Modifier
             .requiredSize(60.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, Color.White, RoundedCornerShape(16.dp))
+            .clip(ContinuousRoundedRectangle(16.dp))
+            .border(1.dp, Color.White, ContinuousRoundedRectangle(16.dp))
 
     )
 }

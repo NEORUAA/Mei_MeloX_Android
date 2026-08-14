@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import com.ljyh.mei.playback.ListenTogetherStore
 import com.ljyh.mei.ui.glass.GlassButton
@@ -151,7 +151,7 @@ class ListenTogetherStoreHolder @javax.inject.Inject constructor(
 
 @Composable
 private fun ListenTextField(value: String, onValueChange: (String) -> Unit, placeholder: String) {
-    GlassSurface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(50)) {
+    GlassSurface(modifier = Modifier.fillMaxWidth(), shape = ContinuousRoundedRectangle(50)) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,

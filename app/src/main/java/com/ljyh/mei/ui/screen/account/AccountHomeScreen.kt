@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,6 +38,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.UserAvatarUrlKey
 import com.ljyh.mei.constants.UserIdKey
@@ -53,12 +53,12 @@ import com.ljyh.mei.ui.glass.GlassButton
 import com.ljyh.mei.ui.glass.GlassCard
 import com.ljyh.mei.ui.glass.GlassEmphasis
 import com.ljyh.mei.ui.glass.GlassIconButton
-import com.ljyh.mei.ui.glass.IosPinnedListPage
-import com.ljyh.mei.ui.glass.IosGroupedList
-import com.ljyh.mei.ui.glass.IosListRow
-import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.GlassSegmentedControl
 import com.ljyh.mei.ui.glass.GlassSurface
+import com.ljyh.mei.ui.glass.IosGroupedList
+import com.ljyh.mei.ui.glass.IosListRow
+import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
@@ -68,13 +68,13 @@ import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class AccountHomeState(
     val profile: AccountProfile? = null,
@@ -180,7 +180,7 @@ fun AccountHomeScreen(viewModel: AccountHomeViewModel = hiltViewModel()) {
                                     model = playlist.coverUrl,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)),
+                                    modifier = Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
                                 )
                             },
                             onClick = {
@@ -235,7 +235,7 @@ private fun AccountHero(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            GlassSurface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
+            GlassSurface(Modifier.fillMaxWidth(), shape = ContinuousRoundedRectangle(18.dp)) {
                 Row(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
                     AccountMetric(profile.follows, stringResource(R.string.account_follows), Modifier.weight(1f))
                     AccountMetric(profile.followers, stringResource(R.string.account_followers), Modifier.weight(1f))
@@ -360,7 +360,7 @@ fun ListeningRankScreen(userId: Long, viewModel: ListeningRankViewModel = hiltVi
                                             model = record.song.coverUrl,
                                             contentDescription = null,
                                             contentScale = ContentScale.Crop,
-                                            modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)),
+                                            modifier = Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
                                         )
                                     }
                                 },

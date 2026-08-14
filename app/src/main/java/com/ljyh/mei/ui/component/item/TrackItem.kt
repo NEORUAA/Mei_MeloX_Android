@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
@@ -28,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.constants.CommonImageRadius
 import com.ljyh.mei.constants.TrackThumbnailSize
 import com.ljyh.mei.data.model.MediaMetadata
@@ -73,7 +73,7 @@ fun Track(
                 isPlaying = isPlaying,
                 modifier = Modifier
                     .size(if (isTablet) 40.dp else 48.dp)
-                    .clip(RoundedCornerShape(CommonImageRadius))
+                    .clip(ContinuousRoundedRectangle(CommonImageRadius))
             )
 
             Column(

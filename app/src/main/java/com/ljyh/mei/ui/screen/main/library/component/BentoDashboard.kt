@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Download
@@ -40,6 +39,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 
 
 @Composable
@@ -65,7 +65,7 @@ fun BentoDashboard(
                 .weight(1.5f)
                 .fillMaxHeight()
                 .clickable { onHistoryClick() },
-            shape = RoundedCornerShape(28.dp),
+            shape = ContinuousRoundedRectangle(28.dp),
             // 使用 SurfaceVariant 色调，避免和背景混淆
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
@@ -195,7 +195,7 @@ fun DashboardSmallCard(
         modifier = modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
+        shape = ContinuousRoundedRectangle(20.dp),
         colors = CardDefaults.cardColors(containerColor = color)
     ) {
         Box(
@@ -236,7 +236,7 @@ fun BentoLargeCard(
     Card(
         modifier = Modifier
             .clickable { onClick() },
-        shape = RoundedCornerShape(28.dp),
+        shape = ContinuousRoundedRectangle(28.dp),
         // 使用 SurfaceVariant 色调，避免和背景混淆
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(

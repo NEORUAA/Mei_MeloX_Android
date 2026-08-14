@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,17 +32,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -87,7 +87,7 @@ fun IosColorPicker(
                     .fillMaxWidth()
                     .padding(8.dp)
                     .navigationBarsPadding(),
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 58.dp, bottomEnd = 58.dp),
+                shape = ContinuousRoundedRectangle(topStart = 32.dp, topEnd = 32.dp, bottomStart = 58.dp, bottomEnd = 58.dp),
             ) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Box(Modifier.fillMaxWidth().height(44.dp)) {
@@ -109,7 +109,7 @@ fun IosColorPicker(
                 )
                 Spacer(Modifier.height(12.dp))
                 when (mode) {
-                    0 -> Column(Modifier.fillMaxWidth().height(296.dp).clip(RoundedCornerShape(10.dp))) {
+                    0 -> Column(Modifier.fillMaxWidth().height(296.dp).clip(ContinuousRoundedRectangle(10.dp))) {
                         IosColorGrid.forEach { row ->
                             Row(Modifier.fillMaxWidth().weight(1f)) {
                                 row.forEach { swatch ->
@@ -149,7 +149,7 @@ fun IosColorPicker(
                     )
                     Box(
                         Modifier
-                            .background(LocalGlassColors.current.elevatedBackground, RoundedCornerShape(8.dp))
+                            .background(LocalGlassColors.current.elevatedBackground, ContinuousRoundedRectangle(8.dp))
                             .padding(horizontal = 14.dp, vertical = 6.dp),
                     ) {
                         Text("${(opacity * 100).toInt()}%", style = IosTypography.headline)
@@ -161,7 +161,7 @@ fun IosColorPicker(
                     horizontalArrangement = Arrangement.spacedBy(30.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
-                    Box(Modifier.size(75.dp).clip(RoundedCornerShape(10.dp)).background(previewColor))
+                    Box(Modifier.size(75.dp).clip(ContinuousRoundedRectangle(10.dp)).background(previewColor))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(15.dp)) {
                         quickColors.chunked(5).forEachIndexed { rowIndex, swatches ->
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -269,7 +269,7 @@ private fun ColorDot(
 @Composable
 private fun SpectrumPicker(color: Color, onColor: (Color) -> Unit) {
     val spectrum = listOf(0xFFFF3B30, 0xFFFF9500, 0xFFFFCC00, 0xFF34C759, 0xFF00C7BE, 0xFF0088FF, 0xFF5856D6, 0xFFAF52DE, 0xFFFF2D55).map(::Color)
-    Row(Modifier.fillMaxWidth().height(224.dp).clip(RoundedCornerShape(10.dp))) {
+    Row(Modifier.fillMaxWidth().height(224.dp).clip(ContinuousRoundedRectangle(10.dp))) {
         spectrum.forEach { swatch -> Box(Modifier.weight(1f).fillMaxSize().background(swatch).clickable { onColor(swatch) }) }
     }
 }

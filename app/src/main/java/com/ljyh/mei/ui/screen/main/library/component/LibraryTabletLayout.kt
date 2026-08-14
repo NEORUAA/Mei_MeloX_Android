@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Download
@@ -50,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -110,7 +110,7 @@ fun LibraryTabletLayout(
                 .weight(3f)
                 .fillMaxHeight(),
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f), // 磨砂玻璃质感
-            shape = RoundedCornerShape(32.dp),
+            shape = ContinuousRoundedRectangle(32.dp),
             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
         ) {
             Box(modifier = Modifier.blur(0.dp)) { // 内部内容保持清晰
@@ -226,7 +226,7 @@ fun AlbumArtCard(item: PlaylistCard, onClick: (String) -> Unit) {
                 .clickable(onClick = { onClick(item.id) })
                 .graphicsLayer { // 增加轻微的阴影偏移
                     shadowElevation = 8f
-                    shape = RoundedCornerShape(20.dp)
+                    shape = ContinuousRoundedRectangle(20.dp)
                     clip = true
                 },
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -259,7 +259,7 @@ fun LibraryHeroHeader(nickname: String, avatarUrl: String, onAvatarClick: () -> 
     Column(modifier = Modifier.padding(horizontal = 8.dp)) {
         // 大尺寸、特殊形状的头像
         Card(
-            shape = RoundedCornerShape(32.dp),
+            shape = ContinuousRoundedRectangle(32.dp),
             modifier = Modifier
                 .size(100.dp)
                 .clickable(onClick = onAvatarClick),
@@ -340,7 +340,7 @@ fun LibraryHeroCard(cover: String) {
         modifier = Modifier
             .fillMaxWidth()
             .height(280.dp), // 宽屏比例
-        shape = RoundedCornerShape(28.dp),
+        shape = ContinuousRoundedRectangle(28.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -379,7 +379,7 @@ fun LibraryHeroCard(cover: String) {
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = ContinuousRoundedRectangle(8.dp)
                 ) {
                     Text(
                         "RECENTLY PLAYED",

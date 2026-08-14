@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +18,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.constants.AlbumThumbnailSize
 import com.ljyh.mei.constants.CommonImageRadius
 import com.ljyh.mei.ui.model.Album
@@ -39,7 +39,7 @@ fun AlbumItem(album: Album, onClick: (Long) -> Unit) {
             contentDescription = null,
             modifier = Modifier
                 .size(AlbumThumbnailSize)
-                .clip(RoundedCornerShape(CommonImageRadius)),
+                .clip(ContinuousRoundedRectangle(CommonImageRadius)),
             contentScale = ContentScale.Crop
         )
 

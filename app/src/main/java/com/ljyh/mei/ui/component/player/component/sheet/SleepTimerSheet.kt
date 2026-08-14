@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material3.Icon
@@ -33,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.ui.glass.IosModalSheet
 import java.text.SimpleDateFormat
@@ -79,7 +79,7 @@ fun SleepTimerSheet(
 
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(12.dp),
+                shape = ContinuousRoundedRectangle(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
@@ -106,7 +106,7 @@ fun SleepTimerSheet(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(ContinuousRoundedRectangle(16.dp))
                             .background(
                                 if (isSelected) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -131,7 +131,7 @@ fun SleepTimerSheet(
             // 4. 特殊选项：播放完当前歌曲
             ListItem(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(ContinuousRoundedRectangle(16.dp))
                     .clickable {
                         playerConnection.service.sleepTimer.start(-1)
                         onDismiss()
@@ -155,7 +155,7 @@ fun SleepTimerSheet(
                 },
                 enabled = selectedOption != null,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+                shape = ContinuousRoundedRectangle(16.dp)
             ) {
                 Text("开始计时", modifier = Modifier.padding(vertical = 8.dp))
             }

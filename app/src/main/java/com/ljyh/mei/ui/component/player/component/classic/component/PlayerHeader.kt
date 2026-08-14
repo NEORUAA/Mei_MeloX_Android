@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.rounded.Favorite
@@ -28,6 +27,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.data.model.MediaMetadata
 
 @Composable
@@ -90,7 +90,7 @@ fun PlayerHeader(
                         style = subTitleStyle,
                         maxLines = 1,
                         softWrap = false,
-                        modifier = Modifier.clip(RoundedCornerShape(4.dp))
+                        modifier = Modifier.clip(ContinuousRoundedRectangle(4.dp))
                     )
                 }
 
@@ -110,7 +110,7 @@ fun PlayerHeader(
                         style = subTitleStyle,
                         maxLines = 1,
                         softWrap = false,
-                        modifier = Modifier.clip(RoundedCornerShape(4.dp))
+                        modifier = Modifier.clip(ContinuousRoundedRectangle(4.dp))
                     )
                 }
             }

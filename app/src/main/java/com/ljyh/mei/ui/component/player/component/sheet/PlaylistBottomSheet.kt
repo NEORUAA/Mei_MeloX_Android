@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -48,17 +47,18 @@ import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
+import com.kyant.shapes.Capsule
 import com.ljyh.mei.R
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.metadata
 import com.ljyh.mei.extensions.mediaItems
-import com.ljyh.mei.ui.glass.IosSheetSurface
 import com.ljyh.mei.ui.glass.IosModalSheetShape
+import com.ljyh.mei.ui.glass.IosSheetSurface
 import com.ljyh.mei.ui.glass.IosTypography
 import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.LocalGlassDimensions
 import com.ljyh.mei.ui.glass.SfIcon
-import com.kyant.shapes.Capsule
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.formatDuration
 import com.ljyh.mei.utils.smallImage
@@ -107,7 +107,7 @@ fun PlaylistContent(
                 )
                 Box(
                     Modifier.align(Alignment.CenterEnd).size(44.dp)
-                        .clip(RoundedCornerShape(50))
+                        .clip(ContinuousRoundedRectangle(50))
                         .clickable(onClick = onDismiss),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -136,7 +136,7 @@ fun PlaylistContent(
                     .fillMaxWidth()
                     .weight(1f)
                     .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(LocalGlassDimensions.current.regularCornerRadius))
+                    .clip(ContinuousRoundedRectangle(LocalGlassDimensions.current.regularCornerRadius))
                     .background(colors.elevatedBackground),
                 state = lazyListState,
             ) {
@@ -255,7 +255,7 @@ fun PlaylistItem(
             model = metadata.coverUrl.smallImage(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.size(44.dp).clip(RoundedCornerShape(9.dp)),
+            modifier = Modifier.size(44.dp).clip(ContinuousRoundedRectangle(9.dp)),
         )
         Column(Modifier.weight(1f)) {
             Text(
@@ -278,7 +278,7 @@ fun PlaylistItem(
             SfIcon("speaker.wave.2.fill", null, size = 17.dp, tint = colors.accent)
         }
         Box(
-            Modifier.size(36.dp).clip(RoundedCornerShape(50)).clickable(onClick = onRemoveClick),
+            Modifier.size(36.dp).clip(ContinuousRoundedRectangle(50)).clickable(onClick = onRemoveClick),
             contentAlignment = Alignment.Center,
         ) {
             SfIcon("xmark.circle", stringResource(R.string.queue_remove), size = 20.dp, tint = colors.secondaryContent)

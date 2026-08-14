@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.main.library.component
 
+import android.text.format.DateUtils
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,33 +18,35 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.room.DownloadStatus
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.toMediaItem
+import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.GlobalProfileAvatarButton
 import com.ljyh.mei.ui.component.player.OverlayState
@@ -62,13 +65,10 @@ import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.ui.navigation.LibraryPage
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.ui.screen.playlist.component.StandaloneTrackActionOverlay
-import com.ljyh.mei.di.AppDatabase
-import com.ljyh.mei.data.model.room.DownloadStatus
 import com.ljyh.mei.ui.screen.cloud.CloudMusicViewModel
 import com.ljyh.mei.ui.screen.history.HistoryViewModel
+import com.ljyh.mei.ui.screen.playlist.component.StandaloneTrackActionOverlay
 import com.ljyh.mei.ui.screen.podcast.PodcastViewModel
-import android.text.format.DateUtils
 
 /** MeloX Library: six user-configurable content pages under the shared collapsing title. */
 @Composable
@@ -256,7 +256,7 @@ private fun LibrarySongRow(
         onClick = onClick,
         trailing = {
             Box(
-                Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).clickable(
+                Modifier.size(44.dp).clip(ContinuousRoundedRectangle(22.dp)).clickable(
                     interactionSource = null,
                     indication = null,
                     onClick = onMoreClick,
@@ -298,7 +298,7 @@ private fun LibraryMediaRow(
         AsyncImage(
             image,
             null,
-            Modifier.size(54.dp).clip(RoundedCornerShape(9.dp)),
+            Modifier.size(54.dp).clip(ContinuousRoundedRectangle(9.dp)),
             contentScale = ContentScale.Crop,
         )
         Spacer(Modifier.width(12.dp))
@@ -361,7 +361,7 @@ private fun LibraryPodcastContent(
                             AsyncImage(
                                 podcast.picUrl,
                                 null,
-                                Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)),
+                                Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
                                 contentScale = ContentScale.Crop,
                             )
                         },
@@ -402,7 +402,7 @@ private fun LibraryDownloadsContent() {
                         AsyncImage(
                             task.songCover.ifBlank { null },
                             null,
-                            Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)),
+                            Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
                             contentScale = ContentScale.Crop,
                         )
                     },
@@ -433,7 +433,7 @@ private fun LibraryCloudContent(viewModel: CloudMusicViewModel = hiltViewModel()
                         AsyncImage(
                             song.coverUrl,
                             null,
-                            Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)),
+                            Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
                             contentScale = ContentScale.Crop,
                         )
                     },
@@ -475,7 +475,7 @@ private fun LibraryHistoryContent(viewModel: HistoryViewModel = hiltViewModel())
                         AsyncImage(
                             item.song.cover,
                             null,
-                            Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)),
+                            Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
                             contentScale = ContentScale.Crop,
                         )
                     },

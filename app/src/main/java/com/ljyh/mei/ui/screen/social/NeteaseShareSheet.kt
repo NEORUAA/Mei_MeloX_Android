@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +34,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.melox.MessageContact
@@ -261,7 +261,7 @@ private fun ShareResourcePreview(resource: ShareResource) {
                 model = resource.artworkUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
+                modifier = Modifier.size(56.dp).clip(ContinuousRoundedRectangle(12.dp)),
             )
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(resource.title, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -279,7 +279,7 @@ private fun ShareResourcePreview(resource: ShareResource) {
 
 @Composable
 private fun ShareMessageField(value: String, onValueChange: (String) -> Unit, placeholderRes: Int) {
-    GlassSurface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
+    GlassSurface(Modifier.fillMaxWidth(), shape = ContinuousRoundedRectangle(18.dp)) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -308,7 +308,7 @@ private fun ContactSelectionRow(contact: MessageContact, selected: Boolean, onCl
             model = contact.avatarUrl,
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.size(34.dp).clip(RoundedCornerShape(50)),
+            modifier = Modifier.size(34.dp).clip(ContinuousRoundedRectangle(50)),
         )
         Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
             Text(contact.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis)

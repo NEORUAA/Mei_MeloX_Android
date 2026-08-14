@@ -38,7 +38,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,8 +58,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -69,13 +68,17 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.size.Precision
 import coil3.size.Size
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.capsule.ContinuousRoundedRectangle
+import com.kyant.shapes.Capsule
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.ui.component.player.MiniPlayer
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidBackground
 import com.ljyh.mei.ui.component.player.component.LyricScreen
-import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.ljyh.mei.ui.component.player.component.PlayerControlsSection
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
@@ -83,14 +86,11 @@ import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.utils.lerp
-import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.ui.glass.LocalGlassColors
+import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.utils.UnitUtils.toPx
+import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import kotlin.math.min
-import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.LayerBackdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.shapes.Capsule
 
 
 
@@ -492,7 +492,7 @@ fun AppleMusicPlayer(
                     translationX = finalStart
                     translationY = finalTop
                     shadowElevation = mShadowElevation.toPx()
-                    shape = RoundedCornerShape(finalRadius)
+                    shape = ContinuousRoundedRectangle(finalRadius)
                     clip = true
                 }
                 .size(

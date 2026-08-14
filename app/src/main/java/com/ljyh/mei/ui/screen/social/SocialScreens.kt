@@ -1,7 +1,7 @@
 package com.ljyh.mei.ui.screen.social
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -38,13 +37,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.UserIdKey
+import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.melox.MessageContact
 import com.ljyh.mei.data.model.melox.PrivateConversation
 import com.ljyh.mei.data.model.melox.ShareResource
 import com.ljyh.mei.data.model.melox.ShareResourceKind
-import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.glass.GlassButton
@@ -99,7 +99,7 @@ fun ConversationsScreen(viewModel: ConversationsViewModel = hiltViewModel()) {
                         model = participant.avatarUrl,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(52.dp).clip(RoundedCornerShape(50)),
+                        modifier = Modifier.size(52.dp).clip(ContinuousRoundedRectangle(50)),
                     )
                     Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                         Text(participant.displayName, fontWeight = FontWeight.SemiBold)
@@ -112,7 +112,7 @@ fun ConversationsScreen(viewModel: ConversationsViewModel = hiltViewModel()) {
                         )
                     }
                     if (conversation.unreadCount > 0) {
-                        GlassSurface(emphasis = GlassEmphasis.Prominent, shape = RoundedCornerShape(50)) {
+                        GlassSurface(emphasis = GlassEmphasis.Prominent, shape = ContinuousRoundedRectangle(50)) {
                             Text(conversation.unreadCount.toString(), modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp))
                         }
                     }
@@ -146,7 +146,7 @@ fun MessageContactsScreen(viewModel: MessageContactsViewModel = hiltViewModel())
         },
     ) {
         item {
-            GlassSurface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(50)) {
+            GlassSurface(Modifier.fillMaxWidth(), shape = ContinuousRoundedRectangle(50)) {
                 BasicTextField(
                     value = query,
                     onValueChange = { query = it },
@@ -193,7 +193,7 @@ fun MessageContactsScreen(viewModel: MessageContactsViewModel = hiltViewModel())
                         model = contact.avatarUrl,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(50)),
+                        modifier = Modifier.size(48.dp).clip(ContinuousRoundedRectangle(50)),
                     )
                     Column(Modifier.weight(1f).padding(horizontal = 11.dp)) {
                         Text(contact.displayName, fontWeight = FontWeight.SemiBold, maxLines = 1)
@@ -258,7 +258,7 @@ fun ConversationScreen(userId: Long, viewModel: ConversationViewModel = hiltView
                 ) {
                     GlassSurface(
                         emphasis = if (outgoing) GlassEmphasis.Prominent else GlassEmphasis.Regular,
-                        shape = RoundedCornerShape(22.dp),
+                        shape = ContinuousRoundedRectangle(22.dp),
                         modifier = Modifier.fillMaxWidth(0.78f),
                     ) {
                         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp)) {
@@ -295,7 +295,7 @@ fun ConversationScreen(userId: Long, viewModel: ConversationViewModel = hiltView
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             GlassSurface(
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(50),
+                shape = ContinuousRoundedRectangle(50),
             ) {
                 BasicTextField(
                     value = draft,
@@ -328,7 +328,7 @@ private fun MessageResourceCard(resource: ShareResource, outgoing: Boolean, onCl
             model = resource.artworkUrl,
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.size(46.dp).clip(RoundedCornerShape(10.dp)),
+            modifier = Modifier.size(46.dp).clip(ContinuousRoundedRectangle(10.dp)),
         )
         Column(Modifier.weight(1f).padding(horizontal = 9.dp)) {
             Text(resource.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)

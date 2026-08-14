@@ -3,12 +3,12 @@ package com.ljyh.mei.ui.screen.main.findmusic
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,8 +35,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -45,12 +44,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import com.ljyh.mei.data.model.weapi.Playlists
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.GlobalProfileAvatarButton
-import com.ljyh.mei.ui.glass.IosTypography
 import com.ljyh.mei.ui.glass.IosPinnedPage
+import com.ljyh.mei.ui.glass.IosTypography
 import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.rememberIosGridCollapseProgress
@@ -127,7 +127,7 @@ private fun CategorySelector(
                 style = IosTypography.subheadline,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(50))
+                    .clip(ContinuousRoundedRectangle(50))
                     .background(if (selected) MaterialTheme.colorScheme.primary else LocalGlassColors.current.groupedBackground)
                     .clickable { onCategorySelected(category) }
                     .padding(horizontal = 15.dp, vertical = 7.dp),
@@ -178,7 +178,7 @@ private fun FeaturedPlaylistCard(playlist: Playlists, onClick: (Long) -> Unit) {
         Modifier
             .fillMaxWidth()
             .aspectRatio(1.12f)
-            .clip(RoundedCornerShape(22.dp))
+            .clip(ContinuousRoundedRectangle(22.dp))
             .clickable { onClick(playlist.id) },
     ) {
         AsyncImage(playlist.coverImgUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
@@ -195,10 +195,10 @@ private fun FeaturedPlaylistCard(playlist: Playlists, onClick: (Long) -> Unit) {
 @Composable
 private fun PlaylistCard(playlist: Playlists, onClick: (Long) -> Unit) {
     Column(Modifier.fillMaxWidth().clickable { onClick(playlist.id) }) {
-        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(16.dp))) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(ContinuousRoundedRectangle(16.dp))) {
             AsyncImage(playlist.coverImgUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             Row(
-                Modifier.align(Alignment.TopEnd).padding(6.dp).background(Color.Black.copy(alpha = 0.42f), RoundedCornerShape(50)).padding(horizontal = 7.dp, vertical = 3.dp),
+                Modifier.align(Alignment.TopEnd).padding(6.dp).background(Color.Black.copy(alpha = 0.42f), ContinuousRoundedRectangle(50)).padding(horizontal = 7.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SfIcon("play.fill", null, tint = Color.White, size = 11.dp)

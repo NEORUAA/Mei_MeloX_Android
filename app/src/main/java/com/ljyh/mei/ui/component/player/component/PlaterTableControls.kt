@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -20,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.util.UnstableApi
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.PlayMode
 import com.ljyh.mei.playback.PlayerConnection
@@ -51,7 +51,7 @@ fun PlayerTableControls(
                 IconButton(
                     modifier = Modifier.size(36.dp)
                         .align(Alignment.Center)
-                        .clip(RoundedCornerShape(4.dp)),
+                        .clip(ContinuousRoundedRectangle(4.dp)),
                     onClick = { playerConnection.switchPlayMode() }
                 ) {
                     val systemName = when (playMode) {
@@ -79,7 +79,7 @@ fun PlayerTableControls(
                     modifier = Modifier
                         .size(48.dp)
                         .align(Alignment.Center)
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(ContinuousRoundedRectangle(4.dp))
                 ) {
                     SfIcon(
                         systemName = "backward.fill",
@@ -100,7 +100,7 @@ fun PlayerTableControls(
                             playerConnection.player.togglePlayPause()
                         }
                     },
-                    modifier = Modifier.size(84.dp).align(Alignment.Center).clip(RoundedCornerShape(4.dp)),
+                    modifier = Modifier.size(84.dp).align(Alignment.Center).clip(ContinuousRoundedRectangle(4.dp)),
                 ) {
                     SfIcon(
                         systemName = if (playbackState == STATE_ENDED) "arrow.counterclockwise" else if (isPlaying) "pause.fill" else "play.fill",
@@ -120,7 +120,7 @@ fun PlayerTableControls(
                     modifier = Modifier
                         .size(48.dp)
                         .align(Alignment.Center)
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(ContinuousRoundedRectangle(4.dp))
                 ) {
                     SfIcon(
                         systemName = "forward.fill",
@@ -137,7 +137,7 @@ fun PlayerTableControls(
                     modifier = Modifier
                         .size(48.dp)
                         .align(Alignment.Center)
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(ContinuousRoundedRectangle(4.dp))
                 ) {
                     SfIcon(
                         systemName = "music.note.list",

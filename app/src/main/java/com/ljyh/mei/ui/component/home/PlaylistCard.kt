@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.filled.Headset
@@ -28,12 +27,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.constants.PlaylistCardSize
 import com.ljyh.mei.utils.largeImage
-import androidx.compose.ui.unit.Dp
 
 @Composable
 fun PlaylistCard(
@@ -57,7 +57,7 @@ fun PlaylistCard(
     Column(
         modifier = Modifier
             .width(cardSize)
-            .clip(RoundedCornerShape(8.dp)) // 整个组件裁切，防止水波纹溢出
+            .clip(ContinuousRoundedRectangle(8.dp)) // 整个组件裁切，防止水波纹溢出
             .clickable { onClick() }
     ) {
         Box(
@@ -67,7 +67,7 @@ fun PlaylistCard(
                 model = if (imageSize) coverImg.largeImage() else coverImg,
                 modifier = Modifier
                     .matchParentSize()
-                    .clip(RoundedCornerShape(8.dp)),
+                    .clip(ContinuousRoundedRectangle(8.dp)),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
             )

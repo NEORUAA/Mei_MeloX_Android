@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -55,6 +54,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.PlaylistCardSize
 import com.ljyh.mei.constants.PlaylistCardSizeTablet
@@ -69,25 +69,25 @@ import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.queue.ListQueue
+import com.ljyh.mei.ui.component.GlobalProfileAvatarButton
 import com.ljyh.mei.ui.component.home.CardExtInfo
 import com.ljyh.mei.ui.component.home.PlaylistCard
 import com.ljyh.mei.ui.component.home.RecommendCard
-import com.ljyh.mei.ui.component.GlobalProfileAvatarButton
 import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.component.playlist.PlayingImageView
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
+import com.ljyh.mei.ui.glass.IosPinnedPage
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.ui.glass.IosPinnedPage
-import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.DateUtils.getGreeting
 import com.ljyh.mei.utils.positionComparator
 import com.ljyh.mei.utils.rememberPreference
-import timber.log.Timber
 import java.util.UUID
 import kotlin.math.ceil
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -561,7 +561,7 @@ private fun SongRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
-            .clip(RoundedCornerShape(8.dp)),
+            .clip(ContinuousRoundedRectangle(8.dp)),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -570,7 +570,7 @@ private fun SongRow(
             isPlaying = isCurrentSong,
             modifier = Modifier
                 .size(56.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(ContinuousRoundedRectangle(8.dp))
         )
 
         Column(

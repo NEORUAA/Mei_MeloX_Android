@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
@@ -33,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.ui.glass.IosModalSheet
 import com.ljyh.mei.utils.smallImage
@@ -91,7 +91,7 @@ fun AlbumArtistBottomSheet(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(56.dp)
-                            .clip(RoundedCornerShape(8.dp)) // 圆角封面
+                            .clip(ContinuousRoundedRectangle(8.dp)) // 圆角封面
                     )
                 },
                 trailingContent = {

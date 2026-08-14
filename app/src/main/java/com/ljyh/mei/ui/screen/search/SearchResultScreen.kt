@@ -3,6 +3,7 @@ package com.ljyh.mei.ui.screen.search
 import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.add
@@ -10,9 +11,10 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,10 +26,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
+import com.ljyh.mei.R
+import com.ljyh.mei.constants.PodcastsEnabledKey
 import com.ljyh.mei.data.model.api.SearchResult
 import com.ljyh.mei.data.model.api.toAlbum
 import com.ljyh.mei.data.model.api.toMediaData
@@ -39,31 +50,20 @@ import com.ljyh.mei.ui.component.item.AlbumItem
 import com.ljyh.mei.ui.component.item.ArtistItem
 import com.ljyh.mei.ui.component.item.PlaylistItem
 import com.ljyh.mei.ui.component.item.Track
-import com.ljyh.mei.ui.local.LocalNavController
-import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
-import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.ui.screen.Screen
-import androidx.compose.ui.res.stringResource
-import coil3.compose.AsyncImage
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import com.ljyh.mei.R
-import com.ljyh.mei.ui.glass.GlassCard
+import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.glass.GlassButton
+import com.ljyh.mei.ui.glass.GlassCard
 import com.ljyh.mei.ui.glass.GlassEmphasis
 import com.ljyh.mei.ui.glass.GlassIconButton
 import com.ljyh.mei.ui.glass.IosTopBarStyle
 import com.ljyh.mei.ui.glass.IosTopToolbar
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
-import com.ljyh.mei.ui.component.player.OverlayState
+import com.ljyh.mei.ui.local.LocalNavController
+import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.playlist.component.StandaloneTrackActionOverlay
-import com.ljyh.mei.constants.PodcastsEnabledKey
 import com.ljyh.mei.utils.rememberPreference
 
 @OptIn(UnstableApi::class)
@@ -284,7 +284,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
                             model = podcast.picUrl,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.size(58.dp).clip(RoundedCornerShape(14.dp)),
+                            modifier = Modifier.size(58.dp).clip(ContinuousRoundedRectangle(14.dp)),
                         )
                         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                             Text(podcast.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)

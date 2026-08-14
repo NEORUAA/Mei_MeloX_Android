@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material3.Icon
@@ -29,12 +28,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
-import androidx.compose.ui.unit.Dp
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.constants.RecommendCardHeight
 import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.ui.screen.main.home.HomeViewModel
@@ -96,7 +96,7 @@ fun RecommendCard(
     Column(
         modifier = Modifier
             .width(cardWidth)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(ContinuousRoundedRectangle(8.dp))
             .clickable { onClick() }
     ) {
         // 图片区域
@@ -140,7 +140,7 @@ fun RecommendCard(
                         model = extInfo.icon,
                         modifier = Modifier
                             .size(16.dp)
-                            .clip(RoundedCornerShape(4.dp)),
+                            .clip(ContinuousRoundedRectangle(4.dp)),
                         contentDescription = null,
                         contentScale = ContentScale.Crop
                     )

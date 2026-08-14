@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.SaveAlt
@@ -48,6 +47,7 @@ import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.constants.CoverStyle
 import com.ljyh.mei.constants.CoverStyleKey
 import com.ljyh.mei.constants.OriginalCoverKey
@@ -82,7 +82,7 @@ fun Cover(
     val coverShape = if (coverStyle == CoverStyle.Circle) {
         CircleShape
     } else {
-        RoundedCornerShape(12.dp)
+        ContinuousRoundedRectangle(12.dp)
     }
 
     val coverScale by animateFloatAsState(

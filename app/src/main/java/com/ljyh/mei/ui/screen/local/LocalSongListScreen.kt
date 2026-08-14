@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Album
@@ -28,12 +27,12 @@ import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -53,28 +52,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.toMediaMetadata
-import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
 import com.ljyh.mei.ui.component.playlist.PlaylistBackground
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
+import com.ljyh.mei.ui.glass.GlassIconButton
+import com.ljyh.mei.ui.glass.IosTopToolbar
+import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistTrackList
-import com.ljyh.mei.ui.glass.GlassIconButton
-import com.ljyh.mei.ui.glass.IosTopToolbar
-import com.ljyh.mei.ui.glass.SfIcon
-import androidx.compose.ui.platform.LocalDensity
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -237,7 +237,7 @@ private fun LocalSongListHeader(
         Spacer(Modifier.height(24.dp))
 
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = ContinuousRoundedRectangle(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
             modifier = Modifier.size(220.dp)
         ) {

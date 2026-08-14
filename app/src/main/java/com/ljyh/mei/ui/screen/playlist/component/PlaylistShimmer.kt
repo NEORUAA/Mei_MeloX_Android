@@ -13,12 +13,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.ui.component.shimmer.ButtonPlaceholder
 import com.ljyh.mei.ui.component.shimmer.ShimmerHost
 import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
@@ -56,7 +56,7 @@ private fun MobileShimmerContent() {
         TextPlaceholder(
             modifier = Modifier
                 .size(220.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(ContinuousRoundedRectangle(16.dp))
         )
         Spacer(modifier = Modifier.height(24.dp))
         // 标题与信息
@@ -80,7 +80,7 @@ private fun MobileShimmerContent() {
                 modifier = Modifier
                     .height(48.dp)
                     .width(140.dp)
-                    .clip(RoundedCornerShape(24.dp))
+                    .clip(ContinuousRoundedRectangle(24.dp))
             )
             ButtonPlaceholder(modifier = Modifier.size(48.dp))
         }
@@ -111,7 +111,7 @@ private fun TabletShimmerContent() {
             TextPlaceholder(
                 modifier = Modifier
                     .size(260.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(ContinuousRoundedRectangle(16.dp))
             )
             Spacer(modifier = Modifier.height(32.dp))
             TextPlaceholder(modifier = Modifier
@@ -128,7 +128,7 @@ private fun TabletShimmerContent() {
                     modifier = Modifier
                         .height(48.dp)
                         .width(140.dp)
-                        .clip(RoundedCornerShape(24.dp))
+                        .clip(ContinuousRoundedRectangle(24.dp))
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 ButtonPlaceholder(modifier = Modifier.size(48.dp))
@@ -187,7 +187,7 @@ private fun TrackItemShimmer(isTablet: Boolean) {
             TextPlaceholder(
                 modifier = Modifier
                     .size(if (isTablet) 40.dp else 50.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(ContinuousRoundedRectangle(8.dp))
             )
 
             Spacer(modifier = Modifier.width(16.dp))

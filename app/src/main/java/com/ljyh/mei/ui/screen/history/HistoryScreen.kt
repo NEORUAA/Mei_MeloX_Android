@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,14 +30,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import com.ljyh.mei.data.model.room.HistoryItem
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.glass.GlassCard
 import com.ljyh.mei.ui.glass.GlassIconButton
-import com.ljyh.mei.ui.glass.IosPinnedListPage
 import com.ljyh.mei.ui.glass.IosGroupedList
 import com.ljyh.mei.ui.glass.IosListRow
+import com.ljyh.mei.ui.glass.IosPinnedListPage
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
@@ -80,7 +80,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
                                 AsyncImage(
                                     model = item.song.cover,
                                     contentDescription = null,
-                                    modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)),
+                                    modifier = Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
                                     contentScale = ContentScale.Crop,
                                 )
                             },
@@ -110,7 +110,7 @@ private fun HistoryItemRow(item: HistoryItem, onClick: () -> Unit) {
             AsyncImage(
                 model = item.song.cover,
                 contentDescription = null,
-                modifier = Modifier.size(58.dp).clip(RoundedCornerShape(13.dp)),
+                modifier = Modifier.size(58.dp).clip(ContinuousRoundedRectangle(13.dp)),
                 contentScale = ContentScale.Crop,
             )
             Column(Modifier.weight(1f).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {

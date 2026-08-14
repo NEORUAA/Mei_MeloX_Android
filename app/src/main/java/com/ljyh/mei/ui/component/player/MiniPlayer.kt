@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,34 +25,35 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
+import com.kyant.backdrop.Backdrop
+import com.kyant.capsule.ContinuousRoundedRectangle
+import com.kyant.shapes.Capsule
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.MiniPlayerHeight
 import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.ui.glass.GlassSurface
+import com.ljyh.mei.ui.glass.LocalGlassBackdrop
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
-import com.ljyh.mei.ui.glass.LocalGlassBackdrop
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.smallImage
-import com.kyant.shapes.Capsule
-import com.kyant.backdrop.Backdrop
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -187,7 +187,7 @@ fun MiniMediaInfo(
                         onCoverBoundsChanged?.invoke(coordinates.boundsInRoot())
                     }
                     .alpha(0f)
-                    .clip(RoundedCornerShape(ThumbnailCornerRadius)),
+                    .clip(ContinuousRoundedRectangle(ThumbnailCornerRadius)),
             )
             androidx.compose.animation.AnimatedVisibility(
                 visible = error != null,
@@ -199,7 +199,7 @@ fun MiniMediaInfo(
                         .size(32.dp)
                         .background(
                             color = Color.Black.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(ThumbnailCornerRadius),
+                            shape = ContinuousRoundedRectangle(ThumbnailCornerRadius),
                         ),
                 ) {
                     SfIcon(

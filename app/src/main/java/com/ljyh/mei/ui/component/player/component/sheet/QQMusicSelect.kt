@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.qq.u.SearchResult
 import com.ljyh.mei.data.model.room.QQSong
@@ -40,8 +40,8 @@ import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.glass.IosModalSheet
 import com.ljyh.mei.utils.TimeUtils.formatDuration
 import com.ljyh.mei.utils.TimeUtils.formatSeconds
-import timber.log.Timber
 import kotlin.math.abs
+import timber.log.Timber
 
 
 @Composable
@@ -174,7 +174,7 @@ private fun OptimizedSongItem(
             contentDescription = null,
             modifier = Modifier
                 .size(52.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .clip(ContinuousRoundedRectangle(6.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentScale = ContentScale.Crop
         )
@@ -197,7 +197,7 @@ private fun OptimizedSongItem(
                     Spacer(Modifier.width(8.dp))
                     Surface(
                         color = MaterialTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(4.dp)
+                        shape = ContinuousRoundedRectangle(4.dp)
                     ) {
                         Text(
                             "最佳匹配",

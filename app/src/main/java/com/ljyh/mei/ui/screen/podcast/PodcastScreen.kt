@@ -1,12 +1,12 @@
 package com.ljyh.mei.ui.screen.podcast
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,11 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -37,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.melox.Podcast
@@ -47,10 +47,10 @@ import com.ljyh.mei.ui.glass.GlassButton
 import com.ljyh.mei.ui.glass.GlassCard
 import com.ljyh.mei.ui.glass.GlassEmphasis
 import com.ljyh.mei.ui.glass.GlassIconButton
+import com.ljyh.mei.ui.glass.IosGroupedList
+import com.ljyh.mei.ui.glass.IosPinnedListPage
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
-import com.ljyh.mei.ui.glass.IosPinnedListPage
-import com.ljyh.mei.ui.glass.IosGroupedList
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
@@ -157,7 +157,7 @@ private fun PodcastSection(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .aspectRatio(1f)
-                                .clip(RoundedCornerShape(18.dp)),
+                                .clip(ContinuousRoundedRectangle(18.dp)),
                         )
                         Text(
                             podcast.name,
@@ -216,7 +216,7 @@ fun PodcastDetailScreen(
                                 model = detail.podcast.picUrl,
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.size(112.dp).clip(RoundedCornerShape(22.dp)),
+                                modifier = Modifier.size(112.dp).clip(ContinuousRoundedRectangle(22.dp)),
                             )
                             Column(Modifier.padding(start = 14.dp)) {
                                 Text(detail.podcast.host?.nickname.orEmpty(), fontWeight = FontWeight.SemiBold)
@@ -263,7 +263,7 @@ private fun PodcastProgramRow(program: PodcastProgram, onClick: () -> Unit) {
                 model = program.coverUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(64.dp).clip(RoundedCornerShape(14.dp)),
+                modifier = Modifier.size(64.dp).clip(ContinuousRoundedRectangle(14.dp)),
             )
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(program.name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)

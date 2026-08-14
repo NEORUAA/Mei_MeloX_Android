@@ -3,7 +3,6 @@ package com.ljyh.mei.ui.screen.local.component
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.Icon
@@ -17,6 +16,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 
 @Composable
 fun CoverCollage(
@@ -27,7 +27,7 @@ fun CoverCollage(
     if (covers.isEmpty()) {
         Surface(
             modifier = Modifier.size(size),
-            shape = RoundedCornerShape(radius),
+            shape = ContinuousRoundedRectangle(radius),
             color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -43,13 +43,13 @@ fun CoverCollage(
             model = covers[0],
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.size(size).clip(RoundedCornerShape(radius))
+            modifier = Modifier.size(size).clip(ContinuousRoundedRectangle(radius))
         )
     } else {
         val halfSize = size / 2
         Surface(
             modifier = Modifier.size(size),
-            shape = RoundedCornerShape(radius),
+            shape = ContinuousRoundedRectangle(radius),
             color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             androidx.compose.foundation.layout.Column {

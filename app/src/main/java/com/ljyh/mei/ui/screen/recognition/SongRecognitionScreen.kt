@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.melox.RecognizedSong
@@ -127,7 +127,7 @@ fun SongRecognitionScreen(viewModel: SongRecognitionViewModel = hiltViewModel())
                         model = song.coverUrl,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(58.dp).clip(RoundedCornerShape(14.dp)),
+                        modifier = Modifier.size(58.dp).clip(ContinuousRoundedRectangle(14.dp)),
                     )
                     Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                         Text(

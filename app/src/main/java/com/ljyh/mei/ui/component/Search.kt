@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -73,6 +72,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.AppBarHeight
 import com.ljyh.mei.ui.glass.GlassSurface
@@ -127,7 +127,7 @@ fun SearchBar(
                 shape == defaultInputFieldShape -> {
                     // The shape can only be animated if it's the default spec value
                     val animatedRadius = SearchBarCornerRadius * (1 - animationProgress)
-                    RoundedCornerShape(CornerSize(animatedRadius))
+                    ContinuousRoundedRectangle(CornerSize(animatedRadius))
                 }
 
                 animationProgress == 1f -> defaultFullScreenShape
