@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -64,7 +65,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -75,7 +75,6 @@ import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
-import androidx.compose.ui.zIndex
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -105,6 +104,17 @@ val IosModalSheetShape = ContinuousRoundedRectangle(
 )
 
 private val LocalIosPopupMenuInteractive = staticCompositionLocalOf { true }
+
+/** Overflow room on the menu's growth sides so spring overshoot, velocity deformation,
+ *  blur bleed and the drop shadow can draw past the resting bounds without being clipped
+ *  by the popup window. The anchor-side corner stays flush with the window corner, so
+ *  positioning math and the pinned trigger copy are unaffected. */
+private val PopupMenuOvershootMarginStart = 64.dp
+private val PopupMenuOvershootMarginVertical = 32.dp
+
+/** The stable shell is larger than the resting menu so the spring overshoot (up to 1.12x)
+ *  fits inside the shell's constraints and actually renders. */
+private const val PopupMenuOvershootScale = 1.15f
 
 private class IosPopupPositionProvider(
     private val targetMenuHeightPx: Int,
@@ -506,10 +516,36 @@ fun IosContextMenu(
     val contentProgress = progress
     val childBackdrop = rememberLayerBackdrop()
     val elevatedBackground = LocalGlassColors.current.elevatedBackground
-    Column(
+    // Stable full-size shell: the hosting Popup window never resizes or moves during the
+    // animation, so a sibling pinned to a corner of this box (the trigger copy) cannot
+    // wobble with the spring physics or be clipped by an undersized window.
+    Box(
         modifier
-            .size(width = width, height = height)
-            .drawBackdrop(
+            .padding(
+                start = PopupMenuOvershootMarginStart,
+                top = if (opensAbove) PopupMenuOvershootMarginVertical else 0.dp,
+                bottom = if (opensAbove) 0.dp else PopupMenuOvershootMarginVertical,
+            )
+            .size(
+                width = menuWidth * PopupMenuOvershootScale,
+                height = menuHeight * PopupMenuOvershootScale,
+            ),
+    ) {
+        Column(
+            Modifier
+                .align(if (opensAbove) Alignment.BottomEnd else Alignment.TopEnd)
+                // Whole-menu transition: alpha 0->1 and blur->0 while growing, reversed while
+                // shrinking. The tail reaches alpha 0 before the window is removed, so the
+                // collapse never pops out of existence.
+                // Unbounded: the default Rectangle edge treatment clips at the node bounds,
+                // which cut the elastic deformation flat during the animation.
+                .blur(
+                    (10.dp * (1f - progress)).coerceAtLeast(0.dp),
+                    BlurredEdgeTreatment.Unbounded,
+                )
+                .graphicsLayer { alpha = progress }
+                .size(width = width, height = height)
+                .drawBackdrop(
                 backdrop = backdrop,
                 exportedBackdrop = childBackdrop,
                 shape = { RoundedRectangle(radius) },
@@ -540,26 +576,28 @@ fun IosContextMenu(
                 onDrawSurface = {
                     drawRect(elevatedBackground.copy(alpha = 0.70f * progress))
                 },
-            )
-            .clip(ContinuousRoundedRectangle(radius))
-            .padding(10.dp)
-            .graphicsLayer {
-                alpha = contentProgress
-                transformOrigin = TransformOrigin(1f, if (opensAbove) 1f else 0f)
-                val contentScale = 0.92f + 0.08f * contentProgress
-                scaleX = contentScale
-                scaleY = contentScale
-            }
-            .blur(5.dp * (1f - contentProgress)),
-    ) {
-        if (contentProgress > 0.001f) content(childBackdrop)
+                )
+                .clip(ContinuousRoundedRectangle(radius))
+                .padding(10.dp)
+                .graphicsLayer {
+                    transformOrigin = TransformOrigin(1f, if (opensAbove) 1f else 0f)
+                    val contentScale = 0.92f + 0.08f * contentProgress
+                    scaleX = contentScale
+                    scaleY = contentScale
+                },
+        ) {
+            if (contentProgress > 0.001f) content(childBackdrop)
+        }
     }
 }
 
 /**
  * Anchored iOS popup whose refractive surface grows out of the trigger itself.
- * Closing immediately removes the interactive Popup window, then an in-tree visual shell
- * finishes the reverse spring behind the trigger. This keeps the trigger clickable throughout.
+ * One Popup window covers the whole expand/open/collapse lifecycle and `progress` is the
+ * single source of truth: the spring always continues from the current value and velocity,
+ * so toggling at any moment reverses the motion in place instead of swapping to a separate
+ * closing copy (which could lose the collapse animation entirely). While collapsing the
+ * window is non-focusable and its rows are non-interactive, so it cannot be dismissed twice.
  */
 @Composable
 fun IosPopupMenu(
@@ -572,15 +610,13 @@ fun IosPopupMenu(
     content: @Composable ColumnScope.(LayerBackdrop, close: () -> Unit) -> Unit,
 ) {
     var anchorSize by remember { mutableStateOf(IntSize.Zero) }
-    var popupComposed by remember { mutableStateOf(expanded) }
-    var closingOverlay by remember { mutableStateOf(false) }
+    var popupAlive by remember { mutableStateOf(expanded) }
     var opensAbove by remember { mutableStateOf(false) }
     val progress = remember { Animatable(if (expanded) 1f else 0f) }
 
     LaunchedEffect(expanded) {
         if (expanded) {
-            closingOverlay = false
-            popupComposed = true
+            popupAlive = true
             progress.animateTo(
                 targetValue = 1f,
                 animationSpec = spring(
@@ -589,11 +625,7 @@ fun IosPopupMenu(
                     visibilityThreshold = 0.001f,
                 ),
             )
-        } else if (popupComposed) {
-            // A Popup owns a separate input window. Remove it before animating the visual copy,
-            // otherwise its nearly transparent tail can still cover the trigger.
-            popupComposed = false
-            closingOverlay = true
+        } else {
             progress.animateTo(
                 targetValue = 0f,
                 animationSpec = spring(
@@ -602,57 +634,21 @@ fun IosPopupMenu(
                     visibilityThreshold = 0.001f,
                 ),
             )
-            closingOverlay = false
+            popupAlive = false
         }
     }
 
     Box(modifier.onSizeChanged { anchorSize = it }) {
         Box(
             Modifier
-                .zIndex(if (closingOverlay) 1f else 0f)
-                .graphicsLayer { alpha = if (popupComposed && expanded) 0f else 1f },
+                .graphicsLayer { alpha = if (expanded) 0f else 1f },
         ) {
             anchor { onExpandedChange(!expanded) }
         }
-        if (closingOverlay && anchorSize != IntSize.Zero) {
-            val closingContent: @Composable ColumnScope.(LayerBackdrop) -> Unit = { childBackdrop ->
-                CompositionLocalProvider(LocalIosPopupMenuInteractive provides false) {
-                    Column { content(childBackdrop) { } }
-                }
-            }
-            // This visual tail lives in the anchor window (not a Popup), so it cannot consume
-            // input. A zero-reported layout used to clip it completely and made close look like
-            // an instant disappearance; draw it in a fixed anchor-sized overflow layer instead.
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .zIndex(0f),
-            ) {
-                IosContextMenu(
-                    visible = true,
-                    modifier = Modifier.layout { measurable, _ ->
-                        val placeable = measurable.measure(Constraints())
-                        layout(anchorSize.width, anchorSize.height) {
-                            placeable.place(
-                                x = anchorSize.width - placeable.width,
-                                y = if (opensAbove) anchorSize.height - placeable.height else 0,
-                            )
-                        }
-                    },
-                    backdrop = backdrop,
-                    animationProgress = progress.value,
-                    animationVelocity = progress.velocity,
-                    opensAbove = opensAbove,
-                    collapsedSize = anchorSize,
-                    itemCount = itemCount,
-                    content = closingContent,
-                )
-            }
-        }
-        if (popupComposed && anchorSize != IntSize.Zero) {
+        if (popupAlive && anchorSize != IntSize.Zero) {
             val density = androidx.compose.ui.platform.LocalDensity.current
             val targetMenuHeightPx = with(density) { (20.dp + 44.dp * itemCount).roundToPx() }
-            val positionProvider = remember(expanded, anchorSize, targetMenuHeightPx) {
+            val positionProvider = remember(anchorSize, targetMenuHeightPx) {
                 IosPopupPositionProvider(targetMenuHeightPx) { resolved ->
                     opensAbove = resolved
                 }
@@ -666,16 +662,46 @@ fun IosPopupMenu(
                     dismissOnClickOutside = expanded,
                 ),
             ) {
-                IosContextMenu(
-                    visible = true,
-                    backdrop = backdrop,
-                    animationProgress = progress.value,
-                    animationVelocity = progress.velocity,
-                    opensAbove = opensAbove,
-                    collapsedSize = anchorSize,
-                    itemCount = itemCount,
-                ) { childBackdrop ->
-                    content(childBackdrop) { onExpandedChange(false) }
+                // The overshoot margin is invisible window area; treat taps there like
+                // outside taps (dismiss) instead of letting them vanish into the window.
+                Box(
+                    Modifier.clickable(
+                        interactionSource = null,
+                        indication = null,
+                    ) { onExpandedChange(false) },
+                ) {
+                    CompositionLocalProvider(LocalIosPopupMenuInteractive provides expanded) {
+                        IosContextMenu(
+                            visible = true,
+                            backdrop = backdrop,
+                            animationProgress = progress.value,
+                            animationVelocity = progress.velocity,
+                            opensAbove = opensAbove,
+                            collapsedSize = anchorSize,
+                            itemCount = itemCount,
+                        ) { childBackdrop ->
+                            content(childBackdrop) { onExpandedChange(false) }
+                        }
+                    }
+                    if (!expanded) {
+                        // The app-window anchor can never outdraw this separate popup
+                        // window, so while collapsing a copy rides on top of the glass.
+                        // It fades in as the menu shrinks into the trigger's frame and
+                        // stays tappable, so reopening mid-collapse keeps working.
+                        val density = androidx.compose.ui.platform.LocalDensity.current
+                        Box(
+                            Modifier
+                                .align(if (opensAbove) Alignment.BottomEnd else Alignment.TopEnd)
+                                .size(
+                                    width = with(density) { anchorSize.width.toDp() },
+                                    height = with(density) { anchorSize.height.toDp() },
+                                )
+                                .graphicsLayer { alpha = 1f - progress.value.coerceIn(0f, 1f) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            anchor { onExpandedChange(true) }
+                        }
+                    }
                 }
             }
         }
@@ -759,14 +785,14 @@ fun IosMenuItem(
             .fillMaxWidth()
             .drawBackdrop(
                 backdrop,
-                shape = { ContinuousRoundedRectangle(16.dp) },
+                shape = { Capsule() },
                 effects = {
                     val p = highlight.pressProgress
                     if (p > 0.01f) { blur(2.dp.toPx() * p); lens(6.dp.toPx() * p, 10.dp.toPx() * p) }
                 },
                 highlight = { Highlight.Default.copy(alpha = 0.38f * highlight.pressProgress) },
                 shadow = null,
-                innerShadow = { InnerShadow(radius = 3.dp * highlight.pressProgress, alpha = 0.2f * highlight.pressProgress) },
+                innerShadow = null,
                 onDrawSurface = { drawRect(Color.Black.copy(alpha = 0.04f * highlight.pressProgress)) },
             )
             .then(if (interactive) highlight.modifier else Modifier)
@@ -783,7 +809,14 @@ fun IosMenuItem(
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        systemName?.let { SfIcon(it, null, size = 20.dp, tint = if (destructive) LocalGlassColors.current.destructive else LocalGlassColors.current.content); Spacer(Modifier.width(12.dp)) }
+        // Fixed-width gutter keeps every title's left edge aligned, whether or not the
+        // row shows a checkmark (iOS context-menu alignment).
+        Box(Modifier.width(20.dp), contentAlignment = Alignment.Center) {
+            if (systemName != null) {
+                SfIcon(systemName, null, size = 20.dp, tint = if (destructive) LocalGlassColors.current.destructive else LocalGlassColors.current.content)
+            }
+        }
+        Spacer(Modifier.width(12.dp))
         Text(title, style = IosTypography.body, color = if (destructive) LocalGlassColors.current.destructive else LocalGlassColors.current.content)
     }
 }

@@ -59,9 +59,24 @@ fun FluidBackground(
                 .build()
             val result = loader.execute(request)
             if (result is SuccessResult) {
-                value = result.image.toBitmap()
+                // Detach from Coil's bitmap pool: the GL renderer owns this instance and
+                // recycles it on track change, which must never corrupt a pooled bitmap.
+                val decoded = result.image.toBitmap()
+                value = decoded.copy(android.graphics.Bitmap.Config.ARGB_8888, false) ?: decoded
             }
         }
+    }
+
+    var meshView by remember { mutableStateOf<MeshBackgroundView?>(null) }
+
+    // Push the album exactly once per bitmap change. Calling setAlbum from AndroidView's
+    // update block re-fires on every recomposition (sheet animation ~60Hz, bass ~10Hz),
+    // and each call restarts the renderer's cross-fade with a new random mesh preset,
+    // which is the visible flicker/dark-dip source.
+    LaunchedEffect(meshView, albumBitmap) {
+        val view = meshView ?: return@LaunchedEffect
+        val bitmap = albumBitmap ?: return@LaunchedEffect
+        view.setAlbum(bitmap)
     }
 
     // 2. 组装当前需要传递给 View 的所有状态
@@ -72,6 +87,7 @@ fun FluidBackground(
     AndroidView(
         factory = { ctx ->
             MeshBackgroundView(ctx).apply {
+                meshView = this
                 this.alpha = alpha.coerceIn(0f, 1f)
                 // 初始化时的默认值
                 setFlowSpeed(flowSpeed)
@@ -86,9 +102,6 @@ fun FluidBackground(
             // GLSurfaceView owns a native Surface; driving the View alpha avoids a bright
             // first frame escaping a Compose graphics layer during sheet expansion.
             view.alpha = alpha.coerceIn(0f, 1f)
-            albumBitmap?.let { bmp ->
-                view.setAlbum(bmp)
-            }
 
             view.updateVolume(bass * volumeScale)
             view.setFlowSpeed(flowSpeed)

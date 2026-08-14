@@ -59,11 +59,15 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 
     private var pendingAlbum: Bitmap? = null
     private var albumChanged: Boolean = false
+    private var currentAlbum: Bitmap? = null
 
     private val random = java.util.Random()
 
     fun setAlbum(bitmap: Bitmap) {
         synchronized(this) {
+            // Idempotent: re-pushing the instance already being shown must not restart
+            // the cross-fade (which also re-rolls a random mesh preset).
+            if (bitmap === pendingAlbum || bitmap === currentAlbum) return
             val old = pendingAlbum
             if (old !== null && old !== bitmap) {
                 old.recycle()
@@ -87,6 +91,20 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             createProgram(ShaderSource.MESH_VERTEX_SHADER, ShaderSource.MESH_FRAGMENT_SHADER)
         quadProgram =
             createProgram(ShaderSource.QUAD_VERTEX_SHADER, ShaderSource.QUAD_FRAGMENT_SHADER)
+
+        synchronized(this) {
+            // A recreated surface means every previous GL object is gone. Drop the stale
+            // ids without glDelete* (they may collide with new-context objects) and rebuild
+            // from the last album, otherwise dead textures sample as opaque black.
+            meshStates.clear()
+            fbo = 0
+            fboTexture = 0
+            val album = currentAlbum
+            if (album != null && !album.isRecycled && pendingAlbum == null) {
+                pendingAlbum = album
+                albumChanged = true
+            }
+        }
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -159,6 +177,13 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             albumChanged = false
             val bitmap = pendingAlbum ?: return
             pendingAlbum = null
+
+            val previous = currentAlbum
+            currentAlbum = bitmap
+            if (previous !== null && previous !== bitmap) {
+                // Its texture was uploaded when it was processed; the source is ours now.
+                previous.recycle()
+            }
 
             val processed = AlbumTextureProcessor.process(bitmap)
             val textureId = uploadTexture(processed)

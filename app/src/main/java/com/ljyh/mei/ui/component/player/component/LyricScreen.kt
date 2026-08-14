@@ -24,12 +24,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -40,6 +42,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -135,17 +139,23 @@ fun LyricScreen(
                 interactionSource = remember { MutableInteractionSource() }
             ) { onToggleControls(true) }
     ) {
+        // Bounds of the bottom-right source badge, in this box's coordinates. The
+        // lower-half tap-to-toggle gesture runs on the Initial pass and consumes taps
+        // before children see them, so the badge region must be excluded explicitly.
+        var badgeBounds by remember { mutableStateOf<Rect?>(null) }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
                 .pointerInput(controlsVisible, onToggleControls) {
+                    val badgeSlop = 12.dp.toPx()
                     awaitEachGesture {
                         val down = awaitFirstDown(
                             requireUnconsumed = false,
                             pass = PointerEventPass.Initial,
                         )
                         val lowerHalf = down.position.y >= size.height / 2f
+                        val inBadge = badgeBounds?.inflate(badgeSlop)?.contains(down.position) == true
                         var moved = false
                         var released = false
                         var pressed = true
@@ -157,7 +167,7 @@ fun LyricScreen(
                             }
                             if (change.changedToUpIgnoreConsumed()) {
                                 released = true
-                                if (lowerHalf && !moved) {
+                                if (lowerHalf && !moved && !inBadge) {
                                     change.consume()
                                     onToggleControls(!controlsVisible)
                                 }
@@ -223,7 +233,8 @@ fun LyricScreen(
                     source = lyricData.source,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding( start = 8.dp),
+                        .padding( start = 8.dp)
+                        .onGloballyPositioned { badgeBounds = it.boundsInParent() },
                     onClick = onClick,
                     onLongClick = onLongClick
                 )

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -432,16 +433,16 @@ private fun <T> androidx.compose.foundation.layout.RowScope.FullTabContent(
                     scaleY = contentScale
                 },
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            Box(Modifier.weight(1f), contentAlignment = Alignment.BottomCenter) {
-                SfIcon(
-                    symbol = item.symbol,
-                    contentDescription = item.contentDescription,
-                    tint = if (selected) colors.accent else colors.content,
-                    size = 24.dp,
-                    weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                )
-            }
+            SfIcon(
+                symbol = item.symbol,
+                contentDescription = item.contentDescription,
+                tint = if (selected) colors.accent else colors.content,
+                size = 24.dp,
+                weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                modifier = Modifier.padding(top = 3.dp),
+            )
             Text(
                 text = item.label,
                 color = if (selected) colors.accent else colors.content,
