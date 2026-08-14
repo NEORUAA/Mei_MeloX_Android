@@ -92,7 +92,7 @@ fun PlaylistCard(
                         fontSize = 11.sp,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        style = TextStyle(shadow = textShadow)
+                        style = TextStyle(shadow = textShadow, letterSpacing = 1.sp)
                     )
                 }
             }
@@ -110,7 +110,7 @@ fun PlaylistCard(
                             fontSize = 11.sp,
                             color = Color.White,
                             fontWeight = FontWeight.Medium,
-                            style = TextStyle(shadow = textShadow)
+                            style = TextStyle(shadow = textShadow, letterSpacing = 1.sp)
                         )
                     }
                 }

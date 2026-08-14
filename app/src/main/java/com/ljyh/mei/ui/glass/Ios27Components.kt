@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -59,12 +60,14 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -208,7 +211,7 @@ fun IosTopToolbar(
             IosTopBarStyle.LargeTitle -> Column(modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
                 Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) { navigation?.invoke() }
-                    Row(content = actions)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), content = actions)
                 }
                 Text(title, style = IosTypography.largeTitle, color = LocalGlassColors.current.content)
                 subtitle?.let { Text(it, style = IosTypography.subheadline, color = LocalGlassColors.current.secondaryContent) }
@@ -223,31 +226,64 @@ fun IosTopToolbar(
                     color = LocalGlassColors.current.content,
                     modifier = Modifier.weight(1f),
                 )
-                Row(content = actions)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), content = actions)
             }
-            else -> Box(modifier.fillMaxWidth().height(54.dp).padding(horizontal = 16.dp)) {
-                Row(Modifier.align(Alignment.CenterStart), verticalAlignment = Alignment.CenterVertically) { navigation?.invoke() }
-                Column(
-                    Modifier
-                        .align(if (style == IosTopBarStyle.TwoLineLeading) Alignment.CenterStart else Alignment.Center)
-                        .graphicsLayer {
-                            alpha = progress
-                            val scale = 0.92f + 0.08f * progress
-                            scaleX = scale
-                            scaleY = scale
+            else -> {
+                var leadingWidth by remember { mutableIntStateOf(0) }
+                var trailingWidth by remember { mutableIntStateOf(0) }
+                val density = LocalDensity.current
+                val leadingPad = with(density) { leadingWidth.toDp() }
+                val trailingPad = with(density) { trailingWidth.toDp() }
+                Box(modifier.fillMaxWidth().height(54.dp).padding(horizontal = 16.dp)) {
+                    Row(
+                        Modifier.align(Alignment.CenterStart).onSizeChanged { leadingWidth = it.width },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) { navigation?.invoke() }
+                    Column(
+                        Modifier
+                            .align(if (style == IosTopBarStyle.TwoLineLeading) Alignment.CenterStart else Alignment.Center)
+                            .fillMaxWidth()
+                            .padding(
+                                // Centered styles stay optically centered: reserve the wider
+                                // side on both edges. The leading style just clears the sides.
+                                start = if (style == IosTopBarStyle.TwoLineLeading) leadingPad
+                                else maxOf(leadingPad, trailingPad),
+                                end = if (style == IosTopBarStyle.TwoLineLeading) trailingPad
+                                else maxOf(leadingPad, trailingPad),
+                            )
+                            .graphicsLayer {
+                                alpha = progress
+                                val scale = 0.92f + 0.08f * progress
+                                scaleX = scale
+                                scaleY = scale
+                            }
+                            .blur(8.dp * (1f - progress)),
+                        horizontalAlignment = if (style == IosTopBarStyle.TwoLineLeading) Alignment.Start else Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            title,
+                            style = if (subtitle == null) IosTypography.headline
+                            else IosTypography.subheadline.copy(fontWeight = FontWeight.SemiBold),
+                            color = LocalGlassColors.current.content,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        subtitle?.let {
+                            Text(
+                                it,
+                                style = IosTypography.caption,
+                                color = LocalGlassColors.current.secondaryContent,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
-                        .blur(8.dp * (1f - progress)),
-                    horizontalAlignment = if (style == IosTopBarStyle.TwoLineLeading) Alignment.Start else Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        title,
-                        style = if (subtitle == null) IosTypography.headline
-                        else IosTypography.subheadline.copy(fontWeight = FontWeight.SemiBold),
-                        color = LocalGlassColors.current.content,
+                    }
+                    Row(
+                        Modifier.align(Alignment.CenterEnd).onSizeChanged { trailingWidth = it.width },
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        content = actions,
                     )
-                    subtitle?.let { Text(it, style = IosTypography.caption, color = LocalGlassColors.current.secondaryContent) }
                 }
-                Row(Modifier.align(Alignment.CenterEnd), content = actions)
             }
         }
     }
