@@ -754,25 +754,6 @@ fun IosPopupMenu(
                             content(childBackdrop) { onExpandedChange(false) }
                         }
                     }
-                    if (!expanded) {
-                        // The app-window anchor can never outdraw this separate popup
-                        // window, so while collapsing a copy rides on top of the glass.
-                        // It fades in as the menu shrinks into the trigger's frame and
-                        // stays tappable, so reopening mid-collapse keeps working.
-                        val density = androidx.compose.ui.platform.LocalDensity.current
-                        Box(
-                            Modifier
-                                .align(if (opensAbove) Alignment.BottomEnd else Alignment.TopEnd)
-                                .size(
-                                    width = with(density) { anchorSize.width.toDp() },
-                                    height = with(density) { anchorSize.height.toDp() },
-                                )
-                                .graphicsLayer { alpha = 1f - progress.value.coerceIn(0f, 1f) },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            anchor { onExpandedChange(true) }
-                        }
-                    }
                 }
             }
         }

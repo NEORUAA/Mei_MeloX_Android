@@ -34,13 +34,13 @@ import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.constants.NoAudioSourceKey
 import com.ljyh.mei.constants.PreviousPlaybackKey
-import com.ljyh.mei.ui.glass.GlassButton
 import com.ljyh.mei.ui.glass.GlassCard
 import com.ljyh.mei.ui.glass.GlassIconButton
 import com.ljyh.mei.ui.glass.GlassSegmentedControl
 import com.ljyh.mei.ui.glass.GlassSlider
 import com.ljyh.mei.ui.glass.GlassToggle
 import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.IosPopupButton
 import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
@@ -81,7 +81,7 @@ fun PlaySetting(
                 GlassCard(modifier = Modifier.fillMaxWidth(), onClick = { Screen.EqualizerSettings.navigate(navController) }) {
                     Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         SfIcon("slider.vertical.3", contentDescription = null)
-                        Text(stringResource(R.string.equalizer), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
+                        Text(stringResource(R.string.equalizer), modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
                         SfIcon("chevron.forward", contentDescription = null, tint = LocalGlassColors.current.separator, size = 16.dp)
                     }
                 }
@@ -89,9 +89,12 @@ fun PlaySetting(
                 ToggleRow(stringResource(R.string.skip_unavailable), "waveform.slash", noAudioSource, onNoAudioSourceChange)
                 ToggleRow(stringResource(R.string.previous_behavior), "backward.fill", previousPlayback, onPreviousPlaybackChange)
                 ValueRow(stringResource(R.string.music_quality), "waveform") {
-                    val values = MusicQuality.entries
-                    val next = values[(values.indexOf(musicQuality) + 1) % values.size]
-                    GlassButton(onClick = { onMusicQualityChange(next) }) { Text("${musicQuality.explanation} · ${musicQuality.text}") }
+                    IosPopupButton(
+                        selected = musicQuality,
+                        items = MusicQuality.entries,
+                        onSelected = onMusicQualityChange,
+                        label = { "${it.explanation} · ${it.text}" },
+                    )
                 }
             }
         }
@@ -145,7 +148,7 @@ private fun ToggleRow(title: String, symbol: String, checked: Boolean, onChecked
     GlassCard(Modifier.fillMaxWidth(), onClick = { onCheckedChange(!checked) }) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             SfIcon(symbol, contentDescription = null)
-            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
+            Text(title, modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
             GlassToggle(checked, onCheckedChange)
         }
     }
@@ -156,7 +159,7 @@ private fun ValueRow(title: String, symbol: String, value: @Composable () -> Uni
     GlassCard(Modifier.fillMaxWidth()) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             SfIcon(symbol, contentDescription = null)
-            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
+            Text(title, modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
             value()
         }
     }

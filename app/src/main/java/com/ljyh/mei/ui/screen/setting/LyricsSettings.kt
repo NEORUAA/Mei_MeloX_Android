@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.LyricAutoFollowEnabledKey
@@ -71,7 +70,6 @@ fun LyricsSettings() {
                     ) {
                         Text(
                             stringResource(R.string.lyrics_style_presentation),
-                            style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.weight(1f),
                         )
                         IosPopupButton(
@@ -139,7 +137,7 @@ private fun LyricsToggleRow(title: String, checked: Boolean, onCheckedChange: (B
             Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(title, modifier = Modifier.weight(1f))
             GlassToggle(checked, onCheckedChange)
         }
     }

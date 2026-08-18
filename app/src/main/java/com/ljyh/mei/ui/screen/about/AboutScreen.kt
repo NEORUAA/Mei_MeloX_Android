@@ -82,7 +82,7 @@ fun AboutScreen(viewModel: AboutViewModel = hiltViewModel()) {
                             }
                         },
                 )
-                Text("Mei", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text("Mei_MeloX", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Text(
                     stringResource(R.string.about_version, BuildConfig.VERSION_NAME),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -115,7 +115,7 @@ fun AboutScreen(viewModel: AboutViewModel = hiltViewModel()) {
             }
         }
         item {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 24.dp)) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 24.dp).fillMaxWidth()) {
                 Text("Mei · ${LocalDate.now().year}", style = MaterialTheme.typography.labelSmall)
                 Text(
                     stringResource(R.string.about_compose),
@@ -143,7 +143,7 @@ private fun AboutEntry(systemName: String, title: String, subtitle: String? = nu
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             SfIcon(systemName, null, size = 21.dp)
             Column(Modifier.weight(1f).padding(horizontal = 13.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(title, fontWeight = FontWeight.SemiBold)
+                Text(title)
                 subtitle?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
