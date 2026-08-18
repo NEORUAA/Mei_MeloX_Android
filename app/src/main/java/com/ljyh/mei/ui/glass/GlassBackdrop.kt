@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.GraphicsLayerScope
@@ -99,4 +100,13 @@ class CrossWindowBackdrop(
             drawLayer(source.graphicsLayer)
         }
     }
+}
+
+/**
+ * Wraps a [LayerBackdrop] for glass rendered in a separate window (dialog/sheet).
+ * Non-layer backdrops pass through unchanged.
+ */
+@Composable
+fun rememberCrossWindowBackdrop(backdrop: Backdrop): Backdrop = remember(backdrop) {
+    if (backdrop is LayerBackdrop) CrossWindowBackdrop(backdrop) else backdrop
 }

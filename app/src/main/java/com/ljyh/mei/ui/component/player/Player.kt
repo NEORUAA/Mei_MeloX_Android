@@ -6,10 +6,16 @@ import androidx.annotation.RequiresApi
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.PlayerStyle
@@ -30,6 +36,9 @@ import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 
+/** Publishes the current cover art for the player backdrop's recording stand-in. */
+val LocalPlayerBackdropCover = staticCompositionLocalOf<MutableState<ImageBitmap?>?> { null }
+
 @OptIn(UnstableApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
@@ -45,7 +54,25 @@ fun BottomSheetPlayer(
     val navController = LocalNavController.current
     val device = rememberDeviceInfo()
     val collapsedBackdrop = LocalGlassBackdrop.current
-    val playerBackdrop = rememberLayerBackdrop()
+    val backdropCover = remember { mutableStateOf<ImageBitmap?>(null) }
+    // The visible player background is a GLSurfaceView, whose pixels cannot be captured by
+    // a Compose layer recording. Record a cover-art stand-in instead so glass sheets above
+    // the player sample something faithful to the flowing background.
+    val playerBackdrop = rememberLayerBackdrop(
+        onDraw = {
+            drawContent()
+            backdropCover.value?.let { cover ->
+                val scale = maxOf(size.width / cover.width, size.height / cover.height)
+                val w = cover.width * scale
+                val h = cover.height * scale
+                withTransform({
+                    translate(left = (size.width - w) / 2f, top = (size.height - h) / 2f)
+                }) {
+                    drawImage(cover, dstSize = IntSize(w.toInt(), h.toInt()))
+                }
+            }
+        },
+    )
 
     // 获取播放器样式
     val playerStyle by rememberEnumPreference(PlayerStyleKey, defaultValue = PlayerStyle.AppleMusic)
@@ -64,10 +91,36 @@ fun BottomSheetPlayer(
     )
 
     // 单入口、双实现 - 根据样式渲染不同的播放器
-    when (playerStyle) {
-        PlayerStyle.AppleMusic -> {
-            // 横屏模式下直接进入经典模式
-            if( device.isLandscape){
+    CompositionLocalProvider(LocalPlayerBackdropCover provides backdropCover) {
+        when (playerStyle) {
+            PlayerStyle.AppleMusic -> {
+                // 横屏模式下直接进入经典模式
+                if( device.isLandscape){
+                    ClassicPlayer(
+                        state = state,
+                        modifier = modifier,
+                        stateContainer = stateContainer,
+                        overlayHandler = overlayHandler,
+                        collapsedBackdrop = collapsedBackdrop,
+                        playerBackdrop = playerBackdrop,
+                        compactMiniPlayerProgress = compactMiniPlayerProgress,
+                        miniPlayerVerticalOffset = miniPlayerVerticalOffset,
+                    )
+                }else{
+                    AppleMusicPlayer(
+                        state = state,
+                        modifier = modifier,
+                        stateContainer = stateContainer,
+                        overlayHandler = overlayHandler,
+                        collapsedBackdrop = collapsedBackdrop,
+                        playerBackdrop = playerBackdrop,
+                        compactMiniPlayerProgress = compactMiniPlayerProgress,
+                        miniPlayerVerticalOffset = miniPlayerVerticalOffset,
+                    )
+                }
+
+            }
+            PlayerStyle.Classic -> {
                 ClassicPlayer(
                     state = state,
                     modifier = modifier,
@@ -78,31 +131,7 @@ fun BottomSheetPlayer(
                     compactMiniPlayerProgress = compactMiniPlayerProgress,
                     miniPlayerVerticalOffset = miniPlayerVerticalOffset,
                 )
-            }else{
-                AppleMusicPlayer(
-                    state = state,
-                    modifier = modifier,
-                    stateContainer = stateContainer,
-                    overlayHandler = overlayHandler,
-                    collapsedBackdrop = collapsedBackdrop,
-                    playerBackdrop = playerBackdrop,
-                    compactMiniPlayerProgress = compactMiniPlayerProgress,
-                    miniPlayerVerticalOffset = miniPlayerVerticalOffset,
-                )
             }
-
-        }
-        PlayerStyle.Classic -> {
-            ClassicPlayer(
-                state = state,
-                modifier = modifier,
-                stateContainer = stateContainer,
-                overlayHandler = overlayHandler,
-                collapsedBackdrop = collapsedBackdrop,
-                playerBackdrop = playerBackdrop,
-                compactMiniPlayerProgress = compactMiniPlayerProgress,
-                miniPlayerVerticalOffset = miniPlayerVerticalOffset,
-            )
         }
     }
 

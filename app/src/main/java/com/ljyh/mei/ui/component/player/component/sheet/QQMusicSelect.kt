@@ -84,7 +84,8 @@ fun QQMusicSelectSheet(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 500.dp) // 限制最大高度
+                            // Size to content, capped by the sheet's available height.
+                            .weight(1f, fill = false)
                             .padding(bottom = 24.dp)
                     ) {
                         itemsIndexed(songs) { _, song ->

@@ -418,6 +418,9 @@ fun IosTextField(
 @Composable
 fun IosGroupedList(
     modifier: Modifier = Modifier,
+    // Sheets and alert surfaces already provide the glass; their lists must render
+    // unframed, otherwise the opaque card reads as a second corner radius inside the sheet.
+    framed: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = LocalGlassColors.current
@@ -425,19 +428,26 @@ fun IosGroupedList(
     Column(
         modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(colors.elevatedBackground, shape)
-            .drawWithContent {
-                drawContent()
-                // Hide only the first merged row's inset separator. Clipping the container
-                // prevents the cover from leaking across the rounded top corners.
-                val inset = 16.dp.toPx()
-                drawRect(
-                    color = colors.elevatedBackground,
-                    topLeft = androidx.compose.ui.geometry.Offset(inset, 0f),
-                    size = Size((size.width - inset * 2f).coerceAtLeast(0f), 1.dp.toPx()),
-                )
-            }
+            .then(
+                if (framed) {
+                    Modifier
+                        .clip(shape)
+                        .background(colors.elevatedBackground, shape)
+                        .drawWithContent {
+                            drawContent()
+                            // Hide only the first merged row's inset separator. Clipping the
+                            // container prevents the cover leaking across the top corners.
+                            val inset = 16.dp.toPx()
+                            drawRect(
+                                color = colors.elevatedBackground,
+                                topLeft = androidx.compose.ui.geometry.Offset(inset, 0f),
+                                size = Size((size.width - inset * 2f).coerceAtLeast(0f), 1.dp.toPx()),
+                            )
+                        }
+                } else {
+                    Modifier
+                },
+            )
             // Rows own their horizontal insets. This avoids the accidental double inset
             // produced by secondary-page cards while preserving the Settings geometry.
             .padding(horizontal = 0.dp),
@@ -924,12 +934,6 @@ fun IosModalSheet(
     contentWindowInsets: @Composable () -> WindowInsets = { WindowInsets(0) },
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    // ModalBottomSheet renders in a dialog window; wrap the shared backdrop so the glass
-    // samples the app window's recording with window-space coordinates instead of the
-    // library's localPositionOf, which cannot cross compose owners and sampled nothing.
-    val samplingBackdrop = remember(backdrop) {
-        (backdrop as? LayerBackdrop)?.let(::CrossWindowBackdrop) ?: backdrop
-    }
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded),
@@ -942,7 +946,7 @@ fun IosModalSheet(
     ) {
         IosSheetSurface(
             modifier = Modifier.fillMaxWidth(),
-            backdrop = samplingBackdrop,
+            backdrop = backdrop,
             shape = IosModalSheetShape,
         ) {
             Column(
@@ -975,11 +979,15 @@ fun IosSheetSurface(
 ) {
     val colors = LocalGlassColors.current
     val isLight = !colors.isDark
+    // Sheet surfaces render inside dialog windows (ModalBottomSheet); the shared backdrop
+    // lives in the app window, so sample it with window-space coordinates. The library's
+    // localPositionOf mapping cannot cross compose owners and silently sampled nothing.
+    val samplingBackdrop = rememberCrossWindowBackdrop(backdrop)
     Box(
         modifier
             .fillMaxWidth()
             .drawBackdrop(
-                backdrop = backdrop,
+                backdrop = samplingBackdrop,
                 shape = { shape },
                 effects = {
                     vibrancy()

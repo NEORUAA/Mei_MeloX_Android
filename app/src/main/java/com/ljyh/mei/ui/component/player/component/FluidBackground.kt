@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import coil3.ImageLoader
@@ -18,6 +19,8 @@ import com.ljyh.mei.constants.MeshPlayingKey
 import com.ljyh.mei.constants.MeshRenderScaleKey
 import com.ljyh.mei.constants.MeshStaticModeKey
 import com.ljyh.mei.constants.MeshSubdivisionKey
+import com.ljyh.mei.ui.component.player.LocalPlayerBackdropCover
+import com.ljyh.mei.ui.component.player.component.mesh.AlbumTextureProcessor
 import com.ljyh.mei.ui.component.player.component.mesh.MeshBackgroundView
 import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.ljyh.mei.utils.rememberPreference
@@ -77,6 +80,17 @@ fun FluidBackground(
         val view = meshView ?: return@LaunchedEffect
         val bitmap = albumBitmap ?: return@LaunchedEffect
         view.setAlbum(bitmap)
+    }
+
+    // Publish the cover as the player backdrop's recording stand-in: this GL surface's
+    // pixels cannot be captured by a Compose layer recording, so sheets sample this instead.
+    val backdropCover = LocalPlayerBackdropCover.current
+    LaunchedEffect(backdropCover, albumBitmap) {
+        backdropCover?.value = withContext(Dispatchers.Default) {
+            // The mesh renders AlbumTextureProcessor's heavily blurred, darkened output;
+            // that is the faithful stand-in for the player background, not the sharp cover.
+            albumBitmap?.let(AlbumTextureProcessor::process)
+        }?.asImageBitmap()
     }
 
     // 2. 组装当前需要传递给 View 的所有状态

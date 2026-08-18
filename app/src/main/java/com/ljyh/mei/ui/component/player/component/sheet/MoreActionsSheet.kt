@@ -73,7 +73,9 @@ fun MoreActionsSheet(
                 }
             }
             LazyColumn(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp),
+                // Size to content, capped by the sheet's available height (fill = false);
+                // a hardcoded max clipped longer lists instead of matching them.
+                modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                 verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
                 item {

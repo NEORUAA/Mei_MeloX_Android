@@ -42,7 +42,8 @@ fun AddToPlaylistSheet(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.68f)
+                // Size to content, capped by the sheet's available height (fill = false).
+                .weight(1f, fill = false)
                 .padding(horizontal = 14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
