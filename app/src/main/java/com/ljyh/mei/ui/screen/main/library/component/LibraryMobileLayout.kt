@@ -80,6 +80,7 @@ fun LibraryMobileLayout(
     collectedPlaylists: List<Playlist>,
     albums: List<Album>,
     likedSongs: List<MediaMetadata>,
+    likedSongsLoading: Boolean,
     userId: String,
     onPlaylistClick: (String) -> Unit,
     onAlbumClick: (String) -> Unit,
@@ -136,7 +137,16 @@ fun LibraryMobileLayout(
 
             when (selectedPage) {
                 LibraryPage.Songs -> {
-                    if (likedSongs.isNotEmpty()) {
+                    if (likedSongs.isEmpty() && likedSongsLoading) {
+                        item(key = "liked-loading") {
+                            Box(
+                                Modifier.fillMaxWidth().height(120.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                    } else if (likedSongs.isNotEmpty()) {
                         item(key = "liked-actions") {
                             IosGroupedList {
                                 IosListRow(

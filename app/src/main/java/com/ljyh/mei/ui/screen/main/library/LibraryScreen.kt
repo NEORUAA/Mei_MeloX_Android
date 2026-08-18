@@ -49,6 +49,7 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
     val userSubcount by viewModel.userSubcount.collectAsState()
     val networkPlaylists by viewModel.networkPlaylistsState.collectAsState()
     val likedSongs by viewModel.likedSongs.collectAsState()
+    val likedSongsLoading by viewModel.likedSongsLoading.collectAsState()
 
     // Preferences
     val (userId, setUserId) = rememberPreference(UserIdKey, "")
@@ -155,6 +156,10 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
                     },
                     userId = userId,
                     likedSongs = likedSongs,
+                    // Keep the spinner up until the liked-playlist id is known and the
+                    // first detail request finishes; otherwise the empty state flashes.
+                    likedSongsLoading = networkPlaylists is Resource.Loading ||
+                        (likedPlaylistId != null && likedSongsLoading),
                 )
             }
 

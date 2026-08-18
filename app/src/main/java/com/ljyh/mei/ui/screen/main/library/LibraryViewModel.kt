@@ -51,6 +51,9 @@ class LibraryViewModel @Inject constructor(
     private val _likedSongs = MutableStateFlow<List<MediaMetadata>>(emptyList())
     val likedSongs: StateFlow<List<MediaMetadata>> = _likedSongs
 
+    private val _likedSongsLoading = MutableStateFlow(true)
+    val likedSongsLoading: StateFlow<Boolean> = _likedSongsLoading
+
     val localPlaylists: StateFlow<List<Playlist>> = localPlaylistRepository.getAllPlaylist()
         .stateIn(
             scope = viewModelScope,
@@ -117,10 +120,12 @@ class LibraryViewModel @Inject constructor(
 
     fun getLikedSongs(playlistId: Long) {
         viewModelScope.launch {
+            _likedSongsLoading.value = true
             when (val result = playlistRepository.getPlaylistDetail(playlistId.toString())) {
                 is Resource.Success -> _likedSongs.value = result.data.toMiniPlaylistDetail().tracks
                 else -> Unit
             }
+            _likedSongsLoading.value = false
         }
     }
 

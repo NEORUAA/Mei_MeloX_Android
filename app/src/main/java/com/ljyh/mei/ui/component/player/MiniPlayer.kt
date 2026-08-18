@@ -85,9 +85,6 @@ fun MiniPlayer(
             .padding(horizontal = horizontalInset),
         backdrop = backdrop,
         shape = Capsule(),
-        refractionHeight = 16.dp,
-        refractionAmount = 28.dp,
-        opticalHighlightBoost = 0.06f,
         onClick = onClick,
     ) {
         Row(
