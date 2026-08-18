@@ -73,6 +73,7 @@ import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.capsule.ContinuousRoundedRectangle
 import com.kyant.shapes.Capsule
+import com.ljyh.mei.constants.MiniPlayerHeight
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.ui.component.player.MiniPlayer
@@ -251,6 +252,8 @@ fun AppleMusicPlayer(
             state = state,
             modifier = Modifier.fillMaxSize(),
             backgroundColor = backgroundColor,
+            collapsedDragOffset = miniPlayerVerticalOffset,
+            collapsedDragHeight = MiniPlayerHeight,
             onDismiss = {
                 stateContainer.playerConnection.player.stop()
                 stateContainer.playerConnection.player.clearMediaItems()
@@ -280,7 +283,6 @@ fun AppleMusicPlayer(
                     duration = duration,
                     backdrop = collapsedBackdrop,
                     compactProgress = compactMiniPlayerProgress,
-                    verticalOffset = miniPlayerVerticalOffset,
                     onClick = state::expandSoft,
                     onCoverBoundsChanged = { bounds ->
                         if (miniCoverBoundsInRoot != bounds) miniCoverBoundsInRoot = bounds

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,7 +32,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.PlaybackException
@@ -63,7 +61,6 @@ fun MiniPlayer(
     modifier: Modifier = Modifier,
     backdrop: Backdrop = LocalGlassBackdrop.current,
     compactProgress: Float = 0f,
-    verticalOffset: Dp = 0.dp,
     onClick: () -> Unit,
     onCoverBoundsChanged: ((Rect) -> Unit)? = null,
 ) {
@@ -79,7 +76,6 @@ fun MiniPlayer(
 
     GlassSurface(
         modifier = modifier
-            .offset(y = verticalOffset)
             .fillMaxWidth()
             .height(MiniPlayerHeight)
             .padding(horizontal = horizontalInset),

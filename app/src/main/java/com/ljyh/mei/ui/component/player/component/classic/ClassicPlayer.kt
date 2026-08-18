@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import com.ljyh.mei.constants.MiniPlayerHeight
 import com.ljyh.mei.ui.component.player.MiniPlayer
 import com.ljyh.mei.ui.component.player.component.FluidBackground
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
@@ -75,6 +76,8 @@ fun ClassicPlayer(
         state = state,
         modifier = modifier,
         backgroundColor = backgroundColor,
+        collapsedDragOffset = miniPlayerVerticalOffset,
+        collapsedDragHeight = MiniPlayerHeight,
         onDismiss = {
             stateContainer.playerConnection.player.stop()
             stateContainer.playerConnection.player.clearMediaItems()
@@ -91,7 +94,6 @@ fun ClassicPlayer(
                 duration = duration,
                 backdrop = collapsedBackdrop,
                 compactProgress = compactMiniPlayerProgress,
-                verticalOffset = miniPlayerVerticalOffset,
                 onClick = state::expandSoft,
             )
         }

@@ -51,11 +51,75 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 
+private fun Modifier.bottomSheetGestureHandlers(
+    state: BottomSheetState,
+    onHorizontalSwipe: ((direction: HorizontalSwipeDirection) -> Unit)?,
+): Modifier = then(
+    if (onHorizontalSwipe == null) {
+        Modifier
+    } else {
+        Modifier.pointerInput(onHorizontalSwipe) {
+            val velocityTracker = VelocityTracker()
+            detectHorizontalDragGestures(
+                onDragStart = { velocityTracker.resetTracking() },
+                onHorizontalDrag = { change, _ ->
+                    velocityTracker.addPointerInputChange(change)
+                },
+                onDragEnd = {
+                    val velocity = velocityTracker.calculateVelocity().x
+                    val swipeThreshold = 500f
+
+                    if (velocity > swipeThreshold) {
+                        onHorizontalSwipe(HorizontalSwipeDirection.Right)
+                    } else if (velocity < -swipeThreshold) {
+                        onHorizontalSwipe(HorizontalSwipeDirection.Left)
+                    }
+                },
+            )
+        }
+    },
+).pointerInput(state) {
+    val velocityTracker = VelocityTracker()
+    var dragEnabled = true
+
+    detectVerticalDragGestures(
+        onDragStart = {
+            dragEnabled = !state.isDismissed
+        },
+        onVerticalDrag = { change, dragAmount ->
+            if (dragEnabled) {
+                velocityTracker.addPointerInputChange(change)
+                state.dispatchRawDelta(dragAmount)
+            }
+        },
+        onDragCancel = {
+            if (dragEnabled) {
+                velocityTracker.resetTracking()
+                state.snapTo(state.collapsedBound)
+            }
+            dragEnabled = true
+        },
+        onDragEnd = {
+            if (dragEnabled) {
+                val velocity = -velocityTracker.calculateVelocity().y
+                velocityTracker.resetTracking()
+                state.performFling(velocity, null)
+            } else {
+                velocityTracker.resetTracking()
+            }
+            dragEnabled = true
+        },
+    )
+}
+
+
 @Composable
 fun BottomSheet(
     state: BottomSheetState,
     modifier: Modifier = Modifier,
     backgroundColor: Color = MaterialTheme.colorScheme.surface,
+    collapsedDragOffset: Dp = 0.dp,
+    collapsedDragHeight: Dp = 0.dp,
     onDismiss: (() -> Unit)? = null,
     onHorizontalSwipe: ((direction: HorizontalSwipeDirection) -> Unit)? = null,
     backgroundContent: @Composable BoxScope.() -> Unit = {},
@@ -71,47 +135,15 @@ fun BottomSheet(
                     .coerceAtLeast(0)
                 IntOffset(x = 0, y = y)
             }
-            .pointerInput(onHorizontalSwipe) {
-                // 如果没有提供回调，则无需监听
-                if (onHorizontalSwipe == null) return@pointerInput
-
-                val velocityTracker = VelocityTracker()
-                detectHorizontalDragGestures(
-                    onDragStart = { velocityTracker.resetTracking() },
-                    onHorizontalDrag = { change, _ ->
-                        velocityTracker.addPointerInputChange(change)
-                    },
-                    onDragEnd = {
-                        val velocity = velocityTracker.calculateVelocity().x
-                        val swipeThreshold = 500f // 定义一个速度阈值
-
-                        if (velocity > swipeThreshold) {
-                            onHorizontalSwipe(HorizontalSwipeDirection.Right)
-                        } else if (velocity < -swipeThreshold) {
-                            onHorizontalSwipe(HorizontalSwipeDirection.Left)
-                        }
-                    }
-                )
-            }
-            .pointerInput(state) {
-                val velocityTracker = VelocityTracker()
-
-                detectVerticalDragGestures(
-                    onVerticalDrag = { change, dragAmount ->
-                        velocityTracker.addPointerInputChange(change)
-                        state.dispatchRawDelta(dragAmount)
-                    },
-                    onDragCancel = {
-                        velocityTracker.resetTracking()
-                        state.snapTo(state.collapsedBound)
-                    },
-                    onDragEnd = {
-                        val velocity = -velocityTracker.calculateVelocity().y
-                        velocityTracker.resetTracking()
-                        state.performFling(velocity,null)
-                    }
-                )
-            }
+            .then(
+                if (!state.isDismissed &&
+                    !(state.isCollapsed && collapsedDragHeight > 0.dp)
+                ) {
+                    Modifier.bottomSheetGestureHandlers(state, onHorizontalSwipe)
+                } else {
+                    Modifier
+                },
+            )
             .clip(
                 ContinuousRoundedRectangle(
                     topStart = if (!state.isExpanded) 16.dp else 0.dp,
@@ -123,10 +155,12 @@ fun BottomSheet(
             // the full player background continuously while expanding.
             .background(backgroundColor.copy(alpha = state.progress.coerceIn(0f, 1f)))
     ) {
-        // Player backgrounds that need native-surface warm-up stay composed at the collapsed
-        // anchor. Their own alpha controls visibility; expanded foreground content can still
-        // be deferred below.
-        backgroundContent()
+        // Native player backgrounds use a full-screen AndroidView. Do not keep that view in
+        // the collapsed composition: even when transparent, it can remain the top hit target
+        // and block the page behind the mini player.
+        if (!state.isCollapsed) {
+            backgroundContent()
+        }
 
         if (!state.isCollapsed && !state.isDismissed) {
             BackHandler(onBack = state::collapseSoft)
@@ -151,8 +185,28 @@ fun BottomSheet(
                     }
                     .fillMaxWidth()
                     .height(state.collapsedBound),
-                content = collapsedContent
-            )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(
+                            if (collapsedDragHeight > 0.dp) {
+                                collapsedDragHeight
+                            } else {
+                                state.collapsedBound
+                            },
+                        )
+                        .offset(y = if (collapsedDragHeight > 0.dp) collapsedDragOffset else 0.dp)
+                        .then(
+                            if (state.isCollapsed && collapsedDragHeight > 0.dp) {
+                                Modifier.bottomSheetGestureHandlers(state, onHorizontalSwipe)
+                            } else {
+                                Modifier
+                            },
+                        ),
+                    content = collapsedContent,
+                )
+            }
         }
     }
 }
