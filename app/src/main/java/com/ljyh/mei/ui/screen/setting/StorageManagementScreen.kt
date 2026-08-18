@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,7 +28,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -40,11 +38,11 @@ import com.ljyh.mei.data.model.room.DownloadStatus
 import com.ljyh.mei.data.model.room.SourceType
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.playback.CacheManager
-import com.ljyh.mei.ui.glass.GlassButton
 import com.ljyh.mei.ui.glass.GlassCard
-import com.ljyh.mei.ui.glass.GlassEmphasis
 import com.ljyh.mei.ui.glass.GlassIconButton
-import com.ljyh.mei.ui.glass.GlassSurface
+import com.ljyh.mei.ui.glass.IosAlertButtonRole
+import com.ljyh.mei.ui.glass.IosAlertButtonSpec
+import com.ljyh.mei.ui.glass.IosAlertDialog
 import com.ljyh.mei.ui.glass.IosPinnedListPage
 import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.SfIcon
@@ -302,24 +300,25 @@ fun StorageManagementScreen(viewModel: StorageManagementViewModel = hiltViewMode
     }
 
     confirmation?.let { action ->
-        Dialog(onDismissRequest = { confirmation = null }) {
-            GlassSurface(Modifier.fillMaxWidth().widthIn(max = 420.dp)) {
-                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text(stringResource(action.confirmationTitle), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(stringResource(action.confirmationMessage), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End)) {
-                        GlassButton({ confirmation = null }) { Text(stringResource(R.string.cancel)) }
-                        GlassButton(
-                            onClick = {
-                                confirmation = null
-                                viewModel.perform(action)
-                            },
-                            emphasis = GlassEmphasis.Prominent,
-                        ) { Text(stringResource(R.string.confirm)) }
-                    }
-                }
-            }
-        }
+        IosAlertDialog(
+            onDismissRequest = { confirmation = null },
+            title = stringResource(action.confirmationTitle),
+            message = stringResource(action.confirmationMessage),
+            buttons = listOf(
+                IosAlertButtonSpec(
+                    label = stringResource(R.string.cancel),
+                    role = IosAlertButtonRole.Cancel,
+                    onClick = { confirmation = null },
+                ),
+                IosAlertButtonSpec(
+                    label = stringResource(R.string.confirm),
+                    onClick = {
+                        confirmation = null
+                        viewModel.perform(action)
+                    },
+                ),
+            ),
+        )
     }
 }
 

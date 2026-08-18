@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -74,7 +73,10 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp as lerpDp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
@@ -867,7 +869,91 @@ fun IosMenuItem(
     }
 }
 
-/** Figma node 770:21495 alert and node 754:62559 action-sheet surface. */
+enum class IosAlertButtonLayout {
+    SideBySide,
+    Stacked,
+}
+
+enum class IosAlertButtonRole {
+    Default,
+    Cancel,
+    Destructive,
+}
+
+data class IosAlertButtonSpec(
+    val label: String,
+    val onClick: () -> Unit,
+    val role: IosAlertButtonRole = IosAlertButtonRole.Default,
+    val enabled: Boolean = true,
+)
+
+/** Figma node 65:57149. The alert samples the screen behind its dialog window. */
+@Composable
+fun IosAlertDialog(
+    onDismissRequest: () -> Unit,
+    title: String,
+    message: String? = null,
+    modifier: Modifier = Modifier,
+    backdrop: Backdrop = LocalGlassBackdrop.current,
+    buttonLayout: IosAlertButtonLayout = IosAlertButtonLayout.SideBySide,
+    buttons: List<IosAlertButtonSpec> = emptyList(),
+    properties: DialogProperties = DialogProperties(
+        dismissOnBackPress = true,
+        dismissOnClickOutside = true,
+        usePlatformDefaultWidth = false,
+    ),
+    content: @Composable ColumnScope.() -> Unit = {},
+) {
+    Dialog(onDismissRequest = onDismissRequest, properties = properties) {
+        IosAlertSurface(
+            modifier = modifier,
+            backdrop = backdrop,
+            title = title,
+            message = message,
+        ) {
+            content()
+            if (buttons.isNotEmpty()) {
+                when (buttonLayout) {
+                    IosAlertButtonLayout.SideBySide -> {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            buttons.forEach { button ->
+                                IosAlertButton(
+                                    text = button.label,
+                                    onClick = button.onClick,
+                                    modifier = Modifier.weight(1f),
+                                    role = button.role,
+                                    enabled = button.enabled,
+                                )
+                            }
+                        }
+                    }
+
+                    IosAlertButtonLayout.Stacked -> {
+                        Column(
+                            Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            buttons.forEach { button ->
+                                IosAlertButton(
+                                    text = button.label,
+                                    onClick = button.onClick,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    role = button.role,
+                                    enabled = button.enabled,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Figma node 65:57149 alert surface, reusable by list and form alerts. */
 @Composable
 fun IosAlertSurface(
     modifier: Modifier = Modifier,
@@ -878,13 +964,14 @@ fun IosAlertSurface(
 ) {
     val colors = LocalGlassColors.current
     val light = !colors.isDark
-    val elevatedBackground = colors.elevatedBackground
+    val samplingBackdrop = rememberCrossWindowBackdrop(backdrop)
+    val alertShape = ContinuousRoundedRectangle(34.dp)
     Column(
         modifier
-            .widthIn(min = 300.dp, max = 360.dp)
+            .width(300.dp)
             .drawBackdrop(
-                backdrop,
-                shape = { RoundedRectangle(38.dp) },
+                backdrop = samplingBackdrop,
+                shape = { alertShape },
                 effects = {
                     colorControls(brightness = if (light) 0.2f else 0f, saturation = 1.5f)
                     blur(if (light) 16.dp.toPx() else 8.dp.toPx())
@@ -892,25 +979,173 @@ fun IosAlertSurface(
                 },
                 highlight = { Highlight.Plain },
                 shadow = { Shadow(radius = 48.dp, alpha = 0.25f) },
-                onDrawSurface = { drawRect(elevatedBackground.copy(alpha = if (light) 0.72f else 0.54f)) },
+                innerShadow = { InnerShadow(radius = 8.dp, alpha = 0.12f) },
+                onDrawSurface = {
+                    // Keep the Figma background-blend stack over the sampled screen;
+                    // do not add an opaque elevated surface on top of the backdrop.
+                    if (light) {
+                        drawRect(
+                            Color.White.copy(alpha = 0.70f),
+                            blendMode = BlendMode.Lighten,
+                        )
+                        drawRect(
+                            Color(0x1ABFBFBF),
+                            blendMode = BlendMode.Darken,
+                        )
+                    } else {
+                        drawRect(
+                            Color(0xB31A1A1A),
+                            blendMode = BlendMode.Luminosity,
+                        )
+                        drawRect(
+                            Color(0xE61A1A1A),
+                            blendMode = BlendMode.Luminosity,
+                        )
+                        drawRect(
+                            Color(0xFF1A1A1A),
+                            blendMode = BlendMode.Lighten,
+                        )
+                    }
+                },
             )
             .padding(14.dp),
     ) {
-        CompositionLocalProvider(LocalContentColor provides colors.content) {
-            Column(Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
-                Text(title, style = IosTypography.headline, color = colors.content)
+        CompositionLocalProvider(
+            LocalContentColor provides colors.content,
+            LocalGlassContentColor provides colors.content,
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    title,
+                    style = IosTypography.headline.copy(letterSpacing = (-0.43).sp),
+                    color = colors.content,
+                )
                 message?.let {
                     Text(
                         it,
-                        style = IosTypography.body,
+                        style = IosTypography.body.copy(letterSpacing = (-0.43).sp),
                         color = colors.content,
-                        modifier = Modifier.padding(top = 8.dp),
                     )
                 }
             }
             content()
         }
     }
+}
+
+/** The standard 48dp action used by [IosAlertDialog]. */
+@Composable
+fun IosAlertButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    role: IosAlertButtonRole = IosAlertButtonRole.Default,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit = {
+        Text(
+            text,
+            style = IosTypography.headline.copy(letterSpacing = (-0.43).sp),
+            color = when (role) {
+                IosAlertButtonRole.Default -> Color.White
+                IosAlertButtonRole.Cancel -> LocalGlassColors.current.content
+                IosAlertButtonRole.Destructive -> LocalGlassColors.current.destructive
+            },
+        )
+    },
+) {
+    val colors = LocalGlassColors.current
+    val baseFill = when (role) {
+        IosAlertButtonRole.Default -> Color(0xFF0088FF)
+        IosAlertButtonRole.Cancel,
+        IosAlertButtonRole.Destructive -> if (colors.isDark) {
+            Color(0x52787880)
+        } else {
+            Color(0x28787880)
+        }
+    }
+    val fill = baseFill.copy(alpha = baseFill.alpha * if (enabled) 1f else 0.45f)
+
+    Row(
+        modifier
+            .height(48.dp)
+            .clip(Capsule())
+            .background(fill)
+            .clickable(
+                enabled = enabled,
+                interactionSource = null,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+    )
+}
+
+/** The grouped field backing used by form alerts in the referenced Figma component. */
+@Composable
+fun IosAlertFieldGroup(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = LocalGlassColors.current
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedRectangle(26.dp))
+            .background(
+                if (colors.isDark) Color.White.copy(alpha = 0.16f) else Color(0x28787880),
+            )
+            .padding(bottom = 19.dp),
+        content = content,
+    )
+}
+
+@Composable
+fun IosAlertTextField(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    placeholder: String? = null,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = true,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
+) {
+    val colors = LocalGlassColors.current
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .padding(horizontal = 16.dp),
+        textStyle = IosTypography.body.copy(
+            color = colors.content,
+            letterSpacing = (-0.43).sp,
+        ),
+        singleLine = singleLine,
+        maxLines = maxLines,
+        decorationBox = { innerTextField ->
+            Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                if (value.text.isEmpty() && placeholder != null) {
+                    Text(
+                        placeholder,
+                        style = IosTypography.body.copy(letterSpacing = (-0.43).sp),
+                        color = colors.tertiaryContent,
+                    )
+                }
+                innerTextField()
+            }
+        },
+    )
 }
 
 @Composable

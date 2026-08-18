@@ -103,7 +103,6 @@ private fun SortOptionsDialog(
 ) {
     Dialog(onDismissRequest = onDismiss) {
         IosAlertSurface(
-            modifier = Modifier.fillMaxWidth(),
             title = stringResource(R.string.more_actions_sort_title),
         ) {
             IosGroupedList {

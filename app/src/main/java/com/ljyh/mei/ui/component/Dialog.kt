@@ -13,12 +13,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,6 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.delay
+import com.ljyh.mei.ui.glass.IosAlertButtonRole
+import com.ljyh.mei.ui.glass.IosAlertButtonSpec
+import com.ljyh.mei.ui.glass.IosAlertDialog
 
 
 @Composable
@@ -54,33 +54,30 @@ fun ConfirmationDialog(
     openDialog: MutableState<Boolean>
 ) {
     if (openDialog.value) {
-        AlertDialog(
+        IosAlertDialog(
             onDismissRequest = {
                 openDialog.value = false
                 onDismiss()
             },
-            title = { Text(title) },
-            text = { Text(text) },
-            confirmButton = {
-                Button(onClick = {
-                    openDialog.value = false
-                    onConfirm()
-                }) {
-                    Text("确认")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = {
-                    openDialog.value = false
-                    onDismiss()
-                }) {
-                    Text("取消")
-                }
-            },
-            properties = DialogProperties(
-                dismissOnBackPress = true,
-                dismissOnClickOutside = true
-            )
+            title = title,
+            message = text,
+            buttons = listOf(
+                IosAlertButtonSpec(
+                    label = stringResource(android.R.string.cancel),
+                    role = IosAlertButtonRole.Cancel,
+                    onClick = {
+                        openDialog.value = false
+                        onDismiss()
+                    },
+                ),
+                IosAlertButtonSpec(
+                    label = stringResource(android.R.string.ok),
+                    onClick = {
+                        openDialog.value = false
+                        onConfirm()
+                    },
+                ),
+            ),
         )
     }
 }
