@@ -198,7 +198,7 @@ fun BottomSheet(
                         )
                         .offset(y = if (collapsedDragHeight > 0.dp) collapsedDragOffset else 0.dp)
                         .then(
-                            if (state.isCollapsed && collapsedDragHeight > 0.dp) {
+                            if (!state.isExpanded && !state.isDismissed && collapsedDragHeight > 0.dp) {
                                 Modifier.bottomSheetGestureHandlers(state, onHorizontalSwipe)
                             } else {
                                 Modifier
