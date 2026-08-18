@@ -221,30 +221,17 @@ fun <T> GlassBottomBar(
                 .width(surfaceWidth)
                 .height(surfaceHeight)
                 .then(commonTransform)
-                .drawBackdrop(
+                .navigationGlassBackground(
                     backdrop = backdrop,
                     shape = { Capsule() },
-                    effects = {
-                        vibrancy()
-                        blur(8.dp.toPx())
-                        lens(
-                            24.dp.toPx(),
-                            28.dp.toPx(),
-                            chromaticAberration = true,
-                        )
-                    },
-                    highlight = {
-                        Highlight.Default.copy(
-                            alpha = 0.54f + 0.38f * dragAnimation.pressProgress,
-                        )
-                    },
+                    containerColor = containerColor,
+                    pressProgress = dragAnimation.pressProgress,
                     layerBlock = {
                         val press = dragAnimation.pressProgress
                         val scale = lerp(1f, 1f + 16.dp.toPx() / size.width, press)
                         scaleX = scale
                         scaleY = scale
                     },
-                    onDrawSurface = { drawRect(containerColor) },
                 )
                 .then(interactiveHighlight.modifier)
                 .padding(4.dp)

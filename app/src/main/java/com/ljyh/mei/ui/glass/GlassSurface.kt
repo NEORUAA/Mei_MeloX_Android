@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
@@ -48,13 +49,49 @@ enum class GlassEmphasis {
     Prominent,
 }
 
+enum class GlassSurfaceStyle {
+    Standard,
+    Navigation,
+}
+
+val LocalGlassSurfaceStyle = staticCompositionLocalOf { GlassSurfaceStyle.Standard }
 internal val LocalGlassSurfaceBrightness = staticCompositionLocalOf { 0f }
+
+/** Shared outer navigation-glass material used by the expanded nav and floating controls. */
+internal fun Modifier.navigationGlassBackground(
+    backdrop: Backdrop,
+    shape: () -> Shape,
+    containerColor: Color,
+    pressProgress: Float = 0f,
+    layerBlock: (GraphicsLayerScope.() -> Unit)? = null,
+): Modifier = drawBackdrop(
+    backdrop = backdrop,
+    shape = shape,
+    effects = {
+        vibrancy()
+        blur(8.dp.toPx())
+        lens(
+            refractionHeight = 24.dp.toPx(),
+            refractionAmount = 28.dp.toPx(),
+            depthEffect = false,
+            chromaticAberration = true,
+        )
+    },
+    highlight = {
+        Highlight.Default.copy(alpha = 0.54f + 0.38f * pressProgress)
+    },
+    shadow = null,
+    innerShadow = null,
+    layerBlock = layerBlock,
+    onDrawSurface = { drawRect(containerColor) },
+)
 
 @Composable
 fun GlassSurface(
     modifier: Modifier = Modifier,
     backdrop: Backdrop = LocalGlassBackdrop.current,
     shape: Shape = ContinuousRoundedRectangle(LocalGlassDimensions.current.regularCornerRadius),
+    style: GlassSurfaceStyle = LocalGlassSurfaceStyle.current,
     emphasis: GlassEmphasis = GlassEmphasis.Regular,
     enabled: Boolean = true,
     refractionHeight: Dp = 12.dp,
@@ -76,83 +113,89 @@ fun GlassSurface(
         GlassEmphasis.Regular -> colors.container
         GlassEmphasis.Prominent -> colors.prominentContainer
     }
+    val surfaceModifier = if (style == GlassSurfaceStyle.Navigation) {
+        modifier.navigationGlassBackground(
+            backdrop = backdrop,
+            shape = { shape },
+            containerColor = colors.container,
+            pressProgress = interactiveHighlight.pressProgress,
+        )
+    } else {
+        modifier.drawBackdrop(
+            backdrop = backdrop,
+            shape = { shape },
+            effects = {
+                val progress = interactiveHighlight.pressProgress
+                vibrancy()
+                blur(2.dp.toPx())
+                lens(
+                    refractionHeight = refractionHeight.toPx(),
+                    refractionAmount = refractionAmount.toPx(),
+                    depthEffect = progress > 0.01f,
+                    chromaticAberration = true,
+                )
+            },
+            highlight = {
+                Highlight.Default.copy(
+                    alpha = ((if (isLight) 0.48f else 0.32f) + brightness * 0.18f +
+                        opticalHighlightBoost + 0.30f * interactiveHighlight.pressProgress)
+                        .coerceAtMost(1f),
+                )
+            },
+            shadow = {
+                Shadow(
+                    radius = 24.dp,
+                    color = Color.Black.copy(alpha = 0.1f),
+                    alpha = (0.08f + 0.22f * interactiveHighlight.pressProgress) *
+                        if (enabled) 1f else 0.35f,
+                )
+            },
+            innerShadow = {
+                InnerShadow(
+                    radius = 4.dp + 8.dp * interactiveHighlight.pressProgress,
+                    color = Color.Black.copy(alpha = 0.15f),
+                    alpha = 0.1f + 0.3f * interactiveHighlight.pressProgress,
+                )
+            },
+            layerBlock = {
+                val progress = interactiveHighlight.pressProgress
+                val controlHeight = size.height.coerceAtLeast(1f)
+                val scale = lerp(1f, 1f + 4.dp.toPx() / controlHeight, progress)
+                val maxOffset = size.minDimension.coerceAtLeast(1f)
+                val offset = interactiveHighlight.offset
+                translationX = maxOffset * tanh(0.05f * offset.x / maxOffset)
+                translationY = maxOffset * tanh(0.05f * offset.y / maxOffset)
+                val maxDragScale = 4.dp.toPx() / controlHeight
+                val angle = atan2(offset.y, offset.x)
+                scaleX = scale
+                scaleY = scale
+                scaleX += maxDragScale * abs(cos(angle) * offset.x / size.maxDimension.coerceAtLeast(1f)) *
+                    (size.width / controlHeight).fastCoerceAtMost(1f)
+                scaleY += maxDragScale * abs(sin(angle) * offset.y / size.maxDimension.coerceAtLeast(1f)) *
+                    (controlHeight / size.width.coerceAtLeast(1f)).fastCoerceAtMost(1f)
+            },
+            exportedBackdrop = exportedBackdrop,
+            onDrawSurface = {
+                drawRect(
+                    Color.White.copy(
+                        alpha = (if (isLight) 0.16f else 0.06f) + brightness * 0.18f,
+                    ),
+                    blendMode = BlendMode.Screen,
+                )
+                if (emphasis == GlassEmphasis.Prominent) {
+                    drawRect(
+                        colors.prominentContainer.copy(alpha = 1f),
+                        alpha = 0.22f,
+                        blendMode = BlendMode.Hue,
+                    )
+                }
+                drawRect(surfaceColor.copy(alpha = surfaceColor.alpha * if (enabled) 1f else 0.8f))
+            },
+        )
+    }
 
     Box(
-        modifier = modifier
-            .drawBackdrop(
-                backdrop = backdrop,
-                shape = { shape },
-                effects = {
-                    val progress = interactiveHighlight.pressProgress
-                    vibrancy()
-                    blur(2.dp.toPx())
-                    lens(
-                        refractionHeight = refractionHeight.toPx(),
-                        refractionAmount = refractionAmount.toPx(),
-                        depthEffect = progress > 0.01f,
-                        chromaticAberration = true,
-                    )
-                },
-                highlight = {
-                    Highlight.Default.copy(
-                        alpha = ((if (isLight) 0.48f else 0.32f) + brightness * 0.18f +
-                            opticalHighlightBoost + 0.30f * interactiveHighlight.pressProgress)
-                            .coerceAtMost(1f),
-                    )
-                },
-                shadow = {
-                    Shadow(
-                        radius = 24.dp,
-                        color = Color.Black.copy(alpha = 0.1f),
-                        alpha = (0.08f + 0.22f * interactiveHighlight.pressProgress) *
-                            if (enabled) 1f else 0.35f,
-                    )
-                },
-                innerShadow = {
-                    InnerShadow(
-                        radius = 4.dp + 8.dp * interactiveHighlight.pressProgress,
-                        color = Color.Black.copy(alpha = 0.15f),
-                        alpha = 0.1f + 0.3f * interactiveHighlight.pressProgress,
-                    )
-                },
-                layerBlock = {
-                    val progress = interactiveHighlight.pressProgress
-                    val controlHeight = size.height.coerceAtLeast(1f)
-                    val scale = lerp(1f, 1f + 4.dp.toPx() / controlHeight, progress)
-                    val maxOffset = size.minDimension.coerceAtLeast(1f)
-                    val offset = interactiveHighlight.offset
-                    translationX = maxOffset * tanh(0.05f * offset.x / maxOffset)
-                    translationY = maxOffset * tanh(0.05f * offset.y / maxOffset)
-                    val maxDragScale = 4.dp.toPx() / controlHeight
-                    val angle = atan2(offset.y, offset.x)
-                    scaleX = scale
-                    scaleY = scale
-                    scaleX += maxDragScale * abs(cos(angle) * offset.x / size.maxDimension.coerceAtLeast(1f)) *
-                        (size.width / controlHeight).fastCoerceAtMost(1f)
-                    scaleY += maxDragScale * abs(sin(angle) * offset.y / size.maxDimension.coerceAtLeast(1f)) *
-                        (controlHeight / size.width.coerceAtLeast(1f)).fastCoerceAtMost(1f)
-                },
-                exportedBackdrop = exportedBackdrop,
-                onDrawSurface = {
-                    // iOS 27 controls use a visible white backing in addition to refraction.
-                    // Keeping it in the shared surface makes top bars, tab bars and floating
-                    // controls retain the same milky edge treatment over colorful content.
-                    drawRect(
-                        Color.White.copy(
-                            alpha = (if (isLight) 0.16f else 0.06f) + brightness * 0.18f,
-                        ),
-                        blendMode = BlendMode.Screen,
-                    )
-                    if (emphasis == GlassEmphasis.Prominent) {
-                        drawRect(
-                            colors.prominentContainer.copy(alpha = 1f),
-                            alpha = 0.22f,
-                            blendMode = BlendMode.Hue,
-                        )
-                    }
-                    drawRect(surfaceColor.copy(alpha = surfaceColor.alpha * if (enabled) 1f else 0.8f))
-                },
-            )
+        modifier = surfaceModifier
             .then(if (onClick != null && enabled) interactiveHighlight.modifier else Modifier)
             .then(
                 if (onClick != null) {
@@ -185,6 +228,7 @@ fun GlassButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     backdrop: Backdrop = LocalGlassBackdrop.current,
+    style: GlassSurfaceStyle = LocalGlassSurfaceStyle.current,
     enabled: Boolean = true,
     emphasis: GlassEmphasis = GlassEmphasis.Regular,
     content: @Composable RowScope.() -> Unit,
@@ -192,6 +236,7 @@ fun GlassButton(
     GlassSurface(
         modifier = modifier.height(LocalGlassDimensions.current.controlHeight),
         backdrop = backdrop,
+        style = style,
         shape = Capsule(),
         emphasis = emphasis,
         enabled = enabled,
@@ -210,6 +255,7 @@ fun GlassIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     backdrop: Backdrop = LocalGlassBackdrop.current,
+    style: GlassSurfaceStyle = LocalGlassSurfaceStyle.current,
     enabled: Boolean = true,
     emphasis: GlassEmphasis = GlassEmphasis.Regular,
     content: @Composable BoxScope.() -> Unit,
@@ -217,6 +263,7 @@ fun GlassIconButton(
     GlassSurface(
         modifier = modifier.size(LocalGlassDimensions.current.iconButtonSize),
         backdrop = backdrop,
+        style = style,
         shape = CircleShape,
         emphasis = emphasis,
         enabled = enabled,

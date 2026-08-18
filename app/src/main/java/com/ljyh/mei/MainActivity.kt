@@ -139,6 +139,7 @@ import com.ljyh.mei.ui.local.LocalUserData
 import com.ljyh.mei.ui.glass.GlassBottomBar
 import com.ljyh.mei.ui.glass.GlassIconButton
 import com.ljyh.mei.ui.glass.GlassTabItem
+import com.ljyh.mei.ui.glass.GlassSurfaceStyle
 import com.ljyh.mei.ui.glass.IosBottomSearchToolbar
 import com.ljyh.mei.ui.glass.LocalGlassBackdrop
 import com.ljyh.mei.ui.glass.LocalGlassColors
@@ -770,11 +771,7 @@ class MainActivity : ComponentActivity() {
                                     onActiveChange(true)
                                 },
                                 backdrop = bottomControlsBackdrop,
-                                emphasis = if (active || navBackStackEntry?.destination?.route == Screen.Search.route) {
-                                    com.ljyh.mei.ui.glass.GlassEmphasis.Prominent
-                                } else {
-                                    com.ljyh.mei.ui.glass.GlassEmphasis.Regular
-                                },
+                                style = GlassSurfaceStyle.Navigation,
                                 modifier = Modifier
                                     .padding(start = 8.dp)
                                     .size(64.dp - 16.dp * compactNavigationProgress),

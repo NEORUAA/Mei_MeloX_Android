@@ -207,6 +207,7 @@ fun IosTopToolbar(
     val progress = collapseProgress.coerceIn(0f, 1f)
     CompositionLocalProvider(
         LocalGlassSurfaceBrightness provides 1f,
+        LocalGlassSurfaceStyle provides GlassSurfaceStyle.Navigation,
         LocalContentColor provides LocalGlassColors.current.content,
     ) {
         when (style) {

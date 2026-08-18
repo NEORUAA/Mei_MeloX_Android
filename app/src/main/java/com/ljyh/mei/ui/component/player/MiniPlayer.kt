@@ -47,6 +47,7 @@ import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.ui.glass.GlassSurface
+import com.ljyh.mei.ui.glass.GlassSurfaceStyle
 import com.ljyh.mei.ui.glass.LocalGlassBackdrop
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
@@ -81,6 +82,7 @@ fun MiniPlayer(
             .padding(horizontal = horizontalInset),
         backdrop = backdrop,
         shape = Capsule(),
+        style = GlassSurfaceStyle.Navigation,
         onClick = onClick,
     ) {
         Row(
