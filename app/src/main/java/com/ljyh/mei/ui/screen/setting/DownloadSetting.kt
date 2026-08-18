@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
@@ -77,7 +76,7 @@ fun DownloadSetting(
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             SfIcon("folder", null, size = 19.dp)
-                            Text(stringResource(R.string.download_save_location), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 10.dp))
+                            Text(stringResource(R.string.download_save_location), modifier = Modifier.padding(start = 10.dp))
                         }
                         BasicTextField(
                             value = downloadPath, onValueChange = onDownloadPathChange,
@@ -101,7 +100,7 @@ fun DownloadSetting(
                     Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         SfIcon("arrow.down.circle", null)
                         Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.automatic_cache_by_play_count), fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.automatic_cache_by_play_count))
                             Text(stringResource(R.string.automatic_cache_description), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         GlassToggle(automaticCache, onAutomaticCacheChange)
@@ -147,7 +146,7 @@ private fun DownloadQualityCard(
         ) {
             SfIcon(if (selected) "checkmark.circle.fill" else "circle", null)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(quality.label, fontWeight = FontWeight.SemiBold)
+                Text(quality.label)
                 Text(
                     quality.description,
                     style = MaterialTheme.typography.bodySmall,

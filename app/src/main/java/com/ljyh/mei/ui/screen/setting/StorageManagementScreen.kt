@@ -46,6 +46,7 @@ import com.ljyh.mei.ui.glass.GlassEmphasis
 import com.ljyh.mei.ui.glass.GlassIconButton
 import com.ljyh.mei.ui.glass.GlassSurface
 import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
@@ -327,7 +328,7 @@ private fun StorageUsageRow(systemName: String, titleRes: Int, bytes: Long, cont
     GlassCard(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             SfIcon(systemName, null)
-            Text(stringResource(titleRes), modifier = Modifier.weight(1f).padding(horizontal = 13.dp), fontWeight = FontWeight.SemiBold)
+            Text(stringResource(titleRes), modifier = Modifier.weight(1f).padding(horizontal = 13.dp))
             Text(Formatter.formatFileSize(context, bytes), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -337,14 +338,13 @@ private fun StorageUsageRow(systemName: String, titleRes: Int, bytes: Long, cont
 private fun StorageActionRow(systemName: String, titleRes: Int, busy: Boolean, destructive: Boolean = false, onClick: () -> Unit) {
     GlassCard(Modifier.fillMaxWidth(), onClick = if (busy) null else onClick) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            SfIcon(systemName, null, tint = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+            SfIcon(systemName, null)
             Text(
                 stringResource(titleRes),
                 modifier = Modifier.weight(1f).padding(horizontal = 13.dp),
-                fontWeight = FontWeight.SemiBold,
                 color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             )
-            SfIcon("chevron.forward", null, size = 15.dp)
+            SfIcon("chevron.forward", null, size = 15.dp, tint = LocalGlassColors.current.separator)
         }
     }
 }

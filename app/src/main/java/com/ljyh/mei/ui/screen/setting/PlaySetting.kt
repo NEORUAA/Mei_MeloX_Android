@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.AutoMixDurationKey
@@ -42,6 +41,7 @@ import com.ljyh.mei.ui.glass.GlassSegmentedControl
 import com.ljyh.mei.ui.glass.GlassSlider
 import com.ljyh.mei.ui.glass.GlassToggle
 import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
@@ -82,7 +82,7 @@ fun PlaySetting(
                     Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         SfIcon("slider.vertical.3", contentDescription = null)
                         Text(stringResource(R.string.equalizer), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(horizontal = 14.dp))
-                        SfIcon("chevron.forward", contentDescription = null, size = 16.dp)
+                        SfIcon("chevron.forward", contentDescription = null, tint = LocalGlassColors.current.separator, size = 16.dp)
                     }
                 }
                 ToggleRow(stringResource(R.string.loop_playback), "arrow.trianglehead.2.clockwise.rotate.90", loopPlayback, onLoopPlaybackChange)
@@ -166,7 +166,7 @@ private fun ValueRow(title: String, symbol: String, value: @Composable () -> Uni
 private fun SliderRow(title: String, value: Float, onValueChange: (Float) -> Unit, range: ClosedFloatingPointRange<Float>) {
     GlassCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
-            Text(title, fontWeight = FontWeight.SemiBold)
+            Text(title)
             GlassSlider(value, onValueChange, modifier = Modifier.fillMaxWidth(), valueRange = range)
         }
     }

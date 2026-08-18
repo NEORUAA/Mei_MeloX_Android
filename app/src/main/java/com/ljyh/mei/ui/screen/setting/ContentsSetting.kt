@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.CloudMusicEnabledKey
@@ -120,7 +119,7 @@ fun ContentsSetting(
                         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             SfIcon(setting.symbol, null)
                             Column(Modifier.weight(1f)) {
-                                Text(stringResource(setting.titleRes), fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(setting.titleRes))
                                 Text(stringResource(setting.descriptionRes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             GlassToggle(enabled, onCheckedChange = { setFeature(setting.feature, it) })
@@ -137,7 +136,7 @@ fun ContentsSetting(
                     GlassCard(modifier = Modifier.fillMaxWidth(), onClick = if (moduleEnabled) ({ setTabEnabled(setting.feature, !enabled) }) else null) {
                         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             SfIcon(setting.symbol, null)
-                            Text(stringResource(setting.titleRes), modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(setting.titleRes), modifier = Modifier.weight(1f))
                             GlassToggle(checked = enabled && moduleEnabled, onCheckedChange = { setTabEnabled(setting.feature, it) }, enabled = moduleEnabled)
                         }
                     }

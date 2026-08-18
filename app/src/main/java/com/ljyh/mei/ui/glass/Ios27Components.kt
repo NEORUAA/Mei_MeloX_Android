@@ -503,7 +503,7 @@ fun IosListRow(
         detail?.let { Text(it, style = IosTypography.subheadline, color = colors.secondaryContent) }
         trailing?.invoke()
         if (onClick != null && trailing == null) {
-            Spacer(Modifier.width(8.dp)); SfIcon("chevron.forward", null, size = 12.dp, tint = colors.accent)
+            Spacer(Modifier.width(8.dp)); SfIcon("chevron.forward", null, size = 12.dp, tint = colors.separator)
         }
     }
 }

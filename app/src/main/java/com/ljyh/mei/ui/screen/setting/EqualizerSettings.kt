@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.EqualizerBandGainsKey
@@ -88,7 +87,7 @@ fun EqualizerSettings() {
                 Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     SfIcon("slider.vertical.3", null)
                     Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
-                        Text(stringResource(R.string.equalizer_enabled), fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.equalizer_enabled))
                         Text(
                             stringResource(R.string.equalizer_processing_description),
                             style = MaterialTheme.typography.bodySmall,
@@ -149,7 +148,7 @@ private fun EqualizerSliderCard(
     GlassCard(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(title, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Text(title, modifier = Modifier.weight(1f))
                 Text(
                     String.format(Locale.getDefault(), "%+.1f dB", value),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

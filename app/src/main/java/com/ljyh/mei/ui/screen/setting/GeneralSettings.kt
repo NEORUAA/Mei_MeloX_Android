@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.AppAppearance
@@ -87,7 +86,7 @@ private fun GeneralToggle(
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             SfIcon(systemName, null)
             Column(Modifier.weight(1f).padding(horizontal = 13.dp)) {
-                Text(stringResource(titleRes), fontWeight = FontWeight.SemiBold)
+                Text(stringResource(titleRes))
                 Text(stringResource(descriptionRes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             GlassToggle(checked, onCheckedChange)
@@ -107,8 +106,8 @@ private fun <T> GeneralChoice(
 ) {
     GlassCard(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            SfIcon(systemName, null, tint = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(title, modifier = Modifier.weight(1f).padding(horizontal = 13.dp), fontWeight = FontWeight.SemiBold)
+            SfIcon(systemName, null)
+            Text(title, modifier = Modifier.weight(1f).padding(horizontal = 13.dp))
             IosPopupButton(
                 selected = selected,
                 items = values,
