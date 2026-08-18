@@ -487,9 +487,20 @@ class MainActivity : ComponentActivity() {
                         active = newActive
                         if (!newActive) {
                             focusManager.clearFocus()
-                            if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
+                            val currentRoute = navBackStackEntry?.destination?.route
+                            if (navigationItems.fastAny { it.route == currentRoute } ||
+                                currentRoute == Screen.Search.route
+                            ) {
                                 onQueryChange(TextFieldValue())
                             }
+                        }
+                    }
+
+                    val onSearchCancel = {
+                        val isSearchRoute = navBackStackEntry?.destination?.route == Screen.Search.route
+                        onActiveChange(false)
+                        if (isSearchRoute) {
+                            navController.popBackStack()
                         }
                     }
 
@@ -690,7 +701,7 @@ class MainActivity : ComponentActivity() {
                                     query = query,
                                     onQueryChange = onQueryChange,
                                     onSearch = onSearch,
-                                    onCancel = { onActiveChange(false) },
+                                    onCancel = onSearchCancel,
                                     cancelLabel = stringResource(R.string.cancel),
                                     placeholder = stringResource(R.string.search_bar_search),
                                     focusRequester = searchBarFocusRequester,
