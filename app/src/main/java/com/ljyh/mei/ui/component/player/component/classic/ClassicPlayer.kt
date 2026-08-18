@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.ljyh.mei.constants.MiniPlayerHeight
@@ -78,6 +79,7 @@ fun ClassicPlayer(
         backgroundColor = backgroundColor,
         collapsedDragOffset = miniPlayerVerticalOffset,
         collapsedDragHeight = MiniPlayerHeight,
+        collapsedContentPadding = 2.dp,
         onDismiss = {
             stateContainer.playerConnection.player.stop()
             stateContainer.playerConnection.player.clearMediaItems()

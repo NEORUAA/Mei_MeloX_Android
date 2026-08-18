@@ -254,6 +254,7 @@ fun AppleMusicPlayer(
             backgroundColor = backgroundColor,
             collapsedDragOffset = miniPlayerVerticalOffset,
             collapsedDragHeight = MiniPlayerHeight,
+            collapsedContentPadding = 2.dp,
             onDismiss = {
                 stateContainer.playerConnection.player.stop()
                 stateContainer.playerConnection.player.clearMediaItems()

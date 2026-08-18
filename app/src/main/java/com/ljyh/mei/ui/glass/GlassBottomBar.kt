@@ -203,6 +203,7 @@ fun <T> GlassBottomBar(
             GlassIconButton(
                 onClick = currentOnExpand,
                 backdrop = backdrop,
+                style = GlassSurfaceStyle.Navigation,
                 modifier = Modifier.size(compactSize),
             ) {
                 SfIcon(

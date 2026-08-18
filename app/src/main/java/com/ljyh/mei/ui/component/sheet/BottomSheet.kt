@@ -120,19 +120,30 @@ fun BottomSheet(
     backgroundColor: Color = MaterialTheme.colorScheme.surface,
     collapsedDragOffset: Dp = 0.dp,
     collapsedDragHeight: Dp = 0.dp,
+    collapsedContentPadding: Dp = 0.dp,
     onDismiss: (() -> Unit)? = null,
     onHorizontalSwipe: ((direction: HorizontalSwipeDirection) -> Unit)? = null,
     backgroundContent: @Composable BoxScope.() -> Unit = {},
     collapsedContent: @Composable BoxScope.() -> Unit,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    // The collapsed glass surface draws a crisp outer stroke. Give its host a small amount of
+    // headroom so the stroke is not cut by the rounded sheet clip, while compensating both the
+    // sheet and the child so the mini-player keeps the same visual anchor.
+    val collapsedSurfaceOffset = if (
+        collapsedDragHeight > 0.dp && collapsedContentPadding > 0.dp && !state.isDismissed
+    ) {
+        collapsedContentPadding * (1f - state.progress).coerceIn(0f, 1f)
+    } else {
+        0.dp
+    }
     Box(
         modifier = modifier
             .fillMaxSize()
             .offset {
                 val y = (state.expandedBound - state.value)
                     .roundToPx()
-                    .coerceAtLeast(0)
+                    .coerceAtLeast(0) - collapsedSurfaceOffset.roundToPx()
                 IntOffset(x = 0, y = y)
             }
             .then(
@@ -196,7 +207,13 @@ fun BottomSheet(
                                 state.collapsedBound
                             },
                         )
-                        .offset(y = if (collapsedDragHeight > 0.dp) collapsedDragOffset else 0.dp)
+                        .offset(
+                            y = if (collapsedDragHeight > 0.dp) {
+                                collapsedDragOffset + collapsedSurfaceOffset
+                            } else {
+                                0.dp
+                            },
+                        )
                         .then(
                             if (!state.isExpanded && !state.isDismissed && collapsedDragHeight > 0.dp) {
                                 Modifier.bottomSheetGestureHandlers(state, onHorizontalSwipe)

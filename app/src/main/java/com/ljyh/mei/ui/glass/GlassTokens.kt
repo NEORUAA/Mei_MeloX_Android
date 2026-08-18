@@ -128,7 +128,7 @@ fun defaultGlassColors(
         container = if (isDark) {
             Color(0xFF1C1C1E).copy(alpha = 0.54f)
         } else {
-            Color(0xFFF8F8FA).copy(alpha = 0.46f)
+            Color(0xFFF8F8FA).copy(alpha = 0.64f)
         },
         prominentContainer = (if (isDark) Color(0xFFFF4245) else Color(0xFFFF3B30))
             .copy(alpha = if (isDark) 0.76f else 0.84f),

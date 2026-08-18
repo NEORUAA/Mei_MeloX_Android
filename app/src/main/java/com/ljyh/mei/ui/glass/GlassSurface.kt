@@ -17,12 +17,32 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.PaintingStyle
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.CompositingStrategy
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.invalidateDraw
+import androidx.compose.ui.node.requireGraphicsContext
+import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.util.lerp
@@ -33,6 +53,7 @@ import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.highlight.HighlightStyle
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.capsule.ContinuousRoundedRectangle
@@ -41,6 +62,7 @@ import com.ljyh.mei.ui.liquidglass.InteractiveHighlight
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.ceil
 import kotlin.math.sin
 import kotlin.math.tanh
 
@@ -57,34 +79,285 @@ enum class GlassSurfaceStyle {
 val LocalGlassSurfaceStyle = staticCompositionLocalOf { GlassSurfaceStyle.Standard }
 internal val LocalGlassSurfaceBrightness = staticCompositionLocalOf { 0f }
 
+/** Global opacity control for the navigation glass box-shadow stack. */
+internal const val GlassBoxShadowAlpha = 0.3f
+
+/** Shared liquid drag deformation used by glass controls and animated glass shells. */
+internal fun GraphicsLayerScope.applyGlassDragScale(
+    pressProgress: Float,
+    offset: Offset,
+) {
+    val progress = pressProgress.coerceIn(0f, 1f)
+    val controlHeight = size.height.coerceAtLeast(1f)
+    val scale = lerp(1f, 1f + 4.dp.toPx() / controlHeight, progress)
+    val maxOffset = size.minDimension.coerceAtLeast(1f)
+    translationX = maxOffset * tanh(0.05f * offset.x / maxOffset)
+    translationY = maxOffset * tanh(0.05f * offset.y / maxOffset)
+    val maxDragScale = 4.dp.toPx() / controlHeight
+    val angle = atan2(offset.y, offset.x)
+    scaleX = scale
+    scaleY = scale
+    scaleX += maxDragScale * abs(cos(angle) * offset.x / size.maxDimension.coerceAtLeast(1f)) *
+        (size.width / controlHeight).fastCoerceAtMost(1f)
+    scaleY += maxDragScale * abs(sin(angle) * offset.y / size.maxDimension.coerceAtLeast(1f)) *
+        (controlHeight / size.width.coerceAtLeast(1f)).fastCoerceAtMost(1f)
+}
+
+/**
+ * Draws the crisp part of the navigation box shadow outside the glass outline.
+ *
+ * This is deliberately a separate expanded layer. Drawing the same strokes from
+ * `onDrawSurface`/`onDrawFront` leaves them inside the backdrop's clipped layer, which
+ * produces the pale fringe visible at the left and right edges of circles and capsules.
+ */
+internal fun Modifier.navigationGlassBoxShadow(
+    shape: () -> Shape,
+    alpha: Float,
+    layerBlock: (GraphicsLayerScope.() -> Unit)?,
+): Modifier = then(NavigationGlassBoxShadowElement(shape, alpha, layerBlock))
+
+private class NavigationGlassBoxShadowElement(
+    private val shape: () -> Shape,
+    private val alpha: Float,
+    private val layerBlock: (GraphicsLayerScope.() -> Unit)?,
+) : ModifierNodeElement<NavigationGlassBoxShadowNode>() {
+
+    override fun create(): NavigationGlassBoxShadowNode =
+        NavigationGlassBoxShadowNode(shape, alpha, layerBlock)
+
+    override fun update(node: NavigationGlassBoxShadowNode) {
+        node.shape = shape
+        node.alpha = alpha
+        node.layerBlock = layerBlock
+        node.invalidateDraw()
+    }
+
+    override fun InspectorInfo.inspectableProperties() {
+        name = "navigationGlassBoxShadow"
+        properties["shape"] = shape
+        properties["alpha"] = alpha
+        properties["layerBlock"] = layerBlock
+    }
+
+    override fun equals(other: Any?): Boolean =
+        other is NavigationGlassBoxShadowElement &&
+            shape == other.shape &&
+            alpha == other.alpha &&
+            layerBlock == other.layerBlock
+
+    override fun hashCode(): Int {
+        var result = shape.hashCode()
+        result = 31 * result + alpha.hashCode()
+        result = 31 * result + (layerBlock?.hashCode() ?: 0)
+        return result
+    }
+}
+
+private class NavigationGlassBoxShadowNode(
+    var shape: () -> Shape,
+    var alpha: Float,
+    var layerBlock: (GraphicsLayerScope.() -> Unit)?,
+) : DrawModifierNode, Modifier.Node() {
+
+    private var sideLayer: GraphicsLayer? = null
+    private var outlineLayer: GraphicsLayer? = null
+    private val layerScope = ShadowGraphicsLayerScope()
+
+    private val sidePaint = Paint().apply {
+        style = PaintingStyle.Fill
+        isAntiAlias = true
+    }
+    private val outlinePaint = Paint().apply {
+        style = PaintingStyle.Stroke
+        isAntiAlias = true
+    }
+    private val clearPaint = Paint().apply {
+        style = PaintingStyle.Fill
+        blendMode = BlendMode.Clear
+        isAntiAlias = true
+    }
+
+    override fun ContentDrawScope.draw() {
+        val sideLayer = sideLayer ?: return drawContent()
+        val outlineLayer = outlineLayer ?: return drawContent()
+        val shadowAlpha = alpha.coerceIn(0f, 1f)
+        if (shadowAlpha <= 0f || size.minDimension <= 0f) return drawContent()
+
+        val sideOffset = 0.7.dp.toPx()
+        val outlineWidth = 0.65.dp.toPx()
+        val padding = ceil(sideOffset + outlineWidth / 2f + 1f).toInt()
+        val layerSize = IntSize(
+            ceil(size.width).toInt() + padding * 2,
+            ceil(size.height).toInt() + padding * 2,
+        )
+        val outline = shape().createOutline(size, layoutDirection, this)
+
+        sidePaint.color = Color(0xFF3F3F3F).copy(alpha = shadowAlpha)
+        outlinePaint.color = Color(0xFF6E6E6E).copy(alpha = shadowAlpha)
+        outlinePaint.strokeWidth = outlineWidth
+
+        // The side shadow is a horizontally expanded copy of the shape. Its height stays
+        // exactly the element height, so it cannot create a shadow line on the top or bottom.
+        // Clearing the original shape leaves only the two exposed side capsules.
+        sideLayer.record(layerSize) {
+            translate(padding.toFloat(), padding.toFloat()) {
+                drawContext.canvas.save()
+                drawContext.canvas.translate(size.width / 2f, 0f)
+                drawContext.canvas.scale(
+                    (size.width + sideOffset * 2f) / size.width,
+                    1f,
+                )
+                drawContext.canvas.translate(-size.width / 2f, 0f)
+                drawContext.canvas.drawOutline(outline, sidePaint)
+                drawContext.canvas.restore()
+                drawContext.canvas.drawOutline(outline, clearPaint)
+            }
+        }
+
+        outlineLayer.record(layerSize) {
+            translate(padding.toFloat(), padding.toFloat()) {
+                drawContext.canvas.drawOutline(outline, outlinePaint)
+
+                // Keep only the part of the outline that is outside the glass. This makes the
+                // border an outer stroke instead of an inset stroke.
+                drawContext.canvas.drawOutline(outline, clearPaint)
+            }
+        }
+
+        // The outer layers are separate from drawBackdrop's own graphics layer, so apply the
+        // exact same DragScale block to both. The glass layer remains untouched; this only keeps
+        // the external shadow in lockstep with it.
+        layerScope.reset(this, size)
+        layerBlock?.invoke(layerScope)
+        val pivotOffset = Offset(
+            layerScope.transformOrigin.pivotFractionX * layerSize.width,
+            layerScope.transformOrigin.pivotFractionY * layerSize.height,
+        )
+        listOf(sideLayer, outlineLayer).forEach { layer ->
+            layer.alpha = layerScope.alpha
+            layer.scaleX = layerScope.scaleX
+            layer.scaleY = layerScope.scaleY
+            layer.translationX = layerScope.translationX
+            layer.translationY = layerScope.translationY
+            layer.rotationX = layerScope.rotationX
+            layer.rotationY = layerScope.rotationY
+            layer.rotationZ = layerScope.rotationZ
+            layer.cameraDistance = layerScope.cameraDistance
+            layer.pivotOffset = pivotOffset
+        }
+
+        // Put the expanded side capsules underneath the element, and keep the crisp outline on
+        // top. Both are external-only, so neither layer interferes with the glass highlight.
+        translate(-padding.toFloat(), -padding.toFloat()) {
+            drawLayer(sideLayer)
+        }
+        drawContent()
+        translate(-padding.toFloat(), -padding.toFloat()) {
+            drawLayer(outlineLayer)
+        }
+    }
+
+    override fun onAttach() {
+        sideLayer = requireGraphicsContext().createGraphicsLayer().apply {
+            compositingStrategy = CompositingStrategy.Offscreen
+        }
+        outlineLayer = requireGraphicsContext().createGraphicsLayer().apply {
+            compositingStrategy = CompositingStrategy.Offscreen
+        }
+    }
+
+    override fun onDetach() {
+        sideLayer?.let { requireGraphicsContext().releaseGraphicsLayer(it) }
+        outlineLayer?.let { requireGraphicsContext().releaseGraphicsLayer(it) }
+        sideLayer = null
+        outlineLayer = null
+    }
+}
+
+/** Small adapter that lets the shared GraphicsLayerScope block drive the external shadow layer. */
+private class ShadowGraphicsLayerScope : GraphicsLayerScope {
+    private var densityValue: Density = Density(1f)
+
+    override val density: Float get() = densityValue.density
+    override val fontScale: Float get() = densityValue.fontScale
+
+    override var scaleX: Float = 1f
+    override var scaleY: Float = 1f
+    override var alpha: Float = 1f
+    override var translationX: Float = 0f
+    override var translationY: Float = 0f
+    override var shadowElevation: Float = 0f
+    override var rotationX: Float = 0f
+    override var rotationY: Float = 0f
+    override var rotationZ: Float = 0f
+    override var cameraDistance: Float = 8f
+    override var transformOrigin: TransformOrigin = TransformOrigin.Center
+    override var shape: Shape = RectangleShape
+    override var clip: Boolean = false
+    override var size: Size = Size.Zero
+
+    fun reset(drawScope: Density, size: Size) {
+        densityValue = drawScope
+        this.size = size
+        scaleX = 1f
+        scaleY = 1f
+        alpha = 1f
+        translationX = 0f
+        translationY = 0f
+        shadowElevation = 0f
+        rotationX = 0f
+        rotationY = 0f
+        rotationZ = 0f
+        cameraDistance = 8f
+        transformOrigin = TransformOrigin.Center
+        shape = RectangleShape
+        clip = false
+    }
+}
+
 /** Shared outer navigation-glass material used by the expanded nav and floating controls. */
 internal fun Modifier.navigationGlassBackground(
     backdrop: Backdrop,
     shape: () -> Shape,
     containerColor: Color,
     pressProgress: Float = 0f,
+    highlightAngle: Float = 90f,
     layerBlock: (GraphicsLayerScope.() -> Unit)? = null,
-): Modifier = drawBackdrop(
-    backdrop = backdrop,
-    shape = shape,
-    effects = {
-        vibrancy()
-        blur(8.dp.toPx())
-        lens(
-            refractionHeight = 24.dp.toPx(),
-            refractionAmount = 28.dp.toPx(),
-            depthEffect = false,
-            chromaticAberration = true,
-        )
-    },
-    highlight = {
-        Highlight.Default.copy(alpha = 0.54f + 0.38f * pressProgress)
-    },
-    shadow = null,
-    innerShadow = null,
-    layerBlock = layerBlock,
-    onDrawSurface = { drawRect(containerColor) },
-)
+): Modifier = this
+    .navigationGlassBoxShadow(shape, GlassBoxShadowAlpha, layerBlock)
+    .drawBackdrop(
+        backdrop = backdrop,
+        shape = shape,
+        effects = {
+            vibrancy()
+            blur(2.dp.toPx())
+            lens(
+                refractionHeight = 10.dp.toPx(),
+                refractionAmount = 24.dp.toPx(),
+                depthEffect = true,
+                chromaticAberration = true,
+            )
+        },
+        highlight = {
+            Highlight.Default.copy(
+                alpha = 0.54f + 0.38f * pressProgress,
+                style = HighlightStyle.Default(angle = highlightAngle),
+            )
+        },
+        shadow = {
+            Shadow(
+                radius = 15.dp,
+                offset = DpOffset(0.dp, 8.dp),
+                color = Color.Black,
+                alpha = 0.02f * GlassBoxShadowAlpha,
+            )
+        },
+        innerShadow = null,
+        layerBlock = layerBlock,
+        onDrawSurface = {
+            drawRect(containerColor.copy(alpha = containerColor.alpha * 1.25f))
+        },
+    )
 
 @Composable
 fun GlassSurface(
@@ -113,12 +386,19 @@ fun GlassSurface(
         GlassEmphasis.Regular -> colors.container
         GlassEmphasis.Prominent -> colors.prominentContainer
     }
+    val dragScaleLayerBlock: GraphicsLayerScope.() -> Unit = {
+        applyGlassDragScale(
+            pressProgress = interactiveHighlight.pressProgress,
+            offset = interactiveHighlight.offset,
+        )
+    }
     val surfaceModifier = if (style == GlassSurfaceStyle.Navigation) {
         modifier.navigationGlassBackground(
             backdrop = backdrop,
             shape = { shape },
             containerColor = colors.container,
             pressProgress = interactiveHighlight.pressProgress,
+            layerBlock = dragScaleLayerBlock,
         )
     } else {
         modifier.drawBackdrop(
@@ -157,23 +437,7 @@ fun GlassSurface(
                     alpha = 0.1f + 0.3f * interactiveHighlight.pressProgress,
                 )
             },
-            layerBlock = {
-                val progress = interactiveHighlight.pressProgress
-                val controlHeight = size.height.coerceAtLeast(1f)
-                val scale = lerp(1f, 1f + 4.dp.toPx() / controlHeight, progress)
-                val maxOffset = size.minDimension.coerceAtLeast(1f)
-                val offset = interactiveHighlight.offset
-                translationX = maxOffset * tanh(0.05f * offset.x / maxOffset)
-                translationY = maxOffset * tanh(0.05f * offset.y / maxOffset)
-                val maxDragScale = 4.dp.toPx() / controlHeight
-                val angle = atan2(offset.y, offset.x)
-                scaleX = scale
-                scaleY = scale
-                scaleX += maxDragScale * abs(cos(angle) * offset.x / size.maxDimension.coerceAtLeast(1f)) *
-                    (size.width / controlHeight).fastCoerceAtMost(1f)
-                scaleY += maxDragScale * abs(sin(angle) * offset.y / size.maxDimension.coerceAtLeast(1f)) *
-                    (controlHeight / size.width.coerceAtLeast(1f)).fastCoerceAtMost(1f)
-            },
+            layerBlock = dragScaleLayerBlock,
             exportedBackdrop = exportedBackdrop,
             onDrawSurface = {
                 drawRect(

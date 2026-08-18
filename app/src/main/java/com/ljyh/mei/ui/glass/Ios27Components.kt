@@ -35,6 +35,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -54,12 +55,14 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -73,9 +76,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp as lerpDp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
@@ -545,13 +548,17 @@ fun IosContextMenu(
     content: @Composable ColumnScope.(LayerBackdrop) -> Unit,
 ) {
     if (!visible) return
+    val animationScope = rememberCoroutineScope()
+    val interactiveHighlight = remember(animationScope) {
+        InteractiveHighlight(animationScope = animationScope)
+    }
     val density = androidx.compose.ui.platform.LocalDensity.current
-    val geometryProgress = animationProgress.coerceIn(-0.10f, 1.12f)
+    val geometryProgress = animationProgress.coerceIn(-0.04f, 1.06f)
     val progress = animationProgress.coerceIn(0f, 1f)
-    val normalizedVelocity = (animationVelocity / 12f).coerceIn(-1f, 1f)
+    val normalizedVelocity = (animationVelocity / 18f).coerceIn(-1f, 1f)
     val pulse = max(
         sin(PI.toFloat() * progress),
-        abs(normalizedVelocity) * 0.82f,
+        abs(normalizedVelocity) * 0.65f,
     ).coerceIn(0f, 1f)
     val collapsedWidth = with(density) { collapsedSize.width.toDp() }
     val collapsedHeight = with(density) { collapsedSize.height.toDp() }
@@ -565,6 +572,13 @@ fun IosContextMenu(
     val contentProgress = progress
     val childBackdrop = rememberLayerBackdrop()
     val elevatedBackground = LocalGlassColors.current.elevatedBackground
+    val menuLayerBlock: GraphicsLayerScope.() -> Unit = {
+        transformOrigin = TransformOrigin(1f, if (opensAbove) 1f else 0f)
+        applyGlassDragScale(
+            pressProgress = interactiveHighlight.pressProgress,
+            offset = interactiveHighlight.offset,
+        )
+    }
     // Stable full-size shell: the hosting Popup window never resizes or moves during the
     // animation, so a sibling pinned to a corner of this box (the trigger copy) cannot
     // wobble with the spring physics or be clipped by an undersized window.
@@ -594,38 +608,46 @@ fun IosContextMenu(
                 )
                 .graphicsLayer { alpha = progress }
                 .size(width = width, height = height)
-                .drawBackdrop(
-                backdrop = backdrop,
-                exportedBackdrop = childBackdrop,
-                shape = { RoundedRectangle(radius) },
-                effects = {
-                    vibrancy()
-                    blur(lerp(3.dp.toPx(), 16.dp.toPx(), progress))
-                    lens(
-                        refractionHeight = lerp(10.dp.toPx(), 18.dp.toPx(), progress) +
-                            4.dp.toPx() * pulse,
-                        refractionAmount = lerp(16.dp.toPx(), 26.dp.toPx(), progress) +
-                            8.dp.toPx() * pulse,
-                        depthEffect = pulse > 0.01f,
-                        chromaticAberration = true,
-                    )
-                },
-                highlight = {
-                    Highlight.Default.copy(alpha = progress * (0.46f + 0.30f * pulse))
-                },
-                shadow = { Shadow(radius = 48.dp, alpha = 0.25f * progress) },
-                innerShadow = { InnerShadow(radius = 8.dp, alpha = 0.10f * progress) },
-                layerBlock = {
-                    transformOrigin = TransformOrigin(1f, if (opensAbove) 1f else 0f)
-                    scaleX = 1f + 0.026f * pulse
-                    scaleY = 1f - 0.012f * pulse
-                    scaleX /= 1f - (normalizedVelocity * 0.75f).coerceIn(-0.16f, 0.16f)
-                    scaleY *= 1f - (normalizedVelocity * 0.25f).coerceIn(-0.12f, 0.12f)
-                },
-                onDrawSurface = {
-                    drawRect(elevatedBackground.copy(alpha = 0.70f * progress))
-                },
+                .navigationGlassBoxShadow(
+                    shape = { RoundedRectangle(radius) },
+                    alpha = GlassBoxShadowAlpha,
+                    layerBlock = menuLayerBlock,
                 )
+                .drawBackdrop(
+                    backdrop = backdrop,
+                    exportedBackdrop = childBackdrop,
+                    shape = { RoundedRectangle(radius) },
+                    effects = {
+                        vibrancy()
+                        blur(lerp(3.dp.toPx(), 16.dp.toPx(), progress))
+                        lens(
+                            refractionHeight = lerp(10.dp.toPx(), 18.dp.toPx(), progress) +
+                                2.dp.toPx() * pulse,
+                            refractionAmount = lerp(16.dp.toPx(), 26.dp.toPx(), progress) +
+                                4.dp.toPx() * pulse,
+                            depthEffect = pulse > 0.01f,
+                            chromaticAberration = true,
+                        )
+                    },
+                    highlight = {
+                        Highlight.Default.copy(alpha = progress * (0.46f + 0.18f * pulse))
+                    },
+                    shadow = {
+                        Shadow(
+                            radius = 15.dp,
+                            offset = androidx.compose.ui.unit.DpOffset(0.dp, 8.dp),
+                            color = Color.Black,
+                            alpha = 0.02f * GlassBoxShadowAlpha,
+                        )
+                    },
+                    innerShadow = { InnerShadow(radius = 8.dp, alpha = 0.10f * progress) },
+                    layerBlock = menuLayerBlock,
+                    onDrawSurface = {
+                        drawRect(elevatedBackground.copy(alpha = 0.70f * progress))
+                    },
+                )
+                .then(interactiveHighlight.modifier)
+                .then(interactiveHighlight.gestureModifier)
                 .clip(ContinuousRoundedRectangle(radius))
                 .padding(10.dp)
                 .graphicsLayer {
@@ -669,7 +691,7 @@ fun IosPopupMenu(
             progress.animateTo(
                 targetValue = 1f,
                 animationSpec = spring(
-                    dampingRatio = 0.46f,
+                    dampingRatio = 0.72f,
                     stiffness = 260f,
                     visibilityThreshold = 0.001f,
                 ),
@@ -678,8 +700,8 @@ fun IosPopupMenu(
             progress.animateTo(
                 targetValue = 0f,
                 animationSpec = spring(
-                    dampingRatio = 0.48f,
-                    stiffness = 300f,
+                    dampingRatio = 0.74f,
+                    stiffness = 280f,
                     visibilityThreshold = 0.001f,
                 ),
             )
@@ -832,19 +854,11 @@ fun IosMenuItem(
     Row(
         modifier
             .fillMaxWidth()
-            .drawBackdrop(
-                backdrop,
-                shape = { Capsule() },
-                effects = {
-                    val p = highlight.pressProgress
-                    if (p > 0.01f) { blur(2.dp.toPx() * p); lens(6.dp.toPx() * p, 10.dp.toPx() * p) }
-                },
-                highlight = { Highlight.Default.copy(alpha = 0.38f * highlight.pressProgress) },
-                shadow = null,
-                innerShadow = null,
-                onDrawSurface = { drawRect(Color.Black.copy(alpha = 0.04f * highlight.pressProgress)) },
+            .height(44.dp)
+            .background(
+                color = Color.Black.copy(alpha = 0.15f * highlight.pressProgress),
+                shape = Capsule(),
             )
-            .then(if (interactive) highlight.modifier else Modifier)
             .then(
                 if (interactive) {
                     Modifier
@@ -854,7 +868,6 @@ fun IosMenuItem(
                     Modifier
                 },
             )
-            .height(44.dp)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -965,11 +978,31 @@ fun IosAlertSurface(
 ) {
     val colors = LocalGlassColors.current
     val light = !colors.isDark
+    val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
+    SideEffect {
+        dialogWindow?.setDimAmount(if (light) 0.01f else 0.1f)
+    }
+    val animationScope = rememberCoroutineScope()
+    val interactiveHighlight = remember(animationScope) {
+        InteractiveHighlight(animationScope = animationScope)
+    }
     val samplingBackdrop = rememberCrossWindowBackdrop(backdrop)
     val alertShape = ContinuousRoundedRectangle(34.dp)
+    val alertBackgroundAlpha = if (light) 0.72f else 0.64f
+    val alertLayerBlock: GraphicsLayerScope.() -> Unit = {
+        applyGlassDragScale(
+            pressProgress = interactiveHighlight.pressProgress,
+            offset = interactiveHighlight.offset,
+        )
+    }
     Column(
         modifier
             .width(300.dp)
+            .navigationGlassBoxShadow(
+                shape = { alertShape },
+                alpha = GlassBoxShadowAlpha,
+                layerBlock = alertLayerBlock,
+            )
             .drawBackdrop(
                 backdrop = samplingBackdrop,
                 shape = { alertShape },
@@ -981,34 +1014,37 @@ fun IosAlertSurface(
                 highlight = { Highlight.Plain },
                 shadow = { Shadow(radius = 48.dp, alpha = 0.25f) },
                 innerShadow = { InnerShadow(radius = 8.dp, alpha = 0.12f) },
+                layerBlock = alertLayerBlock,
                 onDrawSurface = {
                     // Keep the Figma background-blend stack over the sampled screen;
                     // do not add an opaque elevated surface on top of the backdrop.
                     if (light) {
                         drawRect(
-                            Color.White.copy(alpha = 0.70f),
+                            Color.White.copy(alpha = 0.70f * alertBackgroundAlpha),
                             blendMode = BlendMode.Lighten,
                         )
                         drawRect(
-                            Color(0x1ABFBFBF),
+                            Color(0x1ABFBFBF).copy(alpha = 0.10f * alertBackgroundAlpha),
                             blendMode = BlendMode.Darken,
                         )
                     } else {
                         drawRect(
-                            Color(0xB31A1A1A),
+                            Color(0xB31A1A1A).copy(alpha = 0.70f * alertBackgroundAlpha),
                             blendMode = BlendMode.Luminosity,
                         )
                         drawRect(
-                            Color(0xE61A1A1A),
+                            Color(0xE61A1A1A).copy(alpha = 0.90f * alertBackgroundAlpha),
                             blendMode = BlendMode.Luminosity,
                         )
                         drawRect(
-                            Color(0xFF1A1A1A),
+                            Color(0xFF1A1A1A).copy(alpha = alertBackgroundAlpha),
                             blendMode = BlendMode.Lighten,
                         )
                     }
                 },
             )
+            .then(interactiveHighlight.modifier)
+            .then(interactiveHighlight.gestureModifier)
             .padding(14.dp),
     ) {
         CompositionLocalProvider(
@@ -1023,13 +1059,13 @@ fun IosAlertSurface(
             ) {
                 Text(
                     title,
-                    style = IosTypography.headline.copy(letterSpacing = (-0.43).sp),
+                    style = IosTypography.headline,
                     color = colors.content,
                 )
                 message?.let {
                     Text(
                         it,
-                        style = IosTypography.body.copy(letterSpacing = (-0.43).sp),
+                        style = IosTypography.body,
                         color = colors.content,
                     )
                 }
@@ -1050,7 +1086,7 @@ fun IosAlertButton(
     content: @Composable RowScope.() -> Unit = {
         Text(
             text,
-            style = IosTypography.headline.copy(letterSpacing = (-0.43).sp),
+            style = IosTypography.headline,
             color = when (role) {
                 IosAlertButtonRole.Default -> Color.White
                 IosAlertButtonRole.Cancel -> LocalGlassColors.current.content
@@ -1125,10 +1161,7 @@ fun IosAlertTextField(
             .fillMaxWidth()
             .height(52.dp)
             .padding(horizontal = 16.dp),
-        textStyle = IosTypography.body.copy(
-            color = colors.content,
-            letterSpacing = (-0.43).sp,
-        ),
+        textStyle = IosTypography.body.copy(color = colors.content),
         singleLine = singleLine,
         maxLines = maxLines,
         decorationBox = { innerTextField ->
@@ -1139,7 +1172,7 @@ fun IosAlertTextField(
                 if (value.text.isEmpty() && placeholder != null) {
                     Text(
                         placeholder,
-                        style = IosTypography.body.copy(letterSpacing = (-0.43).sp),
+                        style = IosTypography.body,
                         color = colors.tertiaryContent,
                     )
                 }
