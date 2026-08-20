@@ -62,7 +62,9 @@ class MeiNavigator(
     fun popBackStack(): Boolean {
         if (backStack.size <= 1) return false
         recordTransition((backStack.getOrNull(backStack.lastIndex - 1) as? MeiRoute)?.route)
-        backStack.removeLast()
+        // Kotlin 2.3 may lower MutableList.removeLast() to the Java 21 API.
+        // Android 14 does not expose that interface method yet.
+        backStack.removeAt(backStack.lastIndex)
         return true
     }
 

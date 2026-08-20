@@ -1,6 +1,8 @@
 package com.ljyh.mei.ui.screen.account
 
 import android.annotation.SuppressLint
+import android.os.Build
+import android.view.View
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -83,6 +85,7 @@ fun NeteaseLoginScreen(viewModel: NeteaseLoginViewModel = hiltViewModel()) {
             factory = { currentContext ->
                 WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
                 WebView(currentContext).apply {
+                    setLayerType(View.LAYER_TYPE_SOFTWARE, null)
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
                     settings.userAgentString = settings.userAgentString + " Mei/1.0"

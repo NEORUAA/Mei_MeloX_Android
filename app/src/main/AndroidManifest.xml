@@ -30,6 +30,7 @@
         android:theme="@style/Theme.Music"
         android:windowSoftInputMode="adjustResize"
         android:name=".AppContext"
+        android:enableOnBackInvokedCallback="true"
         tools:targetApi="31">
         <provider
             android:name="androidx.core.content.FileProvider"
