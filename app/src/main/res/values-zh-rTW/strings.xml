@@ -222,6 +222,8 @@
     <string name="about_feedback">問題回報</string>
     <string name="about_logs">診斷日誌</string>
     <string name="about_acknowledgements">開源致謝</string>
+    <string name="about_upstream_description">Mei 上游儲存庫</string>
+    <string name="about_melox_description">iOS 版參考實作</string>
     <string name="about_amll_description">高品質逐字歌詞庫</string>
     <string name="about_lyrics_ui_description">靈動的歌詞渲染元件</string>
     <string name="about_backdrop_description">Compose Multiplatform 流體玻璃效果</string>

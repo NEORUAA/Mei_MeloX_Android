@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -156,7 +157,11 @@ private fun PlaylistGrid(
         state = listState,
     ) {
         item(key = "discover-large-title", span = { GridItemSpan(maxLineSpan) }) {
-            Text(title, style = IosTypography.largeTitle, modifier = Modifier.padding(vertical = 6.dp))
+            Text(
+                title,
+                style = IosTypography.largeTitle,
+                modifier = Modifier.offset(y = (-10).dp).padding(vertical = 6.dp),
+            )
         }
         item(key = "discover-categories", span = { GridItemSpan(maxLineSpan) }) {
             CategorySelector(categories, selectedCategory, onCategorySelected)

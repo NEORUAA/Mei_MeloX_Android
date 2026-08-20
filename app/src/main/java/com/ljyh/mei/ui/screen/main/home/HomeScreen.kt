@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -76,6 +77,7 @@ import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.component.playlist.PlayingImageView
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.glass.IosPinnedPage
+import com.ljyh.mei.ui.glass.IosTypography
 import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -161,8 +163,11 @@ fun HomeScreen(
                         item(key = "ios-large-title") {
                             Text(
                                 stringResource(R.string.app_tab_home),
-                                style = MaterialTheme.typography.headlineLarge,
-                                modifier = Modifier.padding(horizontal = 16.dp),
+                                style = IosTypography.largeTitle,
+                                color = LocalGlassColors.current.content,
+                                modifier = Modifier
+                                    .offset(y = (-10).dp)
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
                             )
                         }
                         items(

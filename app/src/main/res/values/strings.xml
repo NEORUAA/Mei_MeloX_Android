@@ -223,6 +223,8 @@
     <string name="about_feedback">Report an Issue</string>
     <string name="about_logs">Diagnostic Logs</string>
     <string name="about_acknowledgements">Open Source Acknowledgements</string>
+    <string name="about_upstream_description">Mei upstream repository</string>
+    <string name="about_melox_description">iOS reference implementation</string>
     <string name="about_amll_description">High-quality word-synced lyrics</string>
     <string name="about_lyrics_ui_description">Expressive lyric rendering components</string>
     <string name="about_backdrop_description">Compose Multiplatform fluid glass effects</string>

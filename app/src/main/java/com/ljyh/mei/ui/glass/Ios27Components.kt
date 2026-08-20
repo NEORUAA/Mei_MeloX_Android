@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -196,6 +197,8 @@ enum class IosTopBarStyle { Default, CompactLargeTitle, LargeTitle, TwoLine, Two
 
 enum class IosBottomToolbarStyle { Text, Symbols, Search }
 
+private val IosTopToolbarActionGap = 8.dp
+
 /** The five top-toolbar variants from Figma node 5661:41970. */
 @Composable
 fun IosTopToolbar(
@@ -215,12 +218,14 @@ fun IosTopToolbar(
     ) {
         when (style) {
             IosTopBarStyle.LargeTitle -> Column(modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().height(54.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) { navigation?.invoke() }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), content = actions)
+                    Row(horizontalArrangement = Arrangement.spacedBy(IosTopToolbarActionGap), content = actions)
                 }
-                Text(title, style = IosTypography.largeTitle, color = LocalGlassColors.current.content)
-                subtitle?.let { Text(it, style = IosTypography.subheadline, color = LocalGlassColors.current.secondaryContent) }
+                Column(Modifier.offset(y = (-10).dp)) {
+                    Text(title, style = IosTypography.largeTitle, color = LocalGlassColors.current.content)
+                    subtitle?.let { Text(it, style = IosTypography.subheadline, color = LocalGlassColors.current.secondaryContent) }
+                }
             }
             IosTopBarStyle.CompactLargeTitle -> Row(
                 modifier.fillMaxWidth().height(54.dp).padding(horizontal = 16.dp),
@@ -232,7 +237,7 @@ fun IosTopToolbar(
                     color = LocalGlassColors.current.content,
                     modifier = Modifier.weight(1f),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), content = actions)
+                Row(horizontalArrangement = Arrangement.spacedBy(IosTopToolbarActionGap), content = actions)
             }
             else -> {
                 var leadingWidth by remember { mutableIntStateOf(0) }
@@ -240,6 +245,8 @@ fun IosTopToolbar(
                 val density = LocalDensity.current
                 val leadingPad = with(density) { leadingWidth.toDp() }
                 val trailingPad = with(density) { trailingWidth.toDp() }
+                val centeredTitleSidePadding = maxOf(leadingPad, trailingPad) +
+                    if (leadingWidth > 0 || trailingWidth > 0) IosTopToolbarActionGap else 0.dp
                 Box(modifier.fillMaxWidth().height(54.dp).padding(horizontal = 16.dp)) {
                     Row(
                         Modifier.align(Alignment.CenterStart).onSizeChanged { leadingWidth = it.width },
@@ -251,11 +258,12 @@ fun IosTopToolbar(
                             .fillMaxWidth()
                             .padding(
                                 // Centered styles stay optically centered: reserve the wider
-                                // side on both edges. The leading style just clears the sides.
+                                // side on both edges, plus the same gap used between actions.
+                                // The leading style just clears the sides.
                                 start = if (style == IosTopBarStyle.TwoLineLeading) leadingPad
-                                else maxOf(leadingPad, trailingPad),
+                                else centeredTitleSidePadding,
                                 end = if (style == IosTopBarStyle.TwoLineLeading) trailingPad
-                                else maxOf(leadingPad, trailingPad),
+                                else centeredTitleSidePadding,
                             )
                             .graphicsLayer {
                                 alpha = progress
@@ -286,7 +294,7 @@ fun IosTopToolbar(
                     }
                     Row(
                         Modifier.align(Alignment.CenterEnd).onSizeChanged { trailingWidth = it.width },
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(IosTopToolbarActionGap),
                         content = actions,
                     )
                 }
@@ -791,7 +799,7 @@ fun <T> IosPopupButton(
             ) {
                 Text(
                     text = label(selected),
-                    style = IosTypography.body.copy(fontWeight = FontWeight.SemiBold),
+                    style = IosTypography.body,
                     color = if (enabled) LocalGlassColors.current.accent
                     else LocalGlassColors.current.secondaryContent,
                 )
@@ -961,7 +969,7 @@ fun IosAlertSurface(
     val light = !colors.isDark
     val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
     SideEffect {
-        dialogWindow?.setDimAmount(if (light) 0.01f else 0.1f)
+        dialogWindow?.setDimAmount(if (light) 0.1f else 0.01f)
     }
     val animationScope = rememberCoroutineScope()
     val interactiveHighlight = remember(animationScope) {

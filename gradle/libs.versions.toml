@@ -12,6 +12,8 @@ kotlin = "2.3.21"
 coreKtx = "1.19.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
+kotlinMetadataJvm = "2.3.21"
+kotlinReflect = "2.3.21"
 kotlinxCoroutinesGuava = "1.11.0"
 kotlinxSerialization = "1.11.0"
 ktorClientAndroid = "3.5.0"
@@ -25,6 +27,8 @@ lyricsUiVersion = "1.0.19"
 material3Android = "1.4.0"
 activityKtx = "1.13.0"
 materialKolor = "4.1.1"
+miuixNavigation3UiAndroid = "0.9.3"
+navigation3Runtime = "1.1.6"
 navigationRuntimeKtx = "2.9.8"
 navigationCompose = "2.9.8"
 pagingRuntime = "3.5.0"
@@ -53,6 +57,7 @@ onnxRuntime = "1.28.0"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
+androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "navigation3Runtime" }
 androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "pagingRuntime" }
 androidx-paging-runtime = { module = "androidx.paging:paging-runtime", version.ref = "pagingRuntime" }
 androidx-palette = { module = "androidx.palette:palette", version.ref = "palette" }
@@ -80,6 +85,8 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3Android" }
 korlibs-crypto = { module = "com.soywiz:korlibs-crypto", version.ref = "korlibsCrypto" }
+kotlin-metadata-jvm = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlinMetadataJvm" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlinReflect" }
 kotlinx-coroutines-guava = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-guava", version.ref = "kotlinxCoroutinesGuava" }
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
 ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktorClientAndroid" }
@@ -96,6 +103,7 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 material-kolor = { module = "com.materialkolor:material-kolor", version.ref = "materialKolor" }
 kmpalette-core = { module = "com.kmpalette:kmpalette-core", version.ref = "kmpalette" }
 kmpalette-extensions-network = { module = "com.kmpalette:extensions-network", version.ref = "kmpalette" }
+miuix-navigation3-ui-android = { module = "top.yukonga.miuix.kmp:miuix-navigation3-ui-android", version.ref = "miuixNavigation3UiAndroid" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-scalars = { group = "com.squareup.retrofit2", name = "converter-scalars", version.ref = "retrofit" }
 

@@ -20,8 +20,8 @@ android {
         applicationId = "com.ljyh.mei"
         minSdk = 33
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.53.5"
+        versionCode = 4
+        versionName = "1.53.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -76,8 +76,8 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
-    implementation("top.yukonga.miuix.kmp:miuix-navigation3-ui-android:0.9.3")
-    implementation("androidx.navigation3:navigation3-runtime:1.1.4")
+    implementation(libs.miuix.navigation3.ui.android)
+    implementation(libs.androidx.navigation3.runtime)
     implementation(libs.media3)
     implementation(libs.media3.session)
     implementation(libs.media3.okhttp)
@@ -136,8 +136,8 @@ dependencies {
     }
     implementation(libs.logging.interceptor)
     // implementation(kotlin("reflect"))
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.3.21")
-    ksp("org.jetbrains.kotlin:kotlin-metadata-jvm:2.3.21")
+    implementation(libs.kotlin.reflect)
+    ksp(libs.kotlin.metadata.jvm)
 
 
     // 列表拖拽

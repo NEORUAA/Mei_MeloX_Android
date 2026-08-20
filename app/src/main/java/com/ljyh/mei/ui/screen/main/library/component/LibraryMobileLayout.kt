@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -123,7 +124,7 @@ fun LibraryMobileLayout(
                     title,
                     style = IosTypography.largeTitle,
                     color = LocalGlassColors.current.content,
-                    modifier = Modifier.padding(vertical = 6.dp),
+                    modifier = Modifier.offset(y = (-10).dp).padding(vertical = 6.dp),
                 )
             }
             item(key = "library-pages") {

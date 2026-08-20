@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -135,6 +136,7 @@ fun IosPinnedListPage(
                                 transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
                             }
                             .blur(6.dp * collapseProgress)
+                            .offset(y = (-10).dp)
                             .padding(horizontal = 4.dp, vertical = 6.dp),
                     ) {
                         Text(
