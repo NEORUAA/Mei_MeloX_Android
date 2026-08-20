@@ -1,9 +1,9 @@
 package com.ljyh.mei.ui.screen
 
 import androidx.annotation.StringRes
-import androidx.navigation.NavController
 import com.ljyh.mei.R
 import com.ljyh.mei.ui.glass.SfSymbol
+import com.ljyh.mei.ui.navigation.MeiNavigator
 import com.ljyh.mei.ui.navigation.ContentFeature
 
 sealed class Screen(val route:String) {
@@ -47,14 +47,15 @@ sealed class Screen(val route:String) {
     data object Log: Screen("log")
 
     inline fun navigate(
-        navController: NavController,
+        navController: MeiNavigator,
         builder: NavigationBuilder.() -> Unit = {}
     ) {
         navController.navigate(NavigationBuilder(route).apply(builder).build())
     }
 
     companion object {
-        val MainScreens = listOf(Home, FindMusic, Podcasts, Library, DownloadManage, CloudMusic, History, Search, Setting)
+        val MainScreens: List<Screen>
+            get() = listOf(Home, FindMusic, Podcasts, Library, DownloadManage, CloudMusic, History, Search, Setting)
     }
 }
 

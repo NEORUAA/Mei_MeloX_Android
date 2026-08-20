@@ -18,11 +18,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -81,10 +84,18 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavEntryDecorator
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.scene.Scene
+import androidx.navigation3.ui.NavDisplay
+import androidx.navigation3.ui.NavDisplayTransitionEffects
+import androidx.navigation3.ui.defaultPopTransitionSpec
+import androidx.navigation3.ui.defaultPredictivePopTransitionSpec
+import androidx.navigation3.ui.defaultTransitionSpec
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.disk.DiskCache
@@ -149,8 +160,11 @@ import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.glass.trackBackdropPosition
 import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.ui.screen.navigationBuilder
+import com.ljyh.mei.ui.screen.navigationEntry
 import com.ljyh.mei.ui.screen.search.SearchScreen
+import com.ljyh.mei.ui.navigation.MeiNavEntryViewModelStoreOwner
+import com.ljyh.mei.ui.navigation.MeiNavigator
+import com.ljyh.mei.ui.navigation.MeiRoute
 import com.ljyh.mei.ui.theme.MusicTheme
 import com.ljyh.mei.utils.log.CrashHandler
 import com.ljyh.mei.utils.cache.preloadImage
@@ -217,7 +231,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = this@MainActivity
             val lifecycleOwner = LocalLifecycleOwner.current
-            val navController = rememberNavController()
+            val backStack = rememberNavBackStack(MeiRoute(Screen.Home.route))
+            val navController = remember(backStack) {
+                MeiNavigator(context = context, backStack = backStack)
+            }
             var active by rememberSaveable {
                 mutableStateOf(false)
             }
@@ -393,7 +410,7 @@ class MainActivity : ComponentActivity() {
                     val focusManager = LocalFocusManager.current
                     val density = LocalDensity.current
                     val windowsInsets = WindowInsets.systemBars
-                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = navController.currentRoute
 
                     val bottomInset by remember {
                         derivedStateOf {
@@ -444,10 +461,10 @@ class MainActivity : ComponentActivity() {
                     }
 
 
-                    val shouldAllowNavigationBar = remember(navBackStackEntry, active) {
-                        (navBackStackEntry?.destination?.route == null ||
-                                navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
-                                navBackStackEntry?.destination?.route == Screen.Search.route) &&
+                    val shouldAllowNavigationBar = remember(currentRoute, active) {
+                        (currentRoute == null ||
+                                navigationItems.fastAny { it.route == currentRoute } ||
+                                currentRoute == Screen.Search.route) &&
                                 !active
                     }
                     val shouldShowNavigationBar = shouldAllowNavigationBar && navigationBarVisible
@@ -476,7 +493,7 @@ class MainActivity : ComponentActivity() {
                     )
                     val topAppBarScrollBehavior = appBarScrollBehavior(
                         canScroll = {
-                            navBackStackEntry?.destination?.route?.startsWith("search_result/") == false &&
+                            currentRoute?.startsWith("search_result/") == false &&
                                     (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                         }
                     )
@@ -487,7 +504,6 @@ class MainActivity : ComponentActivity() {
                         active = newActive
                         if (!newActive) {
                             focusManager.clearFocus()
-                            val currentRoute = navBackStackEntry?.destination?.route
                             if (navigationItems.fastAny { it.route == currentRoute } ||
                                 currentRoute == Screen.Search.route
                             ) {
@@ -497,7 +513,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     val onSearchCancel = {
-                        val isSearchRoute = navBackStackEntry?.destination?.route == Screen.Search.route
+                        val isSearchRoute = currentRoute == Screen.Search.route
                         onActiveChange(false)
                         if (isSearchRoute) {
                             navController.popBackStack()
@@ -531,9 +547,6 @@ class MainActivity : ComponentActivity() {
                                 ),
                             )
                     }
-                    val topLevelScreens = navigationItems.map(Index::route) + Screen.Search.route
-
-
                     LaunchedEffect(Unit) {
                         lifecycleScope.launch {
                             getAndroidId(this@MainActivity)
@@ -550,7 +563,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    LaunchedEffect(navBackStackEntry) {
+                    LaunchedEffect(currentRoute) {
                         topAppBarScrollBehavior.state.resetHeightOffset()
                     }
                     LaunchedEffect(active) {
@@ -635,13 +648,87 @@ class MainActivity : ComponentActivity() {
                                 CompositionLocalProvider(
                                     LocalGlassBackdrop provides glassBackdrop,
                                 ) {
-                                    NavHost(
-                                        modifier = Modifier.fillMaxSize(),
-                                        navController = navController,
-                                        startDestination = Screen.Home.route,
-                                    ) {
-                                        navigationBuilder(navController, topAppBarScrollBehavior)
+                                    val entryViewModelOwners = remember {
+                                        mutableMapOf<String, MeiNavEntryViewModelStoreOwner>()
                                     }
+                                    val viewModelEntryDecorator = remember(context) {
+                                        NavEntryDecorator<NavKey>(
+                                            onPop = { contentKey ->
+                                                entryViewModelOwners.remove(contentKey.toString())?.clear()
+                                            },
+                                            decorate = { entry ->
+                                                val route = entry.contentKey.toString()
+                                                val owner = entryViewModelOwners.getOrPut(route) {
+                                                    MeiNavEntryViewModelStoreOwner(this@MainActivity)
+                                                }
+                                                CompositionLocalProvider(
+                                                    LocalViewModelStoreOwner provides owner,
+                                                ) {
+                                                    entry.Content()
+                                                }
+                                            },
+                                        )
+                                    }
+                                    NavDisplay(
+                                        backStack = backStack,
+                                        modifier = Modifier.fillMaxSize(),
+                                        onBack = navController::popBackStack,
+                                        entryDecorators = listOf(
+                                            rememberSaveableStateHolderNavEntryDecorator(),
+                                            viewModelEntryDecorator,
+                                        ),
+                                        transitionSpec = {
+                                            if (usesHomeAlphaTransition()) {
+                                                homeAlphaTransition()
+                                            } else {
+                                                defaultTransitionSpec<NavKey>().invoke(this)
+                                            }
+                                        },
+                                        popTransitionSpec = {
+                                            if (usesHomeAlphaTransition()) {
+                                                homeAlphaTransition()
+                                            } else {
+                                                defaultPopTransitionSpec<NavKey>().invoke(this)
+                                            }
+                                        },
+                                        predictivePopTransitionSpec = { swipeEdge ->
+                                            if (usesHomeAlphaTransition()) {
+                                                homeAlphaTransition()
+                                            } else {
+                                                defaultPredictivePopTransitionSpec<NavKey>()
+                                                    .invoke(this, swipeEdge)
+                                            }
+                                        },
+                                        transitionEffects = remember(
+                                            navController.usesMiuixTransitionEffects,
+                                        ) {
+                                            if (navController.usesMiuixTransitionEffects) {
+                                                NavDisplayTransitionEffects(
+                                                    enableCornerClip = true,
+                                                    dimAmount = 0.5f,
+                                                    blockInputDuringTransition = false,
+                                                )
+                                            } else {
+                                                NavDisplayTransitionEffects(
+                                                    enableCornerClip = false,
+                                                    dimAmount = 0f,
+                                                    blockInputDuringTransition = false,
+                                                )
+                                            }
+                                        },
+                                        entryProvider = { route ->
+                                            val meiRoute = route as MeiRoute
+                                            NavEntry(
+                                                key = route,
+                                                contentKey = meiRoute.route,
+                                            ) {
+                                                navigationEntry(
+                                                    route = meiRoute.route,
+                                                    scrollBehavior = topAppBarScrollBehavior,
+                                                )
+                                            }
+                                        },
+                                    )
                                     AnimatedVisibility(
                                         visible = active,
                                         enter = fadeIn(),
@@ -713,11 +800,9 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        val selectedIndex = navigationItems.firstOrNull { item ->
-                            navBackStackEntry?.destination?.hierarchy?.any {
-                                it.route == item.route
-                            } == true
-                        } ?: navigationItems.firstOrNull { it.name == lastSelectedTab } ?: Index.Home
+                        val selectedIndex = navigationItems.firstOrNull { it.route == currentRoute }
+                            ?: navigationItems.firstOrNull { it.name == lastSelectedTab }
+                            ?: Index.Home
                         AnimatedVisibility(
                             visible = shouldAllowNavigationBar,
                             enter = fadeIn(),
@@ -749,22 +834,13 @@ class MainActivity : ComponentActivity() {
                                 onExpand = { navigationBarVisible = true },
                                 onSelected = { screen ->
                                     setLastSelectedTab(screen.name)
-                                    if (navBackStackEntry?.destination?.hierarchy?.any {
-                                            it.route == screen.route
-                                        } == true
-                                    ) {
+                                    if (currentRoute == screen.route) {
                                         navController.currentBackStackEntry?.savedStateHandle?.set(
                                             "scrollToTop",
                                             true,
                                         )
                                     } else {
-                                        navController.navigate(screen.route) {
-                                            popUpTo(navController.graph.startDestinationId) {
-                                                saveState = true
-                                            }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
+                                        navController.navigateTopLevel(screen.route)
                                     }
                                 },
                                 backdrop = bottomControlsBackdrop,
@@ -774,10 +850,8 @@ class MainActivity : ComponentActivity() {
                             )
                                 GlassIconButton(
                                 onClick = {
-                                    if (navBackStackEntry?.destination?.route != Screen.Search.route) {
-                                        navController.navigate(Screen.Search.route) {
-                                            launchSingleTop = true
-                                        }
+                                    if (currentRoute != Screen.Search.route) {
+                                        navController.navigate(Screen.Search.route)
                                     }
                                     onActiveChange(true)
                                 },
@@ -875,6 +949,19 @@ class MainActivity : ComponentActivity() {
     }
 
 }
+
+private val homeNavigationRoutes = Screen.MainScreens.map { it.route }.toSet()
+
+private fun Scene<NavKey>.currentRoute(): String? =
+    entries.lastOrNull()?.contentKey as? String
+
+private fun AnimatedContentTransitionScope<Scene<NavKey>>.usesHomeAlphaTransition(): Boolean {
+    return initialState.currentRoute() in homeNavigationRoutes &&
+        targetState.currentRoute() in homeNavigationRoutes
+}
+
+private fun AnimatedContentTransitionScope<Scene<NavKey>>.homeAlphaTransition(): ContentTransform =
+    fadeIn() togetherWith fadeOut()
 
 @Composable
 private fun MainGlassBackdrop() {

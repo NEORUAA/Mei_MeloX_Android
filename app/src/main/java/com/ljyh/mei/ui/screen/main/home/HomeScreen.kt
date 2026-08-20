@@ -50,8 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
-import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
+import com.ljyh.mei.ui.navigation.MeiNavigator
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.kyant.capsule.ContinuousRoundedRectangle
@@ -96,7 +95,7 @@ fun HomeScreen(
     playerViewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val navController = LocalNavController.current
-    val backStackEntry by navController.currentBackStackEntryAsState()
+    val backStackEntry = navController.currentBackStackEntry
     val scrollToTop by backStackEntry?.savedStateHandle
         ?.getStateFlow("scrollToTop", false)
         ?.collectAsState(initial = false) ?: remember { mutableStateOf(false) }
@@ -200,7 +199,7 @@ fun HomeScreen(
 @Composable
 private fun HomeBlockItem(
     block: HomePageResourceShow.Data.Block,
-    navController: NavController,
+    navController: MeiNavigator,
     viewModel: HomeViewModel,
     playerViewModel: PlayerViewModel,
     device: com.ljyh.mei.ui.component.utils.DeviceInfo

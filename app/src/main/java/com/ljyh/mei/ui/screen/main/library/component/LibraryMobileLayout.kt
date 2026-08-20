@@ -339,7 +339,7 @@ private fun LibraryMediaRow(
 
 @Composable
 private fun LibraryPodcastContent(
-    navController: androidx.navigation.NavController,
+    navController: com.ljyh.mei.ui.navigation.MeiNavigator,
     viewModel: PodcastViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()

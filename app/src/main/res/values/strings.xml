@@ -451,6 +451,7 @@
     <string name="library_collected_playlists">Playlists</string>
     <string name="library_collected_albums">Albums</string>
     <string name="library_local_music">Local Music</string>
+    <string name="local_music_all_songs">All Songs</string>
     <string name="library_empty_created">No created playlists</string>
     <string name="library_empty_collected">No collected playlists</string>
     <string name="library_empty_albums">No collected albums</string>

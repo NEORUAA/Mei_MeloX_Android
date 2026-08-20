@@ -14,7 +14,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
-import androidx.navigation.NavController
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.ui.component.player.OverlayState
@@ -25,6 +24,7 @@ import com.ljyh.mei.ui.component.player.enterFloatingLyricsPip
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.ui.screen.playlist.PlaylistTrackAddOutcome
+import com.ljyh.mei.ui.navigation.MeiNavigator
 
 /**
  * 播放器弹窗处理器
@@ -34,7 +34,7 @@ import com.ljyh.mei.ui.screen.playlist.PlaylistTrackAddOutcome
 class PlayerOverlayHandler(
     private val stateContainer: PlayerStateContainer,
     private val playlistViewModel: PlaylistViewModel,
-    private val navController: NavController,
+    private val navController: MeiNavigator,
     private val context: android.content.Context
 ) {
     private val _currentOverlay = mutableStateOf<OverlayState>(OverlayState.None)
@@ -230,7 +230,7 @@ class PlayerOverlayHandler(
 fun rememberOverlayHandler(
     stateContainer: PlayerStateContainer,
     playlistViewModel: PlaylistViewModel,
-    navController: NavController
+    navController: MeiNavigator
 ): PlayerOverlayHandler {
     val context = LocalContext.current
 

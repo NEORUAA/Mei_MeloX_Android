@@ -450,6 +450,7 @@
     <string name="library_collected_playlists">收藏歌单</string>
     <string name="library_collected_albums">收藏专辑</string>
     <string name="library_local_music">本地音乐</string>
+    <string name="local_music_all_songs">全部歌曲</string>
     <string name="library_empty_created">暂无创建歌单</string>
     <string name="library_empty_collected">暂无收藏歌单</string>
     <string name="library_empty_albums">暂无收藏专辑</string>

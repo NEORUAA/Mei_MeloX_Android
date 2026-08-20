@@ -34,7 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
-import androidx.navigation.NavController
+import com.ljyh.mei.ui.navigation.MeiNavigator
 import coil3.compose.AsyncImage
 import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
@@ -213,7 +213,7 @@ fun ErrorView(message: String) {
 fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
     data: SearchResult,
     type: SearchType,
-    navController: NavController,
+    navController: MeiNavigator,
     onSongMore: (com.ljyh.mei.data.model.MediaMetadata) -> Unit,
     onSongClick: (List<SearchResult.Result.Song>, Int) -> Unit
 ) {

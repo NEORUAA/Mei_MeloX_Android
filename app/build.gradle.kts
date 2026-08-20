@@ -76,6 +76,8 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
+    implementation("top.yukonga.miuix.kmp:miuix-navigation3-ui-android:0.9.3")
+    implementation("androidx.navigation3:navigation3-runtime:1.1.4")
     implementation(libs.media3)
     implementation(libs.media3.session)
     implementation(libs.media3.okhttp)

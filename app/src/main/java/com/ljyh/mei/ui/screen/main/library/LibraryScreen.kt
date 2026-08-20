@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.navigation.NavController
+import com.ljyh.mei.ui.navigation.MeiNavigator
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.UserAvatarUrlKey
 import com.ljyh.mei.constants.UserIdKey
@@ -189,7 +189,7 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
 }
 
 @Composable
-fun EmptyLoginState(navController: NavController) {
+fun EmptyLoginState(navController: MeiNavigator) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center

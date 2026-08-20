@@ -1,8 +1,8 @@
 package com.ljyh.mei.ui.local
 
 import androidx.compose.runtime.compositionLocalOf
-import androidx.navigation.NavController
+import com.ljyh.mei.ui.navigation.MeiNavigator
 
-val LocalNavController = compositionLocalOf<NavController> {
+val LocalNavController = compositionLocalOf<MeiNavigator> {
     error("Did not init yet!")
 }
