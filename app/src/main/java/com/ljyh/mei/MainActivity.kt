@@ -379,6 +379,14 @@ class MainActivity : ComponentActivity() {
                     statusBarStyle = SystemBarStyle.auto(transparent, transparent) { effectiveDark },
                     navigationBarStyle = SystemBarStyle.auto(transparent, transparent) { effectiveDark },
                 )
+                // Keep the navigation bar transparent instead of applying the platform contrast scrim.
+                window.navigationBarColor = transparent
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    window.isNavigationBarContrastEnforced = false
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    window.navigationBarDividerColor = transparent
+                }
             }
             MusicTheme(
                 seedColor = if (dynamicTheme) targetThemeColor else Color(accentColorArgb.toInt()),

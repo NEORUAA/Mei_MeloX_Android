@@ -1,11 +1,8 @@
 package com.ljyh.mei.ui.screen.main.library
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,13 +24,10 @@ import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.constants.UserNicknameKey
 import com.ljyh.mei.constants.UserPhotoKey
 import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.model.toAlbum
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.ui.screen.main.library.component.ImmersiveBackground
 import com.ljyh.mei.ui.screen.main.library.component.LibraryMobileLayout
-import com.ljyh.mei.ui.screen.main.library.component.LibraryTabletLayout
 import com.ljyh.mei.ui.screen.main.library.component.PhotoPickerSheet
 import com.ljyh.mei.ui.navigation.LibraryPage
 import com.ljyh.mei.utils.rememberPreference
@@ -41,7 +35,6 @@ import com.ljyh.mei.utils.rememberPreference
 @Composable
 fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
     val navController = LocalNavController.current
-    val device = rememberDeviceInfo()
     val account by viewModel.account.collectAsState()
     val photoAlbum by viewModel.photoAlbum.collectAsState()
     val localPlaylists by viewModel.localPlaylists.collectAsState()
@@ -53,8 +46,8 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
 
     // Preferences
     val (userId, setUserId) = rememberPreference(UserIdKey, "")
-    val (userNickname, setUserNickname) = rememberPreference(UserNicknameKey, "")
-    val (userAvatarUrl, setUserAvatarUrl) = rememberPreference(UserAvatarUrlKey, "")
+    val (_, setUserNickname) = rememberPreference(UserNicknameKey, "")
+    val (_, setUserAvatarUrl) = rememberPreference(UserAvatarUrlKey, "")
     val (userPhoto, setUserPhoto) = rememberPreference(UserPhotoKey, "")
     val cookie by rememberPreference(CookieKey, defaultValue = "")
 
@@ -131,48 +124,26 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
     Box(modifier = Modifier.fillMaxSize()) {
 
         if (userId.isNotEmpty()) {
-            if (device.isTablet && device.isLandscape) {
-                // 平板布局
-                LibraryTabletLayout(
-                    userNickname = userNickname,
-                    userAvatarUrl = userAvatarUrl,
-                    userPhoto = userPhoto,
-                    selectedTabIndex = if (selectedPage == LibraryPage.Playlists) 1 else 0,
-                    onTabSelect = { selectedPage = if (it == 1) LibraryPage.Playlists else LibraryPage.Songs },
-                    onAvatarClick = { Screen.AccountHome.navigate(navController) },
-                    createdPlaylists = createdPlaylists,
-                    collectedPlaylists = collectedPlaylists,
-                    albums = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.map { it.toAlbum() } else emptyList(),
-                    onAlbumClick = { id->
-                        Screen.Album.navigate(navController) { addPath(id) }
-                    },
-                    onPlaylistClick = { id->
-                        Screen.PlayList.navigate(navController) { addPath(id) }
-                    }
-                )
-            } else {
-                // 手机布局 (保持你原来的代码逻辑)
-                LibraryMobileLayout(
-                    userPhoto = userPhoto,
-                    selectedPage = selectedPage,
-                    onPageSelect = { selectedPage = it },
-                    createdPlaylists = createdPlaylists,
-                    collectedPlaylists = collectedPlaylists,
-                    albums = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.map { it.toAlbum() } else emptyList(),
-                    onPlaylistClick = { id->
-                        Screen.PlayList.navigate(navController) { addPath(id) }
-                    },
-                    onAlbumClick = { id->
-                        Screen.Album.navigate(navController) { addPath(id) }
-                    },
-                    userId = userId,
-                    likedSongs = likedSongs,
-                    // Keep the spinner up until the liked-playlist id is known and the
-                    // first detail request finishes; otherwise the empty state flashes.
-                    likedSongsLoading = networkPlaylists is Resource.Loading ||
-                        (likedPlaylistId != null && likedSongsLoading),
-                )
-            }
+            LibraryMobileLayout(
+                userPhoto = userPhoto,
+                selectedPage = selectedPage,
+                onPageSelect = { selectedPage = it },
+                createdPlaylists = createdPlaylists,
+                collectedPlaylists = collectedPlaylists,
+                albums = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.map { it.toAlbum() } else emptyList(),
+                onPlaylistClick = { id->
+                    Screen.PlayList.navigate(navController) { addPath(id) }
+                },
+                onAlbumClick = { id->
+                    Screen.Album.navigate(navController) { addPath(id) }
+                },
+                userId = userId,
+                likedSongs = likedSongs,
+                // Keep the spinner up until the liked-playlist id is known and the
+                // first detail request finishes; otherwise the empty state flashes.
+                likedSongsLoading = networkPlaylists is Resource.Loading ||
+                    (likedPlaylistId != null && likedSongsLoading),
+            )
 
             if (showPhotoPicker) {
                 PhotoPickerSheet(
