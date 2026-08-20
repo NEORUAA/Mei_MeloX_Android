@@ -19,6 +19,7 @@ import okhttp3.Request
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
 import androidx.core.graphics.createBitmap
+import com.ljyh.mei.playback.DownloadWorker
 
 fun String.smallImage(): String {
     if (this.startsWith("/")) return this
@@ -54,7 +55,7 @@ class CoilImageLoader {
 }
 
 object ImageUtils {
-    private val httpClient = OkHttpClient.Builder()
+    private val httpClient = DownloadWorker.getDownloadClient().newBuilder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
@@ -115,5 +116,3 @@ object ImageUtils {
         }
     }
 }
-
-

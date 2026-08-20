@@ -69,7 +69,18 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
     }
     val (createdPlaylists, collectedPlaylists) = remember(visiblePlaylists, userId) {
         if (userId.isEmpty()) Pair(emptyList(), emptyList())
-        else visiblePlaylists.partition { it.author == userId }
+        else {
+            val (created, collected) = visiblePlaylists.partition { it.author == userId }
+            fun sorted(playlists: List<com.ljyh.mei.data.model.room.Playlist>): List<com.ljyh.mei.data.model.room.Playlist> {
+                val maxLocalPlayCount = playlists.maxOfOrNull { it.localPlayCount } ?: 1
+                val maxServerPlayCount = playlists.maxOfOrNull { it.playCount } ?: 1L
+                val now = System.currentTimeMillis()
+                return playlists.sortedByDescending {
+                    it.sortScore(maxLocalPlayCount, maxServerPlayCount, now)
+                }
+            }
+            Pair(sorted(created), sorted(collected))
+        }
     }
 
     // --- 数据同步逻辑 ---

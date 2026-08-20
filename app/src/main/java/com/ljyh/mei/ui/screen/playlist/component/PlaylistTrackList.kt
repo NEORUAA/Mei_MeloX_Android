@@ -49,7 +49,8 @@ fun PlaylistTrackList(
     onMoreClick: (MediaMetadata) -> Unit,
     onTrackDownload: ((MediaMetadata) -> Unit)? = null,
     lazyListState: LazyListState = rememberLazyListState(),
-    contentPadding: PaddingValues = PaddingValues(0.dp)
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    emptyMessage: String? = null
 ) {
 
     val playlistTrackTableHeader by rememberPreference(PlaylistTrackTableHeaderKey,  false)
@@ -113,7 +114,36 @@ fun PlaylistTrackList(
 
                     else -> {}
                 }
+
+                if (
+                    emptyMessage != null &&
+                    pagingItems.itemCount == 0 &&
+                    pagingItems.loadState.refresh is LoadState.NotLoading
+                ) {
+                    item {
+                        Text(
+                            text = emptyMessage,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            textAlign = TextAlign.Center,
+                            color = LocalGlassColors.current.secondaryContent
+                        )
+                    }
+                }
             } else {
+                if (emptyMessage != null && staticTracks.isEmpty()) {
+                    item {
+                        Text(
+                            text = emptyMessage,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            textAlign = TextAlign.Center,
+                            color = LocalGlassColors.current.secondaryContent
+                        )
+                    }
+                }
                 itemsIndexed(staticTracks, key = { _, item -> item.id }) { index, track ->
                     Track(
                         track = track,
@@ -141,6 +171,7 @@ fun LazyListScope.playlistTrackItems(
     showTableHeader: Boolean,
     onTrackClick: (MediaMetadata, Int) -> Unit,
     onMoreClick: (MediaMetadata) -> Unit,
+    emptyMessage: String? = null,
 ) {
     item(key = "playlist-tracks") {
         IosGroupedList {
@@ -186,6 +217,15 @@ fun LazyListScope.playlistTrackItems(
 
                     else -> Unit
                 }
+            }
+
+            if (emptyMessage != null && itemCount == 0) {
+                Text(
+                    text = emptyMessage,
+                    color = LocalGlassColors.current.secondaryContent,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+                    textAlign = TextAlign.Center,
+                )
             }
         }
     }

@@ -12,7 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +28,7 @@ import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
+import com.ljyh.mei.ui.screen.playlist.matchesPlaylistSearch
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,13 +77,21 @@ fun EveryDay(
         }
     }
 
+    var isDailySearchActive by remember { mutableStateOf(false) }
+    var dailySearchQuery by remember { mutableStateOf("") }
+    val displayedUiData = remember(uiData, dailySearchQuery) {
+        if (dailySearchQuery.isBlank()) uiData else uiData.copy(
+            tracks = uiData.tracks.filter { it.matchesPlaylistSearch(dailySearchQuery) }
+        )
+    }
+
     if (everyDaySongs is Resource.Error) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Error: ${(everyDaySongs as Resource.Error).message}")
         }
     } else {
         CommonSongListScreen(
-            uiData = uiData,
+            uiData = displayedUiData,
             pagingItems = null,
             isLoading = isLoading,
             onPlayAll = {
@@ -112,13 +123,21 @@ fun EveryDay(
                                 id = "dailySongs",
                                 title = uiData.title,
                                 items = allIds,
-                                startIndex = index
+                                startIndex = uiData.tracks.indexOfFirst { it.id == mediaMetadata.id }
+                                    .takeIf { it >= 0 } ?: index
                             )
                         } else {
                             null
                         }
                     }
                 )
+            },
+            playlistSearchQuery = dailySearchQuery,
+            isPlaylistSearchActive = isDailySearchActive,
+            onPlaylistSearchQueryChange = { dailySearchQuery = it },
+            onPlaylistSearchActiveChange = { active ->
+                isDailySearchActive = active
+                if (!active) dailySearchQuery = ""
             },
             onBack = {
                 navController.popBackStack()

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,7 +25,9 @@ import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.glass.GlassButton
+import com.ljyh.mei.ui.glass.GlassIconButton
 import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.IosTextField
 import com.ljyh.mei.ui.glass.IosTypography
 import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.SfIcon
@@ -52,6 +55,10 @@ fun CommonSongListScreen(
     onTrackClick: (MediaMetadata, Int) -> Unit,
     onTrackDownload: ((MediaMetadata) -> Unit)? = null,
     onBack: () -> Unit,
+    playlistSearchQuery: String = "",
+    isPlaylistSearchActive: Boolean = false,
+    onPlaylistSearchQueryChange: ((String) -> Unit)? = null,
+    onPlaylistSearchActiveChange: (Boolean) -> Unit = {},
     viewModel: PlaylistViewModel = hiltViewModel(),
 ) {
     val device = rememberDeviceInfo()
@@ -75,6 +82,34 @@ fun CommonSongListScreen(
             showsLargeTitle = false,
             bottomPadding = bottomPadding,
             onNavigateBack = onBack,
+            actions = {
+                if (onPlaylistSearchQueryChange != null) {
+                    if (isPlaylistSearchActive) {
+                        IosTextField(
+                            value = playlistSearchQuery,
+                            onValueChange = onPlaylistSearchQueryChange,
+                            modifier = Modifier.width(180.dp),
+                            placeholder = "搜索歌名、歌手或专辑",
+                        )
+                    }
+                    GlassIconButton(
+                        onClick = {
+                            if (isPlaylistSearchActive) {
+                                onPlaylistSearchQueryChange("")
+                                onPlaylistSearchActiveChange(false)
+                            } else {
+                                onPlaylistSearchActiveChange(true)
+                            }
+                        },
+                    ) {
+                        SfIcon(
+                            if (isPlaylistSearchActive) SfSymbol.Close else SfSymbol.Search,
+                            if (isPlaylistSearchActive) "关闭歌单搜索" else "搜索歌单",
+                            size = 20.dp,
+                        )
+                    }
+                }
+            },
         ) {
             if (isLoading) {
                 item(key = "playlist-loading") {
@@ -107,6 +142,8 @@ fun CommonSongListScreen(
                     showTableHeader = playlistTrackTableHeader,
                     onTrackClick = onTrackClick,
                     onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
+                    emptyMessage = playlistSearchQuery.takeIf { it.isNotBlank() }
+                        ?.let { "未找到匹配的歌曲" },
                 )
             }
         }

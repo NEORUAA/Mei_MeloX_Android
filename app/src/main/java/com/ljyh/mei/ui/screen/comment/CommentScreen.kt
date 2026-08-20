@@ -16,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.LoadState
@@ -26,6 +27,9 @@ import com.ljyh.mei.ui.screen.comment.component.CommentItem
 import com.ljyh.mei.ui.screen.comment.component.CommentTopBar
 import com.ljyh.mei.ui.screen.comment.component.CommentSortAction
 import com.ljyh.mei.ui.glass.IosPinnedPage
+import com.ljyh.mei.ui.glass.GlassIconButton
+import com.ljyh.mei.ui.glass.SfIcon
+import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.asPaddingValues
@@ -41,6 +45,7 @@ fun CommentScreen(
     val sortType by viewModel.sortType.collectAsState()
     val total by viewModel.total.collectAsState()
     val expandedCommentId by viewModel.expandedCommentId.collectAsState()
+    val expandedFloorCount by viewModel.expandedFloorCount.collectAsState()
     val floorComments by viewModel.floorComments.collectAsState()
 
     val pagingItems = viewModel.pagingData.collectAsLazyPagingItems()
@@ -57,6 +62,23 @@ fun CommentScreen(
         bottomPadding = bottomPadding,
         onNavigateBack = { navController.popBackStack() },
         actions = {
+            if (expandedCommentId != null &&
+                expandedFloorCount > 10 &&
+                floorComments is com.ljyh.mei.data.network.Resource.Success
+            ) {
+                GlassIconButton(
+                    onClick = {
+                        expandedCommentId?.let { viewModel.toggleFloorComments(it, expandedFloorCount) }
+                    },
+                ) {
+                    SfIcon(
+                        SfSymbol.ChevronBack,
+                        "收起回复",
+                        modifier = Modifier.rotate(90f),
+                        mirrored = true,
+                    )
+                }
+            }
             CommentSortAction(sortType) { viewModel.setSortType(it) }
         },
     ) { paddingValues ->

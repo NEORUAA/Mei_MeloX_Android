@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.di.NeteaseInterceptor
+import com.ljyh.mei.playback.DownloadWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -20,9 +21,10 @@ object LyricFetcher {
         .addInterceptor(NeteaseInterceptor())
         .build()
 
-    private val amllClient = OkHttpClient.Builder()
+    private val amllClient = DownloadWorker.getDownloadClient().newBuilder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
+        .connectionPool(DownloadWorker.getDownloadClient().connectionPool)
         .build()
 
     private val gson = Gson()
