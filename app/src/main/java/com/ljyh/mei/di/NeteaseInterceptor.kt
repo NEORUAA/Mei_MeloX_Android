@@ -77,13 +77,26 @@ class NeteaseInterceptor : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
         val url = originalRequest.url.toString()
-        val cryptoMode = determineCryptoMethod(url)
+        val cryptoMode = originalRequest.header(CRYPTO_MODE_HEADER) ?: determineCryptoMethod(url)
         val builder = originalRequest.newBuilder()
+            .removeHeader(CRYPTO_MODE_HEADER)
+            .removeHeader(CHECK_TOKEN_HEADER)
+
+        if (cryptoMode == "eapi" && "/api/" in originalRequest.url.encodedPath) {
+            builder.url(
+                originalRequest.url.newBuilder()
+                    .encodedPath(originalRequest.url.encodedPath.replaceFirst("/api/", "/eapi/"))
+                    .build()
+            )
+        }
 
         val config = if (cryptoMode == "eapi") EAPI_CONFIG else ANDROID_CONFIG
 
         val deviceId = AppContext.instance.dataStore[DeviceIdKey] ?: getDeviceId()
         val musicU = AppContext.instance.dataStore[CookieKey] ?: ""
+        val rawBody = getBodyString(originalRequest.body)
+        val requiresCheckToken = originalRequest.header(CHECK_TOKEN_HEADER) == "true" ||
+            rawBody.contains("\"checkToken\"")
         val requestId = "${System.currentTimeMillis()}_${(Math.random() * 1000).toInt().toString().padStart(4, '0')}"
 
         val cookieMap = buildMap {
@@ -112,6 +125,9 @@ class NeteaseInterceptor : Interceptor {
             if (musicU.isNotEmpty()) {
                 put("MUSIC_U", musicU)
             }
+            if (requiresCheckToken) {
+                put("X-antiCheatToken", checkToken)
+            }
         }
 
         val neteaseHeader = NeteaseHeader(
@@ -129,7 +145,19 @@ class NeteaseInterceptor : Interceptor {
         ).apply {
             if (musicU.isNotEmpty()) this.MUSIC_U = musicU
         }
-        builder.addHeader("Cookie", buildCookieString(cookieMap))
+        val useEApiHeaderCookie = cryptoMode == "eapi" &&
+            originalRequest.url.encodedPath in setOf(
+                "/api/playlist/subscribe",
+                "/api/playlist/unsubscribe",
+            )
+        builder.addHeader(
+            "Cookie",
+            if (useEApiHeaderCookie) {
+                buildEApiCookieString(neteaseHeader, requiresCheckToken)
+            } else {
+                buildCookieString(cookieMap)
+            },
+        )
 
         // UA 处理：
         // weapi: 永远使用 PC Web UA (Chrome/Edge)，这是 weapi 协议的特性
@@ -148,7 +176,14 @@ class NeteaseInterceptor : Interceptor {
         builder.addHeader("X-Real-IP", fakeIP)
         builder.addHeader("X-Forwarded-For", fakeIP)
 
-        handleRequestEncryption(builder, originalRequest, cryptoMode, url, neteaseHeader)
+        handleRequestEncryption(
+            builder = builder,
+            originalRequest = originalRequest,
+            cryptoMode = cryptoMode,
+            url = url,
+            headerObj = neteaseHeader,
+            requiresCheckToken = requiresCheckToken,
+        )
 
         val response = chain.proceed(builder.build())
         return handleResponseDecryption(response, cryptoMode)
@@ -160,12 +195,35 @@ class NeteaseInterceptor : Interceptor {
         }
     }
 
+    private fun buildEApiCookieString(
+        headerObj: NeteaseHeader,
+        requiresCheckToken: Boolean,
+    ): String {
+        val headerJson = gson.toJsonTree(headerObj).asJsonObject.apply {
+            if (requiresCheckToken) {
+                addProperty("X-antiCheatToken", checkToken)
+            }
+        }
+        return headerJson.entrySet()
+            .sortedBy { it.key }
+            .joinToString("; ") { (key, value) ->
+                "${encodeCookieComponent(key)}=${encodeCookieComponent(value.asString)}"
+            }
+    }
+
+    private fun encodeCookieComponent(value: String): String {
+        return java.net.URLEncoder.encode(value, Charsets.UTF_8.name())
+            .replace("+", "%20")
+            .replace("%7E", "~")
+    }
+
     private fun handleRequestEncryption(
         builder: Request.Builder,
         originalRequest: Request,
         cryptoMode: String,
         url: String,
-        headerObj: NeteaseHeader
+        headerObj: NeteaseHeader,
+        requiresCheckToken: Boolean,
     ) {
         val rawBody = getBodyString(originalRequest.body)
 
@@ -190,14 +248,17 @@ class NeteaseInterceptor : Interceptor {
                         mutableMapOf()
                     }
 
-                bodyMap["header"] = gson.toJson(headerObj)
-                if(rawBody.contains("checkToken") && (cryptoMode == "api" || cryptoMode == "eapi")){
-                    builder.addHeader("X-antiCheatToken", checkToken)
+                val headerJson = gson.toJsonTree(headerObj).asJsonObject
+                if (requiresCheckToken) {
+                    headerJson.addProperty("X-antiCheatToken", checkToken)
                 }
-                // bodyMap["e_r"] = true // 可选，如果遇到 buffer 问题可开启
+                bodyMap["header"] = headerJson
+                bodyMap["e_r"] = false
 
                 val newBodyJson = gson.toJson(bodyMap)
-                val apiPath = url.replace("https://interface.music.163.com", "").replace("eapi", "api")
+                val apiPath = url
+                    .replace("https://interface.music.163.com", "")
+                    .replaceFirst("/eapi/", "/api/")
 
                 val encryptedData = encryptEApi(apiPath, newBodyJson)
                 builder.post(FormBody.Builder().add("params", encryptedData.params).build())
@@ -233,6 +294,10 @@ class NeteaseInterceptor : Interceptor {
             if (encryptedBytes.isEmpty()) {
                 return response.newBuilder().body(encryptedBytes.toResponseBody(contentType)).build()
             }
+            val firstByte = encryptedBytes.firstOrNull { it.toInt() > 32 }
+            if (firstByte == '{'.code.toByte() || firstByte == '['.code.toByte()) {
+                return response.newBuilder().body(encryptedBytes.toResponseBody(contentType)).build()
+            }
             return runCatching {
                 Timber.tag("Decrypted Response").d("eapi")
                 decryptEApi(encryptedBytes).toResponseBody(contentType)
@@ -264,5 +329,10 @@ class NeteaseInterceptor : Interceptor {
             url.contains("/eapi/") -> "eapi"
             else -> "api"
         }
+    }
+
+    private companion object {
+        const val CRYPTO_MODE_HEADER = "X-Netease-Crypto"
+        const val CHECK_TOKEN_HEADER = "X-Netease-Check-Token"
     }
 }

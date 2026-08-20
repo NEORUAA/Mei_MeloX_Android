@@ -4,9 +4,10 @@ import com.ljyh.mei.data.model.AlbumPhoto
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
 import com.ljyh.mei.data.model.api.GetUserPhotoAlbum
-import com.ljyh.mei.data.model.api.SubscribePlaylist
+import com.ljyh.mei.data.model.api.EApiSubscribePlaylist
 import com.ljyh.mei.data.model.weapi.GetHomePageResourceShow
 import retrofit2.http.Body
+import retrofit2.http.Headers
 import retrofit2.http.POST
 
 
@@ -17,9 +18,11 @@ interface EApiService {
     @POST("/eapi/search/pc/complex/page/v3")
     suspend fun search(@Body body: GetUserPhotoAlbum): AlbumPhoto
 
+    @Headers("X-Netease-Crypto: eapi", "X-Netease-Check-Token: true")
     @POST("/api/playlist/subscribe")
-    suspend fun subscribePlaylist(@Body body: SubscribePlaylist): BaseResponse
+    suspend fun subscribePlaylist(@Body body: EApiSubscribePlaylist): BaseResponse
 
+    @Headers("X-Netease-Crypto: eapi", "X-Netease-Check-Token: true")
     @POST("/api/playlist/unsubscribe")
-    suspend fun unSubscribePlaylist(@Body body: SubscribePlaylist): BaseResponse
+    suspend fun unSubscribePlaylist(@Body body: EApiSubscribePlaylist): BaseResponse
 }

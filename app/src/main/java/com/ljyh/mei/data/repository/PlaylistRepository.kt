@@ -10,6 +10,7 @@ import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.api.CreatePlaylist
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.DeletePlaylist
+import com.ljyh.mei.data.model.api.EApiSubscribePlaylist
 import com.ljyh.mei.data.model.api.GetPlaylistDetail
 import com.ljyh.mei.data.model.api.GetSongUrl
 import com.ljyh.mei.data.model.api.GetSongUrlV1
@@ -124,8 +125,8 @@ class PlaylistRepository(
         return withContext(Dispatchers.IO) {
             safeApiCall {
                 eApiService.subscribePlaylist(
-                    SubscribePlaylist(
-                        id = id,
+                    EApiSubscribePlaylist(
+                        id = id.toLong(),
                         checkToken = checkToken
                     )
                 )
@@ -139,9 +140,8 @@ class PlaylistRepository(
         return withContext(Dispatchers.IO) {
             safeApiCall {
                 eApiService.unSubscribePlaylist(
-                    SubscribePlaylist(
-                        id = id,
-                        checkToken = checkToken
+                    EApiSubscribePlaylist(
+                        id = id.toLong(),
                     )
                 )
             }
