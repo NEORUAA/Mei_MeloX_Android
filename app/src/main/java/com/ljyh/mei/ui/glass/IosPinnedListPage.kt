@@ -88,6 +88,7 @@ fun IosPinnedListPage(
     subtitle: String? = null,
     listState: LazyListState = rememberLazyListState(),
     showsLargeTitle: Boolean = true,
+    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(10.dp),
     onNavigateBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     backgroundColor: Color? = null,
@@ -119,7 +120,7 @@ fun IosPinnedListPage(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = contentPadding,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = verticalArrangement,
         ) {
             if (showsLargeTitle) {
                 item(key = "ios-large-title:$title") {

@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.playlist
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -81,6 +82,7 @@ fun CommonSongListScreen(
             subtitle = uiData.creatorName.takeIf { it.isNotBlank() },
             showsLargeTitle = false,
             bottomPadding = bottomPadding,
+            verticalArrangement = Arrangement.spacedBy(0.dp),
             onNavigateBack = onBack,
             actions = {
                 if (onPlaylistSearchQueryChange != null) {

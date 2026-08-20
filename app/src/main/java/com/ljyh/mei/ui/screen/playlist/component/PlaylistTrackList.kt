@@ -1,7 +1,9 @@
 package com.ljyh.mei.ui.screen.playlist.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,6 +27,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
@@ -33,7 +38,6 @@ import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import com.ljyh.mei.constants.PlaylistTrackTableHeaderKey
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.ui.glass.IosGroupedList
 import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.component.item.Track
 import com.ljyh.mei.utils.rememberPreference
@@ -173,16 +177,31 @@ fun LazyListScope.playlistTrackItems(
     onMoreClick: (MediaMetadata) -> Unit,
     emptyMessage: String? = null,
 ) {
-    item(key = "playlist-tracks") {
-        IosGroupedList {
-            if (isTablet && showTableHeader) {
+    val itemCount = pagingItems?.itemCount ?: staticTracks.size
+    val hasAppendFooter = pagingItems?.loadState?.append.let { state ->
+        state is LoadState.Loading || state is LoadState.Error
+    }
+
+    if (isTablet && showTableHeader) {
+        item(key = "playlist-table-header") {
+            PlaylistSurface(isFirst = true, isLast = itemCount == 0 && !hasAppendFooter) {
                 TrackTableHeader()
             }
+        }
+    }
 
-            val itemCount = pagingItems?.itemCount ?: staticTracks.size
-            repeat(itemCount) { index ->
-                val track = pagingItems?.get(index) ?: staticTracks.getOrNull(index)
-                if (track != null) {
+    if (pagingItems != null) {
+        items(
+            count = pagingItems.itemCount,
+            key = pagingItems.itemKey { it.id },
+            contentType = pagingItems.itemContentType { "Track" },
+        ) { index ->
+            val track = pagingItems[index]
+            if (track != null) {
+                PlaylistSurface(
+                    isFirst = index == 0 && !(isTablet && showTableHeader),
+                    isLast = index == itemCount - 1 && !hasAppendFooter,
+                ) {
                     Track(
                         track = track,
                         index = index,
@@ -190,7 +209,7 @@ fun LazyListScope.playlistTrackItems(
                         onClick = { onTrackClick(track, index) },
                         onMoreClick = { onMoreClick(track) },
                     )
-                    if (index < itemCount - 1) {
+                    if (index < itemCount - 1 || hasAppendFooter) {
                         HorizontalDivider(
                             modifier = Modifier.padding(start = if (isTablet) 56.dp else 64.dp),
                             thickness = 0.5.dp,
@@ -199,36 +218,99 @@ fun LazyListScope.playlistTrackItems(
                     }
                 }
             }
+        }
 
-            if (pagingItems != null) {
-                when (pagingItems.loadState.append) {
-                    is LoadState.Loading -> Box(
+        when (pagingItems.loadState.append) {
+            is LoadState.Loading -> item(key = "playlist-append-loading") {
+                PlaylistSurface(isFirst = false, isLast = true) {
+                    Box(
                         Modifier.fillMaxWidth().padding(18.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
                     }
+                }
+            }
 
-                    is LoadState.Error -> Text(
+            is LoadState.Error -> item(key = "playlist-append-error") {
+                PlaylistSurface(isFirst = false, isLast = true) {
+                    Text(
                         text = androidx.compose.ui.res.stringResource(com.ljyh.mei.R.string.load_failed),
                         color = LocalGlassColors.current.secondaryContent,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     )
-
-                    else -> Unit
                 }
             }
 
-            if (emptyMessage != null && itemCount == 0) {
+            else -> Unit
+        }
+    } else {
+        itemsIndexed(staticTracks, key = { _, item -> item.id }) { index, track ->
+            PlaylistSurface(
+                isFirst = index == 0,
+                isLast = index == staticTracks.lastIndex,
+            ) {
+                Track(
+                    track = track,
+                    index = index,
+                    isTablet = isTablet,
+                    onClick = { onTrackClick(track, index) },
+                    onMoreClick = { onMoreClick(track) },
+                )
+                if (index < staticTracks.lastIndex) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = if (isTablet) 56.dp else 64.dp),
+                        thickness = 0.5.dp,
+                        color = LocalGlassColors.current.separator,
+                    )
+                }
+            }
+        }
+    }
+
+    if (
+        emptyMessage != null &&
+        itemCount == 0 &&
+        (pagingItems == null || pagingItems.loadState.refresh is LoadState.NotLoading)
+    ) {
+        item(key = "playlist-empty") {
+            PlaylistSurface(
+                isFirst = !(isTablet && showTableHeader),
+                isLast = true,
+            ) {
                 Text(
                     text = emptyMessage,
                     color = LocalGlassColors.current.secondaryContent,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 24.dp),
                     textAlign = TextAlign.Center,
                 )
             }
         }
     }
+}
+
+@Composable
+private fun PlaylistSurface(
+    isFirst: Boolean,
+    isLast: Boolean,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = LocalGlassColors.current
+    val shape = RoundedCornerShape(
+        topStart = if (isFirst) 26.dp else 0.dp,
+        topEnd = if (isFirst) 26.dp else 0.dp,
+        bottomStart = if (isLast) 26.dp else 0.dp,
+        bottomEnd = if (isLast) 26.dp else 0.dp,
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.elevatedBackground),
+        content = content,
+    )
 }
 
 
