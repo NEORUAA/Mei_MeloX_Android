@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -438,6 +439,9 @@ fun IosGroupedList(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = LocalGlassColors.current
+    val background = colors.elevatedBackground.copy(
+        alpha = LocalGroupedListBackgroundAlpha.current.coerceIn(0f, 1f),
+    )
     val shape = ContinuousRoundedRectangle(26.dp)
     Column(
         modifier
@@ -446,14 +450,14 @@ fun IosGroupedList(
                 if (framed) {
                     Modifier
                         .clip(shape)
-                        .background(colors.elevatedBackground, shape)
+                        .background(background, shape)
                         .drawWithContent {
                             drawContent()
                             // Hide only the first merged row's inset separator. Clipping the
                             // container prevents the cover leaking across the top corners.
                             val inset = 16.dp.toPx()
                             drawRect(
-                                color = colors.elevatedBackground,
+                                color = background,
                                 topLeft = androidx.compose.ui.geometry.Offset(inset, 0f),
                                 size = Size((size.width - inset * 2f).coerceAtLeast(0f), 1.dp.toPx()),
                             )
@@ -1189,7 +1193,7 @@ fun IosModalSheet(
     modifier: Modifier = Modifier,
     skipPartiallyExpanded: Boolean = true,
     backdrop: Backdrop = LocalGlassBackdrop.current,
-    contentWindowInsets: @Composable () -> WindowInsets = { WindowInsets(0) },
+    contentWindowInsets: @Composable () -> WindowInsets = { WindowInsets.statusBars },
     content: @Composable ColumnScope.() -> Unit,
 ) {
     ModalBottomSheet(

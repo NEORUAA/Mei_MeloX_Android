@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -58,6 +59,7 @@ import com.ljyh.mei.ui.glass.IosSheetSurface
 import com.ljyh.mei.ui.glass.IosTypography
 import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.LocalGlassDimensions
+import com.ljyh.mei.ui.glass.LocalGroupedListBackgroundAlpha
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.formatDuration
@@ -74,6 +76,9 @@ fun PlaylistContent(
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
     val colors = LocalGlassColors.current
+    val queueBackground = colors.elevatedBackground.copy(
+        alpha = LocalGroupedListBackgroundAlpha.current.coerceIn(0f, 1f),
+    )
     val lazyListState = rememberLazyListState()
     val hapticFeedback = LocalHapticFeedback.current
     val mediaItems = remember {
@@ -137,7 +142,7 @@ fun PlaylistContent(
                     .weight(1f)
                     .padding(horizontal = 16.dp)
                     .clip(ContinuousRoundedRectangle(LocalGlassDimensions.current.regularCornerRadius))
-                    .background(colors.elevatedBackground),
+                    .background(queueBackground),
                 state = lazyListState,
             ) {
                 itemsIndexed(mediaItems, key = { _, item -> item.mediaId }) { index, mediaItem ->
@@ -195,7 +200,7 @@ fun PlaylistBottomSheet(onDismiss: () -> Unit) {
         contentColor = LocalGlassColors.current.content,
         shape = screenShape,
         dragHandle = null,
-        contentWindowInsets = { WindowInsets(0) },
+        contentWindowInsets = { WindowInsets.statusBars },
     ) {
         IosSheetSurface(
             modifier = Modifier.fillMaxWidth().fillMaxHeight(0.82f),

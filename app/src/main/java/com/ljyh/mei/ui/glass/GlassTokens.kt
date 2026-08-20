@@ -109,6 +109,7 @@ val LocalGlassColors = staticCompositionLocalOf {
 /** Content color inherited by symbols and text placed inside a glass surface. */
 val LocalGlassContentColor = staticCompositionLocalOf<Color?> { null }
 val LocalGroupedListIconColor = staticCompositionLocalOf<Color?> { null }
+val LocalGroupedListBackgroundAlpha = staticCompositionLocalOf { 1f }
 
 val LocalGlassDimensions = staticCompositionLocalOf { GlassDimensions() }
 

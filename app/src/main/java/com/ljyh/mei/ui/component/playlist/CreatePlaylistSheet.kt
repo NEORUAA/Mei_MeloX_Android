@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -66,7 +68,7 @@ fun CreatePlaylistSheet(
 
     IosModalSheet(
         onDismissRequest = onDismiss,
-        contentWindowInsets = { WindowInsets.ime },
+        contentWindowInsets = { WindowInsets.statusBars.union(WindowInsets.ime) },
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 22.dp),

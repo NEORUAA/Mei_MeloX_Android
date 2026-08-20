@@ -32,6 +32,7 @@ import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.glass.LocalGlassBackdrop
+import com.ljyh.mei.ui.glass.LocalGroupedListBackgroundAlpha
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -136,7 +137,10 @@ fun BottomSheetPlayer(
     }
 
     // 公共的弹窗处理层
-    CompositionLocalProvider(LocalGlassBackdrop provides playerBackdrop) {
+    CompositionLocalProvider(
+        LocalGlassBackdrop provides playerBackdrop,
+        LocalGroupedListBackgroundAlpha provides 0.55f,
+    ) {
         CommonOverlayHandler(
             overlayHandler = overlayHandler,
             stateContainer = stateContainer,

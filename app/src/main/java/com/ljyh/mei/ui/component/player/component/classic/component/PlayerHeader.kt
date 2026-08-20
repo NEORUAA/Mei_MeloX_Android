@@ -3,17 +3,16 @@ package com.ljyh.mei.ui.component.player.component.classic.component
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,9 +25,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.kyant.capsule.ContinuousRoundedRectangle
+import com.ljyh.mei.R
 import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.ui.glass.SfIcon
+import com.ljyh.mei.ui.glass.SfSymbol
 
 @Composable
 fun PlayerHeader(
@@ -118,27 +121,47 @@ fun PlayerHeader(
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.End
-        ){
-            IconButton(onClick = onLikeClick) {
-                Icon(
-                    imageVector = if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                    contentDescription = "Like",
-                    tint = iconColor.copy(alpha = 0.8f),
-                    modifier = Modifier.size(24.dp) // 稍微调整大小适配不同高度
-                )
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(end = 10.dp)
+        ) {
+            IconButton(
+                onClick = onLikeClick,
+                modifier = Modifier
+                    .size(34.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .requiredSize(34.dp)
+                        .background(Color.White.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    SfIcon(
+                        symbol = if (isLiked) SfSymbol.StarFilled else SfSymbol.Star,
+                        contentDescription = stringResource(R.string.app_tab_library_songs),
+                        tint = iconColor.copy(alpha = 0.8f),
+                        size = 22.dp,
+                    )
+                }
             }
             // 右侧：更多按钮
             IconButton(
                 onClick = onMoreClick,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier
+                    .size(34.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "更多选项",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .requiredSize(34.dp)
+                        .background(Color.White.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    SfIcon(
+                        symbol = SfSymbol.Ellipsis,
+                        contentDescription = stringResource(R.string.more_actions_title),
+                        tint = iconColor.copy(alpha = 0.8f),
+                        size = 22.dp,
+                    )
+                }
             }
         }
 

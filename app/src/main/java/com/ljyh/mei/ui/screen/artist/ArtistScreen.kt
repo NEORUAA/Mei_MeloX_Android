@@ -27,16 +27,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -50,7 +43,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -75,8 +67,7 @@ import com.ljyh.mei.ui.component.shimmer.ShimmerHost
 import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
 import com.ljyh.mei.ui.glass.GlassButton
 import com.ljyh.mei.ui.glass.GlassEmphasis
-import com.ljyh.mei.ui.glass.GlassIconButton
-import com.ljyh.mei.ui.glass.IosTopToolbar
+import com.ljyh.mei.ui.glass.IosPinnedPage
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -113,8 +104,6 @@ fun ArtistScreen(
                 .coerceIn(0f, 1f)
         }
     }
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
     LaunchedEffect(id) {
         viewModel.getArtistDetail(id)
         viewModel.getArtistAlbums(id)
@@ -130,29 +119,19 @@ fun ArtistScreen(
     }
 
     Box(Modifier.fillMaxSize()) {
-    Scaffold(
-        topBar = {
-            IosTopToolbar(
-                title = (artistDetail as? Resource.Success)?.data?.data?.artist?.name.orEmpty(),
-                collapseProgress = topBarCollapseProgress,
-                navigation = {
-                    GlassIconButton(onClick = navController::popBackStack) {
-                        SfIcon("chevron.left", "Back", mirrored = true)
-                    }
-                },
-            )
-        }
-    ) { paddingValues ->
-        LazyColumn(
-            state = scrollState,
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
-            // Hero 顶到状态栏下方，TopBar 悬浮其上
-            contentPadding = PaddingValues(
-                bottom = paddingValues.calculateBottomPadding() + LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-            )
-        ) {
+        IosPinnedPage(
+            title = (artistDetail as? Resource.Success)?.data?.data?.artist?.name.orEmpty(),
+            bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
+            collapseProgress = topBarCollapseProgress,
+            onNavigateBack = navController::popBackStack,
+        ) { contentPadding ->
+            LazyColumn(
+                state = scrollState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    bottom = contentPadding.calculateBottomPadding(),
+                ),
+            ) {
             // --- 1. Hero + Info Header ---
             item {
                 when (val detail = artistDetail) {
@@ -244,13 +223,13 @@ fun ArtistScreen(
                 }
                 is Resource.Error -> item { ErrorItem(albumsResource.message) }
             }
+            }
         }
-    }
-    StandaloneTrackActionOverlay(
-        overlay = currentOverlay,
-        onDismiss = { currentOverlay = OverlayState.None },
-        onUpdateOverlay = { currentOverlay = it },
-    )
+        StandaloneTrackActionOverlay(
+            overlay = currentOverlay,
+            onDismiss = { currentOverlay = OverlayState.None },
+            onUpdateOverlay = { currentOverlay = it },
+        )
     }
 }
 
