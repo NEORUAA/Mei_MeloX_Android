@@ -122,6 +122,7 @@ import com.ljyh.mei.constants.LastSelectedTabKey
 import com.ljyh.mei.constants.RecognizeClipboardLinksKey
 import com.ljyh.mei.constants.MiniPlayerHeight
 import com.ljyh.mei.constants.NavigationBarHeight
+import com.ljyh.mei.constants.NavigationBarBottomMargin
 import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.UserData
 import com.ljyh.mei.data.model.api.GetSongDetails
@@ -475,8 +476,13 @@ class MainActivity : ComponentActivity() {
                     val searchBarFocusRequester = remember { FocusRequester() }
                     // Keep the anchor stable while the navigation morphs. The mini player
                     // moves inside the collapsed host with the same continuous spring.
+                    val collapsedBottomReservation = if (shouldAllowNavigationBar || active) {
+                        NavigationBarHeight
+                    } else {
+                        NavigationBarBottomMargin
+                    }
                     val collapsedBound = bottomInset +
-                        (if (shouldAllowNavigationBar || active) NavigationBarHeight else 0.dp) +
+                        collapsedBottomReservation +
                         MiniPlayerHeight
 
                     val compactNavigationProgress by animateFloatAsState(
@@ -533,11 +539,18 @@ class MainActivity : ComponentActivity() {
                     val playerAwareWindowInsets = remember(
                         bottomInset,
                         shouldShowNavigationBar,
+                        shouldAllowNavigationBar,
+                        active,
                         playerBottomSheetState.isDismissed
                     ) {
                         var bottom = bottomInset
                         if (shouldShowNavigationBar) bottom += NavigationBarHeight
-                        if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
+                        if (!playerBottomSheetState.isDismissed) {
+                            bottom += MiniPlayerHeight
+                            if (!shouldAllowNavigationBar && !active) {
+                                bottom += NavigationBarBottomMargin
+                            }
+                        }
                         windowsInsets
                             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                             .add(
@@ -795,7 +808,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = 12.dp)
-                                        .padding(bottom = bottomInset + 8.dp),
+                                        .padding(bottom = bottomInset + NavigationBarBottomMargin),
                                 )
                             }
                         }
@@ -813,7 +826,7 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 12.dp)
-                                    .padding(bottom = bottomInset + 8.dp)
+                                    .padding(bottom = bottomInset + NavigationBarBottomMargin)
                                     .offset {
                                         val slideOffset =
                                             (bottomInset + NavigationBarHeight) *
