@@ -225,6 +225,7 @@
     <string name="about_acknowledgements">Open Source Acknowledgements</string>
     <string name="about_amll_description">High-quality word-synced lyrics</string>
     <string name="about_lyrics_ui_description">Expressive lyric rendering components</string>
+    <string name="about_backdrop_description">Compose Multiplatform fluid glass effects</string>
     <string name="about_developer_debug">Developer Diagnostics</string>
     <string name="about_developer_enabled">Developer diagnostics enabled</string>
     <string name="about_delete_lyrics">Delete AI Lyric Data</string>

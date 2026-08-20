@@ -260,6 +260,11 @@ class BottomSheetState(
         1f - (animatable.upperBound!! - animatable.value) / (animatable.upperBound!! - collapsedBound)
     }
 
+    /** Delays expanded-player artwork until the sheet has visibly left the mini-player. */
+    val revealProgress by derivedStateOf {
+        ((progress - 0.12f) / 0.28f).coerceIn(0f, 1f)
+    }
+
     fun collapse(animationSpec: AnimationSpec<Dp>) {
         onAnchorChanged(collapsedAnchor)
         coroutineScope.launch {

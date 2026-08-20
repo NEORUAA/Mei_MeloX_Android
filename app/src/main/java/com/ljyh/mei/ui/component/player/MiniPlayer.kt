@@ -181,7 +181,7 @@ fun MiniMediaInfo(
                     .onGloballyPositioned { coordinates ->
                         onCoverBoundsChanged?.invoke(coordinates.boundsInRoot())
                     }
-                    .alpha(0f)
+                    .alpha(1f)
                     .clip(ContinuousRoundedRectangle(ThumbnailCornerRadius)),
             )
             androidx.compose.animation.AnimatedVisibility(

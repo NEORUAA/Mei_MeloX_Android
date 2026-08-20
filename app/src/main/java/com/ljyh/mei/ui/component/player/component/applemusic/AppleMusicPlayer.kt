@@ -242,9 +242,9 @@ fun AppleMusicPlayer(
             val player = stateContainer.playerConnection.player as? ExoPlayer
             player?.audioSessionId?.let(audioVisualizerManager::attachToPlayer)
         }
-        val playerBackgroundAlpha = sheetProgress.coerceIn(0f, 1f).let { progress ->
-            progress * progress * (3f - 2f * progress)
-        }
+        // Keep the mesh and expanded artwork out of the first part of the capsule reveal;
+        // this avoids a bright frame flashing through the iOS glass transition.
+        val playerBackgroundAlpha = ((sheetProgress - 0.12f) / 0.28f).coerceIn(0f, 1f)
 
 
         // --- 3. UI Structure ---
@@ -496,6 +496,7 @@ fun AppleMusicPlayer(
             label = "CoverTransition",
             modifier = Modifier
                 .graphicsLayer {
+                    alpha = state.revealProgress
                     translationX = finalStart
                     translationY = finalTop
                     shadowElevation = mShadowElevation.toPx()
