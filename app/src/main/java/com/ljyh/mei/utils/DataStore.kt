@@ -113,12 +113,9 @@ inline fun <reified T : Enum<T>> rememberEnumPreference(
 
 // 辅助扩展函数保持不变
 inline fun <reified T : Enum<T>> String?.toEnum(defaultValue: T): T =
-    if (this == null) defaultValue
-    else try {
-        enumValueOf(this)
-    } catch (e: IllegalArgumentException) {
-        defaultValue
-    }
+    this?.let { value ->
+        enumValues<T>().firstOrNull { it.name.equals(value, ignoreCase = true) }
+    } ?: defaultValue
 
 fun String.toSQLiteQuery(): SimpleSQLiteQuery = SimpleSQLiteQuery(this)
 

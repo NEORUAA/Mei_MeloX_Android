@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -207,15 +206,11 @@ fun FluidProgressSlider(
             )
 
             // 中间：音质 (复用你原本的逻辑)
-            Text(
-                text = musicQuality.explanation,
+            PlayerQualityDropdown(
+                quality = musicQuality,
+                onQualitySelected = { playerConnection?.changeQuality(it) },
                 style = commonTextStyle.copy(fontSize = 10.sp),
                 color = Color.White.copy(alpha = 0.6f),
-                modifier = Modifier.clickable {
-                    playerConnection?.changeQuality(
-                        MusicQuality.entries[(musicQuality.ordinal + 1) % MusicQuality.entries.size],
-                    )
-                },
             )
 
             // 右侧：剩余时间 (Apple Music 风格通常显示剩余时间，即 "-03:45")

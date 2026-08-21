@@ -152,7 +152,7 @@ class PlayerConnection(
 
     fun changeQuality(quality: MusicQuality) {
         scope.launch {
-            service.dataStore.edit { it[MusicQualityKey] = quality.text }
+            service.dataStore.edit { it[MusicQualityKey] = quality.name }
             val index = player.currentMediaItemIndex
             val current = player.currentMediaItem ?: return@launch
             val position = player.currentPosition

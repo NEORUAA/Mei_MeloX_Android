@@ -8,7 +8,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -229,17 +228,11 @@ fun PlayerProgressSlider(
                 overflow = TextOverflow.Ellipsis,
             )
 
-            Text(
-                text = musicQuality.explanation,
+            PlayerQualityDropdown(
+                quality = musicQuality,
+                onQualitySelected = { playerConnection?.changeQuality(it) },
                 style = timeTextStyle,
                 color = Color.White.copy(alpha = 0.8f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.clickable {
-                    playerConnection?.changeQuality(
-                        MusicQuality.entries[(musicQuality.ordinal + 1) % MusicQuality.entries.size],
-                    )
-                },
             )
 
 
