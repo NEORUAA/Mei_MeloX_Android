@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -44,6 +45,7 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawPlainBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.runtimeShaderEffect
+import com.ljyh.mei.R
 
 private const val AlphaMaskShader = """
 uniform shader content;
@@ -232,7 +234,11 @@ fun IosPinnedPage(
                     navigation = onNavigateBack?.let { navigateBack ->
                         {
                             GlassIconButton(navigateBack) {
-                                SfIcon(SfSymbol.ChevronBack, null, mirrored = true)
+                                SfIcon(
+                                    SfSymbol.ChevronBack,
+                                    stringResource(R.string.navigation_back),
+                                    mirrored = true,
+                                )
                             }
                         }
                     },

@@ -518,8 +518,22 @@ fun IosListRow(
             Spacer(Modifier.width(12.dp))
         }
         Column(Modifier.weight(1f)) {
-            Text(title, style = IosTypography.body, color = colors.content)
-            subtitle?.let { Text(it, style = IosTypography.subheadline, color = colors.secondaryContent) }
+            Text(
+                title,
+                style = IosTypography.body,
+                color = colors.content,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            subtitle?.let {
+                Text(
+                    it,
+                    style = IosTypography.subheadline,
+                    color = colors.secondaryContent,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         detail?.let { Text(it, style = IosTypography.subheadline, color = colors.secondaryContent) }
         trailing?.invoke()

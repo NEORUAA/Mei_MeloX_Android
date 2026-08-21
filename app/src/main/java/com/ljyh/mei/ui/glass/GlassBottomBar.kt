@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
@@ -21,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -155,17 +157,6 @@ fun <T> GlassBottomBar(
     val compactState = rememberUpdatedState(compact)
     val onExpandState = rememberUpdatedState(onExpand)
     val selectedIndexState = rememberUpdatedState(selectedIndex)
-    val selectedIconTint = androidx.compose.ui.graphics.lerp(
-        colors.accent,
-        colors.content,
-        compact,
-    )
-    val selectedIconColorFilter = remember(selectedIconTint) {
-        ColorFilter.tint(selectedIconTint)
-    }
-    // Keep the filter holder stable while allowing the graphics layers to observe the current
-    // tint without invalidating the tab content composition on every morph frame.
-    val selectedIconColorFilterState = rememberUpdatedState(selectedIconColorFilter)
 
     BoxWithConstraints(modifier.height(64.dp), contentAlignment = Alignment.CenterStart) {
         val density = LocalDensity.current
@@ -281,7 +272,39 @@ fun <T> GlassBottomBar(
             { (1f - compactState.value * 1.35f).coerceIn(0f, 1f) }
         }
         val pressProgressState = dragAnimation.pressProgressState
-        val tabContentScale = remember(pressProgressState, compactState) {
+        val selectedIconColorFilterState: State<ColorFilter> = remember(
+            compactState,
+            pressProgressState,
+            colors.accent,
+            colors.content,
+        ) {
+            derivedStateOf {
+                val compactTint = androidx.compose.ui.graphics.lerp(
+                    colors.accent,
+                    colors.content,
+                    compactState.value,
+                )
+                ColorFilter.tint(
+                    androidx.compose.ui.graphics.lerp(
+                        compactTint,
+                        colors.content,
+                        pressProgressState.value,
+                    ),
+                )
+            }
+        }
+        val lensSourceAccentFilter = remember(colors.accent) {
+            ColorFilter.tint(colors.accent)
+        }
+        val lensSourceAccentModifier = remember(lensSourceAccentFilter) {
+            Modifier.graphicsLayer(colorFilter = lensSourceAccentFilter)
+        }
+        val visibleTabContentScale = remember(compactState) {
+            {
+                (1f - compactState.value).coerceAtLeast(CompactTabContentScaleFloor)
+            }
+        }
+        val lensSourceTabContentScale = remember(pressProgressState, compactState) {
             {
                 lerp(1f, 1.2f, pressProgressState.value) *
                     (1f - compactState.value).coerceAtLeast(CompactTabContentScaleFloor)
@@ -357,7 +380,7 @@ fun <T> GlassBottomBar(
                 )
         }
         val expandedIndicatorVisibilityState = rememberUpdatedState(expandedIndicatorVisibility)
-        val expandedIconOffsetYPx = with(density) { (-11).dp.toPx() }
+        val expandedIconOffsetYPx = with(density) { (-9.5).dp.toPx() }
         val indicatorPositionLayerBlock: GraphicsLayerScope.() -> Unit = remember(
             compactState,
             offsetAnimation,
@@ -497,9 +520,9 @@ fun <T> GlassBottomBar(
             Modifier
         }
 
-        // Keep the visible row and the Lens source in one stable morph tree. Both layers use
-        // the same bounds, padding, tab scale and selected-icon trajectory.
-        CompositionLocalProvider(LocalLiquidTabScale provides tabContentScale) {
+        // Keep both layers on the same navigation morph while limiting the press magnification
+        // to the hidden Lens source.
+        CompositionLocalProvider(LocalLiquidTabScale provides visibleTabContentScale) {
             Row(
                 modifier = Modifier
                     .width(surfaceWidth)
@@ -524,6 +547,7 @@ fun <T> GlassBottomBar(
                             onSelected = stableOnSelected,
                             enabled = compact < 0.74f,
                             alpha = tabContentAlpha,
+                            selectedColorFilter = selectedIconColorFilterState,
                             hideSelectedIcon = true,
                         )
                     }
@@ -543,8 +567,10 @@ fun <T> GlassBottomBar(
                     )
                 }
             }
+        }
 
-            if (compact < CompactIndicatorFadeEnd) {
+        if (compact < CompactIndicatorFadeEnd) {
+            CompositionLocalProvider(LocalLiquidTabScale provides lensSourceTabContentScale) {
                 Row(
                     modifier = Modifier
                         .clearAndSetSemantics {}
@@ -562,7 +588,8 @@ fun <T> GlassBottomBar(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxHeight(),
+                            .fillMaxHeight()
+                            .then(lensSourceAccentModifier),
                     ) {
                         Row(Modifier.fillMaxSize()) {
                             FullTabContent(
@@ -571,10 +598,12 @@ fun <T> GlassBottomBar(
                                 onSelected = stableOnSelected,
                                 // Keep the exported source interactive just like LiquidBottomTabs. It
                                 // is visually hidden, but it sits above the visible row in the hit-test tree.
-                                // The shared morph icon owns the selected tint; the source row keeps
-                                // the same unfiltered colors as the visible content.
+                                // The source content is accent-filtered as one unit so every item
+                                // sampled through the Lens uses the same emphasis color.
                                 enabled = compact < 0.74f,
                                 alpha = tabContentAlpha,
+                                selectedColorFilter = selectedIconColorFilterState,
+                                iconOffsetY = 1.5.dp,
                                 hideSelectedIcon = true,
                             )
                         }
@@ -638,6 +667,8 @@ private fun <T> androidx.compose.foundation.layout.RowScope.FullTabContent(
     onSelected: (T) -> Unit,
     enabled: Boolean,
     alpha: () -> Float,
+    selectedColorFilter: State<ColorFilter>,
+    iconOffsetY: Dp = 0.dp,
     hideSelectedIcon: Boolean = false,
 ) {
     val colors = LocalGlassColors.current
@@ -677,6 +708,7 @@ private fun <T> androidx.compose.foundation.layout.RowScope.FullTabContent(
                 weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                 modifier = Modifier
                     .padding(top = 3.dp)
+                    .offset(y = iconOffsetY)
                     .then(
                         if (selected) {
                             Modifier.graphicsLayer {
@@ -689,12 +721,22 @@ private fun <T> androidx.compose.foundation.layout.RowScope.FullTabContent(
             )
             Text(
                 text = item.label,
-                color = if (selected) colors.accent else colors.content,
+                color = colors.content,
                 style = IosTypography.caption,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 1.dp, bottom = 4.dp),
+                modifier = Modifier
+                    .padding(top = 1.dp, bottom = 4.dp)
+                    .then(
+                        if (selected) {
+                            Modifier.graphicsLayer {
+                                colorFilter = selectedColorFilter.value
+                            }
+                        } else {
+                            Modifier
+                        },
+                    ),
             )
         }
     }
