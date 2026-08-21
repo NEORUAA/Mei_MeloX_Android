@@ -205,7 +205,11 @@ private fun SearchResultRows(
                     val media = song.toMediaData()
                     IosListRow(
                         title = media.title,
-                        subtitle = media.artists.joinToString(" / ").takeIf(String::isNotBlank),
+                        subtitle = media.artists
+                            .map { it.name.trim() }
+                            .filter(String::isNotBlank)
+                            .joinToString(" / ")
+                            .takeIf(String::isNotBlank),
                         showTopSeparator = index > 0,
                         leading = {
                             AsyncImage(
