@@ -82,7 +82,7 @@ fun AboutScreen(viewModel: AboutViewModel = hiltViewModel()) {
                             }
                         },
                 )
-                Text("Mei_MeloX", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text("MeiloX", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Text(
                     stringResource(R.string.about_version, BuildConfig.VERSION_NAME),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -119,7 +119,7 @@ fun AboutScreen(viewModel: AboutViewModel = hiltViewModel()) {
         }
         item {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 24.dp).fillMaxWidth()) {
-                Text("Mei · ${LocalDate.now().year}", style = MaterialTheme.typography.labelSmall)
+                Text("MeiloX · ${LocalDate.now().year}", style = MaterialTheme.typography.labelSmall)
                 Text(
                     stringResource(R.string.about_compose),
                     style = MaterialTheme.typography.labelSmall,

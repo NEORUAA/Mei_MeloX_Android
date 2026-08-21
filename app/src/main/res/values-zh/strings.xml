@@ -75,8 +75,8 @@
     <string name="pip_pause">暂停</string>
     <string name="pip_next">下一首</string>
     <string name="lyrics_waiting">等待歌词</string>
-    <string name="app_name">梅</string>
-    <string name="app_name_en">Mei</string>
+    <string name="app_name">MeiloX</string>
+    <string name="app_name_en">MeiloX</string>
     <string name="music_player">音乐播放器</string>
     <string name="error_no_internet">无网络连接</string>
     <string name="error_timeout">请求超时</string>

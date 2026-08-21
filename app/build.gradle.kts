@@ -20,8 +20,8 @@ android {
         applicationId = "com.neoruaa.meilox"
         minSdk = 33
         targetSdk = 37
-        versionCode = 4
-        versionName = "1.53.6"
+        versionCode = 5
+        versionName = "1.54.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
