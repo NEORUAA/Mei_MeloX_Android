@@ -31,6 +31,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
@@ -153,6 +154,7 @@ import com.ljyh.mei.ui.glass.GlassIconButton
 import com.ljyh.mei.ui.glass.GlassTabItem
 import com.ljyh.mei.ui.glass.GlassSurfaceStyle
 import com.ljyh.mei.ui.glass.IosBottomSearchToolbar
+import com.ljyh.mei.ui.glass.CompactBottomControlIconSize
 import com.ljyh.mei.ui.glass.LocalGlassBackdrop
 import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.defaultGlassColors
@@ -763,23 +765,25 @@ class MainActivity : ComponentActivity() {
                                                     else MaterialTheme.colorScheme.background,
                                                 ),
                                         ) {
-                                            SearchScreen(
-                                                query = query.text,
-                                                onQueryChange = onQueryChange,
-                                                onSearch = { query, type ->
-                                                    Screen.SearchResult.navigate(navController){
-                                                        addPath(Uri.encode(query))
-                                                        addPath(type.toString())
-                                                    }
-                                                },
-                                                onDismiss = {
-                                                    onActiveChange(false)
-                                                },
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .padding(top = windowsInsets.asPaddingValues().calculateTopPadding())
-                                                    .padding(bottom = bottomInset + NavigationBarHeight),
-                                            )
+                                            if (query.text.isNotEmpty()) {
+                                                SearchScreen(
+                                                    query = query.text,
+                                                    onQueryChange = onQueryChange,
+                                                    onSearch = { query, type ->
+                                                        Screen.SearchResult.navigate(navController){
+                                                            addPath(Uri.encode(query))
+                                                            addPath(type.toString())
+                                                        }
+                                                    },
+                                                    onDismiss = {
+                                                        onActiveChange(false)
+                                                    },
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .padding(top = windowsInsets.asPaddingValues().calculateTopPadding())
+                                                        .padding(bottom = bottomInset + NavigationBarHeight),
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -869,27 +873,35 @@ class MainActivity : ComponentActivity() {
                                 compactSize = MiniPlayerHeight,
                                 modifier = Modifier.weight(1f),
                             )
-                                GlassIconButton(
-                                onClick = {
-                                    if (currentRoute != Screen.Search.route) {
-                                        navController.navigate(Screen.Search.route)
-                                    }
-                                    onActiveChange(true)
-                                },
-                                backdrop = bottomControlsBackdrop,
-                                style = GlassSurfaceStyle.Navigation,
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .size(64.dp - 16.dp * compactNavigationProgress),
+                                Spacer(Modifier.size(width = 8.dp, height = 1.dp))
+                                Box(
+                                    modifier = Modifier.size(64.dp),
+                                    contentAlignment = Alignment.CenterEnd,
                                 ) {
-                                SfIcon(
-                                    SfSymbol.Search,
-                                    contentDescription = stringResource(R.string.app_tab_search),
-                                    tint = com.ljyh.mei.ui.glass.LocalGlassColors.current.content,
-                                    size = 26.dp - 4.dp * compactNavigationProgress,
-                                    weight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                                )
-                            }
+                                    GlassIconButton(
+                                        onClick = {
+                                            if (currentRoute != Screen.Search.route) {
+                                                navController.navigate(Screen.Search.route)
+                                            }
+                                            onActiveChange(true)
+                                        },
+                                        backdrop = bottomControlsBackdrop,
+                                        style = GlassSurfaceStyle.Navigation,
+                                        modifier = Modifier.size(
+                                            64.dp - 16.dp * compactNavigationProgress,
+                                        ),
+                                    ) {
+                                        SfIcon(
+                                            SfSymbol.Search,
+                                            contentDescription = stringResource(R.string.app_tab_search),
+                                            tint = com.ljyh.mei.ui.glass.LocalGlassColors.current.content,
+                                            size = 26.dp +
+                                                (CompactBottomControlIconSize - 26.dp) *
+                                                compactNavigationProgress,
+                                            weight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                        )
+                                    }
+                                }
                             }
                         }
                         LaunchedEffect(recognizeClipboardLinks) {

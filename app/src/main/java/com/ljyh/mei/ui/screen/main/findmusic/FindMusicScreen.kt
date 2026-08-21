@@ -65,15 +65,22 @@ import java.util.Locale
 fun FindMusicScreen(
     viewModel: FindMusicViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
+    initialCategory: String? = null,
+    titleOverride: String? = null,
 ) {
     val navController = LocalNavController.current
     val playlistState by viewModel.highQualityPlaylist.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val listState = rememberLazyGridState()
     val collapseProgress = rememberIosGridCollapseProgress(listState)
-    val title = stringResource(R.string.app_tab_explore)
+    val title = titleOverride ?: stringResource(R.string.app_tab_explore)
     val bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
     val glassColors = LocalGlassColors.current
+    LaunchedEffect(initialCategory) {
+        if (!initialCategory.isNullOrEmpty() && initialCategory != selectedCategory) {
+            viewModel.onCategorySelected(initialCategory)
+        }
+    }
     LaunchedEffect(selectedCategory) { listState.scrollToItem(0) }
 
     IosPinnedPage(

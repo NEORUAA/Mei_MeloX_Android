@@ -1,23 +1,34 @@
 package com.ljyh.mei.ui.screen.search
 
 import android.net.Uri
+import androidx.annotation.StringRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,15 +36,23 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import coil3.compose.AsyncImage
+import com.kyant.capsule.ContinuousRoundedRectangle
 import com.ljyh.mei.R
+import com.ljyh.mei.constants.PodcastsEnabledKey
 import com.ljyh.mei.data.model.melox.SearchDiscovery
+import com.ljyh.mei.data.model.melox.SearchDiscoveryPlaylist
 import com.ljyh.mei.data.repository.MeloXRepository
-import com.ljyh.mei.ui.glass.GlassCard
+import com.ljyh.mei.ui.glass.GlassButton
+import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.IosTypography
+import com.ljyh.mei.ui.glass.LocalGlassColors
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.utils.rememberPreference
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,7 +62,7 @@ import javax.inject.Inject
 data class SearchDiscoveryState(
     val loading: Boolean = true,
     val discovery: SearchDiscovery? = null,
-    val error: String? = null,
+    val error: Boolean = false,
 )
 
 @HiltViewModel
@@ -57,72 +76,228 @@ class SearchDiscoveryViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true, error = null)
+            _state.value = _state.value.copy(loading = true, error = false)
             runCatching { repository.searchDiscovery() }
                 .onSuccess { _state.value = SearchDiscoveryState(loading = false, discovery = it) }
-                .onFailure { _state.value = _state.value.copy(loading = false, error = it.message) }
+                .onFailure { _state.value = _state.value.copy(loading = false, error = true) }
         }
     }
 }
+
+private data class SearchCategory(
+    @param:StringRes val titleRes: Int,
+    val apiName: String?,
+    val icon: SfSymbol,
+    val startColor: Color,
+    val endColor: Color,
+    val opensPodcasts: Boolean = false,
+)
+
+private val searchCategories = listOf(
+    SearchCategory(R.string.search_category_rankings, "排行榜", SfSymbol.MusicNoteList, Color(0xFF5B5CE2), Color(0xFF9A6BFF)),
+    SearchCategory(R.string.search_category_podcasts, null, SfSymbol.RadioWaves, Color(0xFFDB4B83), Color(0xFFFF8B6A), opensPodcasts = true),
+    SearchCategory(R.string.search_category_chinese, "华语", SfSymbol.MusicNote, Color(0xFF158CBA), Color(0xFF45D6C6)),
+    SearchCategory(R.string.search_category_western, "欧美", SfSymbol.Safari, Color(0xFF1776D2), Color(0xFF55B4FF)),
+    SearchCategory(R.string.search_category_japanese, "日语", SfSymbol.Sparkles, Color(0xFFE4568E), Color(0xFFFFA4C5)),
+    SearchCategory(R.string.search_category_korean, "韩语", SfSymbol.Sparkles, Color(0xFF7E55D9), Color(0xFFC185FF)),
+    SearchCategory(R.string.search_category_cantonese, "粤语", SfSymbol.Waveform, Color(0xFF008B8B), Color(0xFF43D6B2)),
+    SearchCategory(R.string.search_category_pop, "流行", SfSymbol.StarFilled, Color(0xFFFF7B39), Color(0xFFFFC34D)),
+    SearchCategory(R.string.search_category_rock, "摇滚", SfSymbol.MusicNote, Color(0xFFB92B27), Color(0xFFEB5757)),
+    SearchCategory(R.string.search_category_folk, "民谣", SfSymbol.MusicNote, Color(0xFF458C4B), Color(0xFF9CCB5B)),
+    SearchCategory(R.string.search_category_electronic, "电子", SfSymbol.Waveform, Color(0xFF3155C6), Color(0xFF4AC4FF)),
+    SearchCategory(R.string.search_category_rap, "说唱", SfSymbol.Microphone, Color(0xFF46318A), Color(0xFF8F68DC)),
+    SearchCategory(R.string.search_category_rnb_soul, "R&B/Soul", SfSymbol.MusicNote, Color(0xFF984EAB), Color(0xFFD98EDC)),
+    SearchCategory(R.string.search_category_classical, "古典", SfSymbol.MusicNoteList, Color(0xFF8B633B), Color(0xFFD5A86A)),
+    SearchCategory(R.string.search_category_acg, "ACG", SfSymbol.Sparkles, Color(0xFFE34B74), Color(0xFFFFA14A)),
+    SearchCategory(R.string.search_category_soundtrack, "影视原声", SfSymbol.MusicNote, Color(0xFF40506C), Color(0xFF7D9BC7)),
+    SearchCategory(R.string.search_category_study, "学习", SfSymbol.MusicNoteList, Color(0xFF2B7A78), Color(0xFF6BCB9E)),
+    SearchCategory(R.string.search_category_work, "工作", SfSymbol.Clock, Color(0xFF52616B), Color(0xFF8EA7B5)),
+    SearchCategory(R.string.search_category_relax, "放松", SfSymbol.Waveform, Color(0xFF348F50), Color(0xFF56B4D3)),
+    SearchCategory(R.string.search_category_night, "夜晚", SfSymbol.Clock, Color(0xFF24243E), Color(0xFF5D5D9B)),
+)
 
 @Composable
 fun SearchLandingScreen(viewModel: SearchDiscoveryViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
     val navController = LocalNavController.current
-    val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
-    fun search(keyword: String) {
-        Screen.SearchResult.navigate(navController) {
-            addPath(Uri.encode(keyword))
-            addPath(SearchType.Song.type.toString())
-        }
-    }
+    val bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+    val podcastsEnabled by rememberPreference(PodcastsEnabledKey, true)
+    val categories = searchCategories.filterNot { it.opensPodcasts && !podcastsEnabled }
+    val colors = LocalGlassColors.current
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = 16.dp, end = 16.dp,
-            top = insets.calculateTopPadding() + 12.dp,
-            bottom = insets.calculateBottomPadding() + 20.dp,
-        ),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+    IosPinnedListPage(
+        title = stringResource(R.string.app_tab_search),
+        bottomPadding = bottom,
+        horizontalContentPadding = 0.dp,
+        largeTitleHorizontalPadding = 16.dp,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SfIcon(SfSymbol.Search, contentDescription = null, size = 30.dp)
-                Column(Modifier.padding(start = 12.dp)) {
-                    Text(stringResource(R.string.search_discovery), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                    state.discovery?.defaultKeyword?.let {
-                        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+            item(key = "popular-title") {
+                Text(
+                    text = stringResource(R.string.search_popular_recommendations),
+                    style = IosTypography.title2,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.content,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+            if (state.loading && state.discovery == null) {
+                item(key = "loading") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
             }
-        }
-        if (state.loading && state.discovery == null) {
-            item { Row(Modifier.fillMaxWidth().padding(40.dp), horizontalArrangement = Arrangement.Center) { CircularProgressIndicator() } }
-        }
-        state.error?.let { message ->
-            item { Text(message, color = MaterialTheme.colorScheme.error) }
-        }
-        state.discovery?.hotKeywords?.forEachIndexed { index, item ->
-            item(key = item.keyword) {
-                GlassCard(modifier = Modifier.fillMaxWidth(), onClick = { search(item.keyword) }) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (state.error) {
+                item(key = "error") {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
                         Text(
-                            (index + 1).toString().padStart(2, '0'),
-                            color = if (index < 3) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Black,
-                            modifier = Modifier.padding(end = 13.dp),
+                            text = stringResource(R.string.load_failed),
+                            style = IosTypography.body,
+                            color = colors.secondaryContent,
                         )
-                        Column(Modifier.weight(1f)) {
-                            Text(item.keyword, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            item.description?.takeIf(String::isNotBlank)?.let {
-                                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        GlassButton(
+                            onClick = viewModel::refresh,
+                            modifier = Modifier.padding(top = 8.dp),
+                        ) {
+                            Text(stringResource(R.string.retry))
+                        }
+                    }
+                }
+            }
+            state.discovery?.let { discovery ->
+                item(key = "recommendations") {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        items(discovery.recommendations, key = SearchDiscoveryPlaylist::id) { playlist ->
+                            SearchRecommendationCard(playlist) {
+                                Screen.PlayList.navigate(navController) { addPath(playlist.id.toString()) }
                             }
                         }
-                        SfIcon("chevron.forward", contentDescription = null, size = 15.dp)
                     }
                 }
             }
+            item(key = "categories-title") {
+                Text(
+                    text = stringResource(R.string.search_browse_categories),
+                    style = IosTypography.title2,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.content,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+            items(
+                categories.chunked(2),
+                key = { row -> row.joinToString("-") { it.titleRes.toString() } },
+            ) { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    row.forEach { category ->
+                        val title = stringResource(category.titleRes)
+                        SearchCategoryCard(
+                            category = category,
+                            title = title,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                if (category.opensPodcasts) {
+                                    Screen.Podcasts.navigate(navController)
+                                } else {
+                                    Screen.PlaylistCategory.navigate(navController) {
+                                        addPath(Uri.encode(checkNotNull(category.apiName)))
+                                        addPath(Uri.encode(title))
+                                    }
+                                }
+                            },
+                        )
+                    }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+    }
+}
+
+@Composable
+private fun SearchRecommendationCard(
+    playlist: SearchDiscoveryPlaylist,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.width(172.dp).clickable(onClick = onClick),
+    ) {
+        AsyncImage(
+            model = playlist.artworkUrl,
+            contentDescription = playlist.name,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(ContinuousRoundedRectangle(14.dp)),
+            contentScale = ContentScale.Crop,
+        )
+        Text(
+            text = playlist.name,
+            style = IosTypography.subheadline,
+            fontWeight = FontWeight.Medium,
+            color = LocalGlassColors.current.content,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        val subtitle = playlist.copywriter?.takeIf(String::isNotBlank)
+            ?: playlist.creatorNickname?.takeIf(String::isNotBlank)
+        subtitle?.let {
+            Text(
+                text = it,
+                style = IosTypography.caption,
+                color = LocalGlassColors.current.secondaryContent,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
+    }
+}
+
+@Composable
+private fun SearchCategoryCard(
+    category: SearchCategory,
+    title: String,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .aspectRatio(1.55f)
+            .clip(ContinuousRoundedRectangle(14.dp))
+            .background(Brush.linearGradient(listOf(category.startColor, category.endColor)))
+            .clickable(onClick = onClick),
+    ) {
+        SfIcon(
+            symbol = category.icon,
+            contentDescription = null,
+            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).rotate(-8f),
+            tint = Color.White.copy(alpha = 0.22f),
+            size = 60.dp,
+            weight = FontWeight.Bold,
+        )
+        Text(
+            text = title,
+            style = IosTypography.headline,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.align(Alignment.BottomStart).padding(12.dp),
+        )
     }
 }

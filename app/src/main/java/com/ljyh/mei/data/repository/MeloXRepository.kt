@@ -27,7 +27,7 @@ import com.ljyh.mei.data.model.melox.PrivateConversation
 import com.ljyh.mei.data.model.melox.PrivateMessage
 import com.ljyh.mei.data.model.melox.PrivateMessagePayload
 import com.ljyh.mei.data.model.melox.SearchDiscovery
-import com.ljyh.mei.data.model.melox.SearchDiscoveryKeyword
+import com.ljyh.mei.data.model.melox.SearchDiscoveryPlaylist
 import com.ljyh.mei.data.model.melox.SongWiki
 import com.ljyh.mei.data.model.melox.SongWikiAssociationDetail
 import com.ljyh.mei.data.model.melox.SongWikiAssociationGroup
@@ -117,23 +117,24 @@ class MeloXRepository @Inject constructor(
             mapOf("offset" to offset, "limit" to limit.coerceIn(1, 100), "total" to true),
         ).array("djRadios").mapNotNull(::parsePodcast)
 
-    suspend fun searchDiscovery(): SearchDiscovery = coroutineScope {
-        val defaultKeyword = async {
-            request("/api/search/defaultkeyword/get").objectOrNull("data")?.string("showKeyword")
+    suspend fun searchDiscovery(): SearchDiscovery {
+        val response = requestEapi(
+            "/api/personalized/playlist",
+            mapOf("limit" to 10, "total" to true, "n" to 1_000),
+        )
+        val recommendations = response.array("result").mapNotNull { element ->
+            val value = element.takeIf(JsonElement::isJsonObject)?.asJsonObject ?: return@mapNotNull null
+            val id = value.long("id")?.takeIf { it > 0 } ?: return@mapNotNull null
+            val name = value.string("name")?.takeIf(String::isNotBlank) ?: return@mapNotNull null
+            SearchDiscoveryPlaylist(
+                id = id,
+                name = name,
+                artworkUrl = value.string("picUrl"),
+                copywriter = value.string("copywriter"),
+                creatorNickname = value.objectOrNull("creator")?.string("nickname"),
+            )
         }
-        val hot = async {
-            request("/api/search/hot/detail").array("data").mapNotNull { element ->
-                val value = element.takeIf(JsonElement::isJsonObject)?.asJsonObject ?: return@mapNotNull null
-                val keyword = value.string("searchWord")?.takeIf(String::isNotBlank) ?: return@mapNotNull null
-                SearchDiscoveryKeyword(
-                    keyword = keyword,
-                    description = value.string("content"),
-                    score = value.long("score"),
-                    iconUrl = value.string("iconUrl"),
-                )
-            }
-        }
-        SearchDiscovery(defaultKeyword.await(), hot.await())
+        return SearchDiscovery(recommendations)
     }
 
     suspend fun accountProfile(): AccountProfile {

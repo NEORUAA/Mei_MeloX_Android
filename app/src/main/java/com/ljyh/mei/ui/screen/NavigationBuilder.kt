@@ -70,6 +70,18 @@ fun NavGraphBuilder.navigationBuilder(
         FindMusicScreen()
     }
 
+    composable(
+        route = "${Screen.PlaylistCategory.route}/{category}/{title}",
+        arguments = listOf(
+            navArgument("category") { type = NavType.StringType },
+            navArgument("title") { type = NavType.StringType },
+        ),
+    ) {
+        val category = it.arguments?.getString("category").orEmpty()
+        val title = it.arguments?.getString("title").orEmpty()
+        FindMusicScreen(initialCategory = category, titleOverride = title)
+    }
+
     composable(Screen.Podcasts.route) {
         PodcastScreen()
     }
@@ -310,6 +322,15 @@ fun navigationEntry(
         route == Screen.Home.route -> HomeHubScreen()
         route == Screen.Library.route -> LibraryScreen()
         route == Screen.FindMusic.route -> FindMusicScreen()
+        route.startsWith("${Screen.PlaylistCategory.route}/") -> {
+            val arguments = route.substringAfter("${Screen.PlaylistCategory.route}/")
+                .split('/', limit = 2)
+            if (arguments.size == 2) {
+                val category = URLDecoder.decode(arguments[0], "UTF-8")
+                val title = URLDecoder.decode(arguments[1], "UTF-8")
+                FindMusicScreen(initialCategory = category, titleOverride = title)
+            }
+        }
         route == Screen.Podcasts.route -> PodcastScreen()
         route == Screen.CloudMusic.route -> CloudMusicScreen()
         route == Screen.Search.route -> SearchLandingScreen()

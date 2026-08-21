@@ -85,10 +85,12 @@ fun rememberIosGridCollapseProgress(
 fun IosPinnedListPage(
     title: String,
     bottomPadding: Dp,
+    horizontalContentPadding: Dp = 16.dp,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     listState: LazyListState = rememberLazyListState(),
     showsLargeTitle: Boolean = true,
+    largeTitleHorizontalPadding: Dp = 4.dp,
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(10.dp),
     onNavigateBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
@@ -120,7 +122,12 @@ fun IosPinnedListPage(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = contentPadding,
+            contentPadding = PaddingValues(
+                start = horizontalContentPadding,
+                top = contentPadding.calculateTopPadding(),
+                end = horizontalContentPadding,
+                bottom = contentPadding.calculateBottomPadding(),
+            ),
             verticalArrangement = verticalArrangement,
         ) {
             if (showsLargeTitle) {
@@ -137,7 +144,7 @@ fun IosPinnedListPage(
                             }
                             .blur(6.dp * collapseProgress)
                             .offset(y = (-10).dp)
-                            .padding(horizontal = 4.dp, vertical = 6.dp),
+                            .padding(horizontal = largeTitleHorizontalPadding, vertical = 6.dp),
                     ) {
                         Text(
                             text = title,

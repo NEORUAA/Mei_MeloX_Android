@@ -258,16 +258,16 @@ data class SongWiki(
         similarSongs.isEmpty() && relatedPlaylists.isEmpty() && contributionUrl == null
 }
 
-data class SearchDiscoveryKeyword(
-    val keyword: String,
-    val description: String?,
-    val score: Long?,
-    val iconUrl: String?,
+data class SearchDiscovery(
+    val recommendations: List<SearchDiscoveryPlaylist>,
 )
 
-data class SearchDiscovery(
-    val defaultKeyword: String?,
-    val hotKeywords: List<SearchDiscoveryKeyword>,
+data class SearchDiscoveryPlaylist(
+    val id: Long,
+    val name: String,
+    val artworkUrl: String?,
+    val copywriter: String?,
+    val creatorNickname: String?,
 )
 
 data class AccountProfile(

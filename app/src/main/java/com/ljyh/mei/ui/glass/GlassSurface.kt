@@ -233,18 +233,26 @@ private class NavigationGlassBoxShadowNode(
             layerScope.transformOrigin.pivotFractionX * layerSize.width,
             layerScope.transformOrigin.pivotFractionY * layerSize.height,
         )
-        listOf(sideLayer, outlineLayer).forEach { layer ->
-            layer.alpha = layerScope.alpha
-            layer.scaleX = layerScope.scaleX
-            layer.scaleY = layerScope.scaleY
-            layer.translationX = layerScope.translationX
-            layer.translationY = layerScope.translationY
-            layer.rotationX = layerScope.rotationX
-            layer.rotationY = layerScope.rotationY
-            layer.rotationZ = layerScope.rotationZ
-            layer.cameraDistance = layerScope.cameraDistance
-            layer.pivotOffset = pivotOffset
-        }
+        sideLayer.alpha = layerScope.alpha
+        sideLayer.scaleX = layerScope.scaleX
+        sideLayer.scaleY = layerScope.scaleY
+        sideLayer.translationX = layerScope.translationX
+        sideLayer.translationY = layerScope.translationY
+        sideLayer.rotationX = layerScope.rotationX
+        sideLayer.rotationY = layerScope.rotationY
+        sideLayer.rotationZ = layerScope.rotationZ
+        sideLayer.cameraDistance = layerScope.cameraDistance
+        sideLayer.pivotOffset = pivotOffset
+        outlineLayer.alpha = layerScope.alpha
+        outlineLayer.scaleX = layerScope.scaleX
+        outlineLayer.scaleY = layerScope.scaleY
+        outlineLayer.translationX = layerScope.translationX
+        outlineLayer.translationY = layerScope.translationY
+        outlineLayer.rotationX = layerScope.rotationX
+        outlineLayer.rotationY = layerScope.rotationY
+        outlineLayer.rotationZ = layerScope.rotationZ
+        outlineLayer.cameraDistance = layerScope.cameraDistance
+        outlineLayer.pivotOffset = pivotOffset
 
         // Put the expanded side capsules underneath the element, and keep the crisp outline on
         // top. Both are external-only, so neither layer interferes with the glass highlight.
@@ -321,6 +329,7 @@ internal fun Modifier.navigationGlassBackground(
     shape: () -> Shape,
     containerColor: Color,
     pressProgress: Float = 0f,
+    pressProgressState: androidx.compose.runtime.State<Float>? = null,
     highlightAngle: Float = 90f,
     layerBlock: (GraphicsLayerScope.() -> Unit)? = null,
 ): Modifier = this
@@ -339,8 +348,9 @@ internal fun Modifier.navigationGlassBackground(
             )
         },
         highlight = {
+            val progress = pressProgressState?.value ?: pressProgress
             Highlight.Default.copy(
-                alpha = 0.54f + 0.38f * pressProgress,
+                alpha = 0.54f + 0.38f * progress,
                 style = HighlightStyle.Default(angle = highlightAngle),
             )
         },

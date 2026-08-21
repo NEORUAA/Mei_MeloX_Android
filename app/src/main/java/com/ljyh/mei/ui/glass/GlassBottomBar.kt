@@ -2,24 +2,25 @@ package com.ljyh.mei.ui.glass
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -35,11 +36,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
@@ -78,7 +82,40 @@ data class GlassTabItem<T>(
     val contentDescription: String = label,
 )
 
+@androidx.compose.runtime.Immutable
+private data class StableGlassTabItems<T>(
+    val values: List<GlassTabItem<T>>,
+)
+
 private val LocalLiquidTabScale = staticCompositionLocalOf { { 1f } }
+
+/** Shared compact icon endpoint for the bottom navigation and its adjacent search control. */
+val CompactBottomControlIconSize = 22.dp
+
+private val ExpandedNavigationIconSize = 24.dp
+private const val CompactIndicatorFadeStart = 0.74f
+private const val CompactIndicatorFadeEnd = 0.98f
+private const val CompactTabContentScaleFloor = 0.82f
+
+private fun morphSurfaceWidthPx(
+    fullWidthPx: Float,
+    compactWidthPx: Float,
+    compactProgress: Float,
+): Float = lerp(fullWidthPx, compactWidthPx, compactProgress.coerceIn(0f, 1f))
+
+private fun compactIndicatorVisibility(compactProgress: Float): Float {
+    if (compactProgress <= CompactIndicatorFadeStart) return 1f
+    val fadeProgress = ((compactProgress - CompactIndicatorFadeStart) /
+        (CompactIndicatorFadeEnd - CompactIndicatorFadeStart)).coerceIn(0f, 1f)
+    return 1f - FastOutSlowInEasing.transform(fadeProgress)
+}
+
+private fun compactIconLateProgress(compactProgress: Float): Float {
+    if (compactProgress <= CompactIndicatorFadeStart) return 0f
+    val morphProgress = ((compactProgress - CompactIndicatorFadeStart) /
+        (1f - CompactIndicatorFadeStart)).coerceIn(0f, 1f)
+    return FastOutSlowInEasing.transform(morphProgress)
+}
 
 /**
  * iOS split-search tab bar backed by AndroidLiquidGlass' complete three-layer interaction.
@@ -100,57 +137,78 @@ fun <T> GlassBottomBar(
 ) {
     require(items.isNotEmpty())
     val compact = compactProgress.coerceIn(0f, 1f)
-    val currentCompact by rememberUpdatedState(compact)
-    val currentOnExpand by rememberUpdatedState(onExpand)
-    val selectedIndex = items.indexOfFirst { it.key == selectedKey }.takeIf { it >= 0 } ?: 0
-    val selectedItem = items[selectedIndex]
+    val onSelectedState = rememberUpdatedState(onSelected)
+    val stableOnSelected: (T) -> Unit = remember {
+        { key -> onSelectedState.value(key) }
+    }
+    val stableItems = remember(items) { StableGlassTabItems(items) }
+    val tabItems = stableItems.values
+    val selectedIndex = tabItems.indexOfFirst { it.key == selectedKey }.takeIf { it >= 0 } ?: 0
+    val selectedItem = tabItems[selectedIndex]
     val colors = LocalGlassColors.current
     val isLight = !colors.isDark
     val containerColor = colors.container
     val tabsBackdrop = rememberLayerBackdrop()
+    val indicatorBackdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop)
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
     val animationScope = rememberCoroutineScope()
+    val compactState = rememberUpdatedState(compact)
+    val onExpandState = rememberUpdatedState(onExpand)
+    val selectedIndexState = rememberUpdatedState(selectedIndex)
+    val selectedIconTint = androidx.compose.ui.graphics.lerp(
+        colors.accent,
+        colors.content,
+        compact,
+    )
+    val selectedIconColorFilter = remember(selectedIconTint) {
+        ColorFilter.tint(selectedIconTint)
+    }
+    // Keep the filter holder stable while allowing the graphics layers to observe the current
+    // tint without invalidating the tab content composition on every morph frame.
+    val selectedIconColorFilterState = rememberUpdatedState(selectedIconColorFilter)
 
     BoxWithConstraints(modifier.height(64.dp), contentAlignment = Alignment.CenterStart) {
         val density = LocalDensity.current
         val fullWidthPx = constraints.maxWidth.toFloat()
         val compactWidthPx = with(density) { compactSize.toPx() }
-        val surfaceWidthPx = lerp(fullWidthPx, compactWidthPx, compact)
+        val indicatorSettled = compact >= CompactIndicatorFadeEnd
+        val surfaceWidthPx = morphSurfaceWidthPx(fullWidthPx, compactWidthPx, compact)
         val surfaceWidth = with(density) { surfaceWidthPx.toDp() }
         val surfaceHeight = androidx.compose.ui.unit.lerp(64.dp, compactSize, compact)
-        val tabWidthPx = ((fullWidthPx - with(density) { 8.dp.toPx() }) / items.size)
+        val paddingPx = with(density) { 4.dp.toPx() }
+        val expandedTabWidthPx = ((fullWidthPx - paddingPx * 2f) / tabItems.size)
             .coerceAtLeast(1f)
+        val compactInnerWidthPx = (compactWidthPx - paddingPx * 2f).coerceAtLeast(1f)
+        val tabWidthPx = expandedTabWidthPx
+        val indicatorWidthPx = if (indicatorSettled) {
+            compactWidthPx
+        } else {
+            lerp(expandedTabWidthPx, compactInnerWidthPx, compact)
+        }
         val indicatorWidth = with(density) {
-            lerp(tabWidthPx, (compactSize - 8.dp).toPx(), compact).toDp()
+            indicatorWidthPx.toDp()
         }
         val expandedIndicatorVisibility = (1f - compact * 1.5f).coerceIn(0f, 1f)
-
+        val innerGlassVisibility = compactIndicatorVisibility(compact)
+        val innerGlassVisibilityState = rememberUpdatedState(innerGlassVisibility)
         val offsetAnimation = remember { Animatable(0f) }
-        val panelOffset by remember(density) {
-            derivedStateOf {
-                val fraction = (offsetAnimation.value / fullWidthPx).fastCoerceIn(-1f, 1f)
-                with(density) {
-                    4.dp.toPx() * fraction.sign * EaseOut.transform(abs(fraction))
-                }
-            }
-        }
         var currentIndex by remember { mutableIntStateOf(selectedIndex) }
-        val dragAnimation = remember(animationScope, items.size) {
+        val dragAnimation = remember(animationScope, tabItems.size) {
             DampedDragAnimation(
                 animationScope = animationScope,
-                initialValue = selectedIndex.toFloat(),
-                valueRange = 0f..(items.lastIndex.coerceAtLeast(1)).toFloat(),
+                initialValue = selectedIndexState.value.toFloat(),
+                valueRange = 0f..(tabItems.lastIndex.coerceAtLeast(1)).toFloat(),
                 visibilityThreshold = 0.001f,
                 initialScale = 1f,
                 pressedScale = 78f / 56f,
                 onDragStarted = {},
                 onDragStopped = {
-                    if (currentCompact >= 0.74f) {
-                        currentOnExpand()
-                        animateToValue(selectedIndex.toFloat())
+                    if (compactState.value >= 0.74f) {
+                        onExpandState.value()
+                        animateToValue(selectedIndexState.value.toFloat())
                         return@DampedDragAnimation
                     }
-                    val target = targetValue.fastRoundToInt().fastCoerceIn(0, items.lastIndex)
+                    val target = targetValue.fastRoundToInt().fastCoerceIn(0, tabItems.lastIndex)
                     currentIndex = target
                     animateToValue(target.toFloat())
                     animationScope.launch {
@@ -158,10 +216,10 @@ fun <T> GlassBottomBar(
                     }
                 },
                 onDrag = { _, dragAmount ->
-                    if (currentCompact >= 0.74f) return@DampedDragAnimation
+                    if (compactState.value >= 0.74f) return@DampedDragAnimation
                     updateValue(
                         (targetValue + dragAmount.x / tabWidthPx * if (isLtr) 1f else -1f)
-                            .fastCoerceIn(0f, items.lastIndex.toFloat()),
+                            .fastCoerceIn(0f, tabItems.lastIndex.toFloat()),
                     )
                     animationScope.launch { offsetAnimation.snapTo(offsetAnimation.value + dragAmount.x) }
                 },
@@ -171,236 +229,420 @@ fun <T> GlassBottomBar(
             currentIndex = selectedIndex
             dragAnimation.animateToValue(selectedIndex.toFloat())
         }
-        LaunchedEffect(dragAnimation) {
+        LaunchedEffect(dragAnimation, stableItems) {
             snapshotFlow { currentIndex }
                 .drop(1)
-                .collectLatest { index -> onSelected(items[index].key) }
+                .collectLatest { index -> stableOnSelected(tabItems[index].key) }
         }
-        val interactiveHighlight = remember(animationScope, isLtr) {
+        val interactiveHighlight = remember(
+            animationScope,
+            isLtr,
+            fullWidthPx,
+            compactWidthPx,
+            paddingPx,
+            tabItems.size,
+        ) {
             InteractiveHighlight(
                 animationScope = animationScope,
                 position = { size, _ ->
+                    val progress = compactState.value
+                    val currentWidth = morphSurfaceWidthPx(fullWidthPx, compactWidthPx, progress)
+                    val currentTabWidth =
+                        ((currentWidth - paddingPx * 2f) / tabItems.size).coerceAtLeast(1f)
+                    val tabCenter = if (isLtr) {
+                        paddingPx + (dragAnimation.value + 0.5f) * currentTabWidth
+                    } else {
+                        currentWidth - paddingPx - (dragAnimation.value + 0.5f) * currentTabWidth
+                    }
+                    val morphCenter = lerp(tabCenter, compactWidthPx / 2f, progress)
+                    val fraction = (offsetAnimation.value / fullWidthPx).fastCoerceIn(-1f, 1f)
+                    val currentPanelOffset =
+                        paddingPx * fraction.sign * EaseOut.transform(abs(fraction))
                     Offset(
-                        x = if (isLtr) {
-                            (dragAnimation.value + 0.5f) * tabWidthPx + panelOffset
-                        } else {
-                            size.width - (dragAnimation.value + 0.5f) * tabWidthPx + panelOffset
-                        },
+                        x = morphCenter + currentPanelOffset,
                         y = size.height / 2f,
                     )
                 },
             )
         }
-        val commonTransform = Modifier.graphicsLayer {
-            translationX = panelOffset
-            scaleY = 1f + 0.045f * sin(PI.toFloat() * compact)
-            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
-        }
-
-        // The compact control is deliberately the exact same one-layer component as search.
-        // Keeping the expanded indicator composed here would stack a second refractive material.
-        if (compact >= 0.98f) {
-            GlassIconButton(
-                onClick = currentOnExpand,
-                backdrop = backdrop,
-                style = GlassSurfaceStyle.Navigation,
-                modifier = Modifier.size(compactSize),
-            ) {
-                SfIcon(
-                    symbol = selectedItem.symbol,
-                    contentDescription = selectedItem.contentDescription,
-                    tint = colors.content,
-                    size = 22.dp,
-                    weight = FontWeight.SemiBold,
+        val commonTransform = remember(density, fullWidthPx, compactWidthPx, isLtr) {
+            Modifier.graphicsLayer {
+                val progress = compactState.value
+                val fraction = (offsetAnimation.value / fullWidthPx).fastCoerceIn(-1f, 1f)
+                translationX = paddingPx * fraction.sign * EaseOut.transform(abs(fraction))
+                scaleY = 1f + 0.045f * sin(PI.toFloat() * progress)
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(
+                    if (isLtr) 0f else 1f,
+                    0.5f,
                 )
             }
-            return@BoxWithConstraints
         }
-
-        Row(
-            modifier = Modifier
-                .width(surfaceWidth)
-                .height(surfaceHeight)
-                .then(commonTransform)
-                .navigationGlassBackground(
-                    backdrop = backdrop,
-                    shape = { Capsule() },
-                    containerColor = containerColor,
-                    pressProgress = dragAnimation.pressProgress,
-                    layerBlock = {
-                        val press = dragAnimation.pressProgress
-                        val scale = lerp(1f, 1f + 16.dp.toPx() / size.width, press)
-                        scaleX = scale
-                        scaleY = scale
-                    },
+        val tabContentAlpha = remember {
+            { (1f - compactState.value * 1.35f).coerceIn(0f, 1f) }
+        }
+        val pressProgressState = dragAnimation.pressProgressState
+        val tabContentScale = remember(pressProgressState, compactState) {
+            {
+                lerp(1f, 1.2f, pressProgressState.value) *
+                    (1f - compactState.value).coerceAtLeast(CompactTabContentScaleFloor)
+            }
+        }
+        val selectedIconLateScaleProvider: () -> Float = remember(compactState) {
+            {
+                // Keep the icon geometry continuous through p = 0.98; only the settled
+                // transparent indicator/source composition uses CompactIndicatorFadeEnd.
+                val lateProgress = compactIconLateProgress(compactState.value)
+                lerp(
+                    1f,
+                    (CompactBottomControlIconSize.value / ExpandedNavigationIconSize.value) /
+                        CompactTabContentScaleFloor,
+                    lateProgress,
                 )
-                .then(interactiveHighlight.modifier)
-                .padding(4.dp)
-                .clip(Capsule()),
-            verticalAlignment = Alignment.CenterVertically,
+            }
+        }
+        val pressLayerBlock: GraphicsLayerScope.() -> Unit = remember(
+            pressProgressState,
+            density,
         ) {
-            FullTabContent(
-                items = items,
-                selectedKey = selectedItem.key,
-                onSelected = onSelected,
-                enabled = compact < 0.74f,
-                alpha = (1f - compact * 1.35f).coerceIn(0f, 1f),
+            {
+                val press = pressProgressState.value
+                val scale = lerp(1f, 1f + 16.dp.toPx() / size.width, press)
+                scaleX = scale
+                scaleY = scale
+            }
+        }
+        val navigationGlassModifier = remember(
+            backdrop,
+            containerColor,
+            pressProgressState,
+            pressLayerBlock,
+        ) {
+            Modifier.navigationGlassBackground(
+                backdrop = backdrop,
+                shape = { Capsule() },
+                containerColor = containerColor,
+                pressProgressState = pressProgressState,
+                layerBlock = pressLayerBlock,
             )
         }
-
-        CompositionLocalProvider(
-            LocalLiquidTabScale provides {
-                lerp(1f, 1.2f, dragAnimation.pressProgress) * (1f - compact)
-                    .coerceAtLeast(0.82f)
-            },
+        val hiddenLayerBackdropModifier = remember(tabsBackdrop) {
+            Modifier.layerBackdrop(tabsBackdrop)
+        }
+        val hiddenBackdropModifier = remember(
+            backdrop,
+            containerColor,
+            pressProgressState,
+            pressLayerBlock,
         ) {
-            Row(
-                modifier = Modifier
-                    .clearAndSetSemantics {}
-                    .alpha(0f)
-                    .layerBackdrop(tabsBackdrop)
-                    .width(with(density) { fullWidthPx.toDp() })
-                    .height(androidx.compose.ui.unit.lerp(56.dp, compactSize - 8.dp, compact))
-                    .padding(horizontal = 4.dp)
-                    .then(commonTransform)
+            Modifier
+                .drawBackdrop(
+                    backdrop = backdrop,
+                    shape = { Capsule() },
+                    effects = {
+                        val press = pressProgressState.value
+                        vibrancy()
+                        blur(8.dp.toPx())
+                        lens(
+                            24.dp.toPx() * press,
+                            28.dp.toPx() * press,
+                            depthEffect = press > 0.01f,
+                            chromaticAberration = true,
+                        )
+                    },
+                    highlight = {
+                        Highlight.Default.copy(alpha = 0.94f * pressProgressState.value)
+                    },
+                    layerBlock = pressLayerBlock,
+                    onDrawSurface = { drawRect(containerColor) },
+                )
+        }
+        val expandedIndicatorVisibilityState = rememberUpdatedState(expandedIndicatorVisibility)
+        val expandedIconOffsetYPx = with(density) { (-11).dp.toPx() }
+        val indicatorPositionLayerBlock: GraphicsLayerScope.() -> Unit = remember(
+            compactState,
+            offsetAnimation,
+            dragAnimation,
+            isLtr,
+            fullWidthPx,
+            compactWidthPx,
+            paddingPx,
+            expandedTabWidthPx,
+            compactInnerWidthPx,
+            tabItems.size,
+        ) {
+            {
+                // Follow the current tab center while the capsule shrinks, then converge to
+                // the compact center. This keeps the first, middle and last tabs symmetric.
+                val progress = compactState.value
+                val currentWidth = morphSurfaceWidthPx(fullWidthPx, compactWidthPx, progress)
+                val currentTabWidth =
+                    ((currentWidth - paddingPx * 2f) / tabItems.size).coerceAtLeast(1f)
+                val tabCenter = if (isLtr) {
+                    paddingPx + (dragAnimation.value + 0.5f) * currentTabWidth
+                } else {
+                    currentWidth - paddingPx - (dragAnimation.value + 0.5f) * currentTabWidth
+                }
+                val indicatorWidth = if (progress >= CompactIndicatorFadeEnd) {
+                    compactWidthPx
+                } else {
+                    lerp(expandedTabWidthPx, compactInnerWidthPx, progress)
+                }
+                if (progress >= CompactIndicatorFadeEnd) {
+                    // The settled transparent interaction box is 48dp wide. Keep it centered
+                    // inside the still-continuously-morphing outer surface until p reaches 1.
+                    val compactOffset = (currentWidth - compactWidthPx).coerceAtLeast(0f) / 2f
+                    translationX = compactOffset * if (isLtr) 1f else -1f
+                } else {
+                    val targetIndicatorLeft = lerp(
+                        tabCenter - indicatorWidth / 2f,
+                        compactWidthPx / 2f - indicatorWidth / 2f,
+                        progress,
+                    )
+                    val indicatorLeft = targetIndicatorLeft.coerceIn(
+                        paddingPx,
+                        currentWidth - paddingPx - indicatorWidth,
+                    )
+                    val surfaceBaseLeft = if (isLtr) 0f else fullWidthPx - currentWidth
+                    val directionalBase = if (isLtr) 0f else fullWidthPx - indicatorWidth
+                    val fraction = (offsetAnimation.value / fullWidthPx).fastCoerceIn(-1f, 1f)
+                    translationX = surfaceBaseLeft + indicatorLeft - directionalBase +
+                        paddingPx * fraction.sign * EaseOut.transform(abs(fraction))
+                }
+            }
+        }
+        val indicatorBackdropLayerBlock: GraphicsLayerScope.() -> Unit = remember(
+            dragAnimation,
+            innerGlassVisibilityState,
+        ) {
+            {
+                scaleX = dragAnimation.scaleX
+                scaleY = dragAnimation.scaleY
+                val velocity = dragAnimation.velocity / 10f
+                scaleX /= 1f - (velocity * 0.75f).fastCoerceIn(-0.2f, 0.2f)
+                scaleY *= 1f - (velocity * 0.25f).fastCoerceIn(-0.2f, 0.2f)
+                // drawBackdrop installs this block on the backdrop layer itself. Keep the
+                // complete refractive surface, highlight and shadows on the same alpha curve.
+                alpha = innerGlassVisibilityState.value
+            }
+        }
+        val indicatorBackdropModifier = if (compact < CompactIndicatorFadeEnd) {
+            remember(
+                indicatorBackdrop,
+                dragAnimation,
+                compactState,
+                expandedIndicatorVisibilityState,
+                containerColor,
+                isLight,
+                indicatorBackdropLayerBlock,
+            ) {
+                Modifier
                     .drawBackdrop(
-                        backdrop = backdrop,
+                        backdrop = indicatorBackdrop,
                         shape = { Capsule() },
                         effects = {
-                            val press = dragAnimation.pressProgress
-                            vibrancy()
-                            blur(8.dp.toPx())
+                            val press = pressProgressState.value
+                            val opticalIntensity = press * expandedIndicatorVisibilityState.value
                             lens(
-                                24.dp.toPx() * press,
-                                28.dp.toPx() * press,
-                                depthEffect = press > 0.01f,
+                                14.dp.toPx() * opticalIntensity,
+                                22.dp.toPx() * opticalIntensity,
+                                depthEffect = opticalIntensity > 0.01f,
                                 chromaticAberration = true,
                             )
                         },
                         highlight = {
-                            Highlight.Default.copy(alpha = 0.94f * dragAnimation.pressProgress)
+                            Highlight.Default.copy(
+                                alpha = 0.90f * pressProgressState.value *
+                                    expandedIndicatorVisibilityState.value,
+                            )
                         },
-                        onDrawSurface = { drawRect(containerColor) },
+                        shadow = {
+                            Shadow(
+                                alpha = 0.84f * pressProgressState.value *
+                                    expandedIndicatorVisibilityState.value,
+                            )
+                        },
+                        innerShadow = {
+                            val strength = pressProgressState.value * expandedIndicatorVisibilityState.value
+                            InnerShadow(
+                                radius = 10.dp * strength,
+                                alpha = 0.86f * strength,
+                            )
+                        },
+                        layerBlock = indicatorBackdropLayerBlock,
+                        onDrawSurface = {
+                            val press = pressProgressState.value
+                            val indicatorBaseColor = if (isLight) {
+                                Color.Black.copy(alpha = 0.10f)
+                            } else {
+                                Color.White.copy(alpha = 0.10f)
+                            }
+                            val indicatorColor = androidx.compose.ui.graphics.lerp(
+                                indicatorBaseColor,
+                                containerColor,
+                                compactState.value,
+                            )
+                            drawRect(
+                                indicatorColor,
+                                alpha = (1f - press) * (1f - compactState.value),
+                            )
+                            drawRect(
+                                Color.Black.copy(
+                                    alpha = 0.03f * press * expandedIndicatorVisibilityState.value,
+                                ),
+                            )
+                        },
                     )
+            }
+        } else {
+            Modifier
+        }
+
+        // Keep the visible row and the Lens source in one stable morph tree. Both layers use
+        // the same bounds, padding, tab scale and selected-icon trajectory.
+        CompositionLocalProvider(LocalLiquidTabScale provides tabContentScale) {
+            Row(
+                modifier = Modifier
+                    .width(surfaceWidth)
+                    .height(surfaceHeight)
+                    .then(commonTransform)
+                    .then(navigationGlassModifier)
                     .then(interactiveHighlight.modifier)
-                    .graphicsLayer(colorFilter = ColorFilter.tint(colors.accent)),
+                    .then(if (compact >= 0.74f) Modifier.clearAndSetSemantics {} else Modifier)
+                    .padding(4.dp)
+                    .clip(Capsule()),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                FullTabContent(
-                    items = items,
-                    selectedKey = selectedItem.key,
-                    onSelected = onSelected,
-                    // Keep the exported source interactive just like LiquidBottomTabs. It is
-                    // visually hidden, but it sits above the visible row in the hit-test tree.
-                    enabled = compact < 0.74f,
-                    alpha = (1f - compact * 1.35f).coerceIn(0f, 1f),
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                ) {
+                    Row(Modifier.fillMaxSize()) {
+                        FullTabContent(
+                            items = stableItems,
+                            selectedKey = selectedItem.key,
+                            onSelected = stableOnSelected,
+                            enabled = compact < 0.74f,
+                            alpha = tabContentAlpha,
+                            hideSelectedIcon = true,
+                        )
+                    }
+                    MorphingSelectedNavigationIcon(
+                        symbol = selectedItem.symbol,
+                        compactProgress = compactState,
+                        fullWidthPx = fullWidthPx,
+                        compactWidthPx = compactWidthPx,
+                        itemCount = tabItems.size,
+                        selectedIndex = selectedIndex,
+                        isLtr = isLtr,
+                        horizontalInsetPx = paddingPx,
+                        expandedIconOffsetYPx = expandedIconOffsetYPx,
+                        selectedIconLateScale = selectedIconLateScaleProvider,
+                        selectedIconColorFilter = selectedIconColorFilterState,
+                        contentColor = colors.content,
+                    )
+                }
+            }
+
+            if (compact < CompactIndicatorFadeEnd) {
+                Row(
+                    modifier = Modifier
+                        .clearAndSetSemantics {}
+                        .alpha(0f)
+                        .then(hiddenLayerBackdropModifier)
+                        .width(surfaceWidth)
+                        .height(surfaceHeight)
+                        .then(commonTransform)
+                        .then(hiddenBackdropModifier)
+                        .then(interactiveHighlight.modifier)
+                        .padding(4.dp)
+                        .clip(Capsule()),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                    ) {
+                        Row(Modifier.fillMaxSize()) {
+                            FullTabContent(
+                                items = stableItems,
+                                selectedKey = selectedItem.key,
+                                onSelected = stableOnSelected,
+                                // Keep the exported source interactive just like LiquidBottomTabs. It
+                                // is visually hidden, but it sits above the visible row in the hit-test tree.
+                                // The shared morph icon owns the selected tint; the source row keeps
+                                // the same unfiltered colors as the visible content.
+                                enabled = compact < 0.74f,
+                                alpha = tabContentAlpha,
+                                hideSelectedIcon = true,
+                            )
+                        }
+                        MorphingSelectedNavigationIcon(
+                            symbol = selectedItem.symbol,
+                            compactProgress = compactState,
+                            fullWidthPx = fullWidthPx,
+                            compactWidthPx = compactWidthPx,
+                            itemCount = tabItems.size,
+                            selectedIndex = selectedIndex,
+                            isLtr = isLtr,
+                            horizontalInsetPx = paddingPx,
+                            expandedIconOffsetYPx = expandedIconOffsetYPx,
+                            selectedIconLateScale = selectedIconLateScaleProvider,
+                            selectedIconColorFilter = selectedIconColorFilterState,
+                            contentColor = colors.content,
+                        )
+                    }
+                }
             }
         }
 
         Box(
             modifier = Modifier
-                .padding(horizontal = 4.dp)
-                .graphicsLayer {
-                    // The outer padding already places the 56dp indicator at x=4dp inside
-                    // the 64dp capsule. Adding another 4dp here made the compact orb and icon
-                    // visibly off-centre.
-                    val compactX = 0f
-                    val tabX = if (isLtr) {
-                        dragAnimation.value * tabWidthPx + panelOffset
-                    } else {
-                        surfaceWidthPx - (dragAnimation.value + 1f) * tabWidthPx + panelOffset
-                    }
-                    translationX = lerp(tabX, compactX, compact)
-                }
+                .graphicsLayer(indicatorPositionLayerBlock)
                 .then(interactiveHighlight.gestureModifier)
                 .then(dragAnimation.modifier)
-                .drawBackdrop(
-                    backdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop),
-                    shape = { Capsule() },
-                    effects = {
-                        val press = dragAnimation.pressProgress
-                        val opticalIntensity = press * expandedIndicatorVisibility
-                        lens(
-                            14.dp.toPx() * opticalIntensity,
-                            22.dp.toPx() * opticalIntensity,
-                            depthEffect = opticalIntensity > 0.01f,
-                            chromaticAberration = true,
-                        )
-                    },
-                    highlight = {
-                        Highlight.Default.copy(
-                            alpha = 0.90f * dragAnimation.pressProgress * expandedIndicatorVisibility,
-                        )
-                    },
-                    shadow = {
-                        Shadow(alpha = 0.84f * dragAnimation.pressProgress * expandedIndicatorVisibility)
-                    },
-                    innerShadow = {
-                        val strength = dragAnimation.pressProgress * expandedIndicatorVisibility
-                        InnerShadow(
-                            radius = 10.dp * strength,
-                            alpha = 0.86f * strength,
-                        )
-                    },
-                    layerBlock = {
-                        scaleX = dragAnimation.scaleX
-                        scaleY = dragAnimation.scaleY
-                        val velocity = dragAnimation.velocity / 10f
-                        scaleX /= 1f - (velocity * 0.75f).fastCoerceIn(-0.2f, 0.2f)
-                        scaleY *= 1f - (velocity * 0.25f).fastCoerceIn(-0.2f, 0.2f)
-                    },
-                    onDrawSurface = {
-                        val press = dragAnimation.pressProgress
-                        drawRect(
-                            if (isLight) Color.Black.copy(alpha = 0.10f)
-                            else Color.White.copy(alpha = 0.10f),
-                            alpha = (1f - press) * expandedIndicatorVisibility,
-                        )
-                        drawRect(Color.Black.copy(alpha = 0.03f * press * expandedIndicatorVisibility))
+                .then(indicatorBackdropModifier)
+                .height(
+                    if (indicatorSettled) {
+                        compactSize
+                    } else {
+                        androidx.compose.ui.unit.lerp(56.dp, compactSize - 8.dp, compact)
                     },
                 )
-                .height(androidx.compose.ui.unit.lerp(56.dp, compactSize - 8.dp, compact))
                 .width(indicatorWidth)
-                .clickable(
-                    enabled = compact >= 0.74f,
-                    interactionSource = null,
-                    indication = null,
-                    role = Role.Tab,
-                    onClick = currentOnExpand,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (compact > 0.001f) {
-                SfIcon(
-                    symbol = selectedItem.symbol,
-                    contentDescription = selectedItem.contentDescription,
-                    tint = androidx.compose.ui.graphics.lerp(colors.accent, colors.content, compact),
-                    size = 25.dp,
-                    weight = FontWeight.SemiBold,
-                    modifier = Modifier.graphicsLayer {
-                        alpha = compact
-                        val scale = lerp(0.82f, 1f, compact)
-                        scaleX = scale
-                        scaleY = scale
+                .then(
+                    if (compact >= 0.74f) {
+                        Modifier
+                            .clickable(
+                                interactionSource = null,
+                                indication = null,
+                                role = Role.Tab,
+                                onClick = { onExpandState.value() },
+                            )
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = selectedItem.contentDescription
+                            }
+                    } else {
+                        Modifier
                     },
-                )
-            }
-        }
+                ),
+        )
     }
 }
 
 @Composable
 private fun <T> androidx.compose.foundation.layout.RowScope.FullTabContent(
-    items: List<GlassTabItem<T>>,
+    items: StableGlassTabItems<T>,
     selectedKey: T,
     onSelected: (T) -> Unit,
     enabled: Boolean,
-    alpha: Float,
+    alpha: () -> Float,
+    hideSelectedIcon: Boolean = false,
 ) {
     val colors = LocalGlassColors.current
     val scale = LocalLiquidTabScale.current
-    items.forEach { item ->
+    items.values.forEach { item ->
         val selected = item.key == selectedKey
         Column(
             modifier = Modifier
@@ -415,7 +657,7 @@ private fun <T> androidx.compose.foundation.layout.RowScope.FullTabContent(
                     onClick = { onSelected(item.key) },
                 )
                 .graphicsLayer {
-                    this.alpha = alpha
+                    this.alpha = alpha()
                     val contentScale = scale()
                     scaleX = contentScale
                     scaleY = contentScale
@@ -425,11 +667,25 @@ private fun <T> androidx.compose.foundation.layout.RowScope.FullTabContent(
         ) {
             SfIcon(
                 symbol = item.symbol,
-                contentDescription = item.contentDescription,
+                contentDescription = if (selected && hideSelectedIcon) {
+                    null
+                } else {
+                    item.contentDescription
+                },
                 tint = if (selected) colors.accent else colors.content,
                 size = 24.dp,
                 weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                modifier = Modifier.padding(top = 3.dp),
+                modifier = Modifier
+                    .padding(top = 3.dp)
+                    .then(
+                        if (selected) {
+                            Modifier.graphicsLayer {
+                                if (hideSelectedIcon) this.alpha = 0f
+                            }
+                        } else {
+                            Modifier
+                        },
+                    ),
             )
             Text(
                 text = item.label,
@@ -442,4 +698,59 @@ private fun <T> androidx.compose.foundation.layout.RowScope.FullTabContent(
             )
         }
     }
+}
+
+@Composable
+private fun BoxScope.MorphingSelectedNavigationIcon(
+    symbol: SfSymbol,
+    compactProgress: State<Float>,
+    fullWidthPx: Float,
+    compactWidthPx: Float,
+    itemCount: Int,
+    selectedIndex: Int,
+    isLtr: Boolean,
+    horizontalInsetPx: Float,
+    expandedIconOffsetYPx: Float,
+    selectedIconLateScale: () -> Float,
+    selectedIconColorFilter: State<ColorFilter>,
+    contentColor: Color,
+) {
+    val sharedTabScale = LocalLiquidTabScale.current
+    SfIcon(
+        symbol = symbol,
+        contentDescription = null,
+        tint = contentColor,
+        size = ExpandedNavigationIconSize,
+        weight = FontWeight.SemiBold,
+        modifier = Modifier
+            .align(Alignment.Center)
+            .graphicsLayer {
+                val progress = compactProgress.value.coerceIn(0f, 1f)
+                val expandedContentWidth = fullWidthPx - 2f * horizontalInsetPx
+                val compactContentWidth = compactWidthPx - 2f * horizontalInsetPx
+                val currentSurfaceWidth = morphSurfaceWidthPx(
+                    fullWidthPx,
+                    compactWidthPx,
+                    progress,
+                )
+                val currentContentWidth = currentSurfaceWidth - 2f * horizontalInsetPx
+                val expandedTabWidth = (expandedContentWidth / itemCount).coerceAtLeast(1f)
+                val expandedCenter = if (isLtr) {
+                    (selectedIndex + 0.5f) * expandedTabWidth
+                } else {
+                    expandedContentWidth - (selectedIndex + 0.5f) * expandedTabWidth
+                }
+                val compactCenter = compactContentWidth / 2f
+                val targetCenter = lerp(expandedCenter, compactCenter, progress)
+                translationX = targetCenter - currentContentWidth / 2f
+                translationY = lerp(expandedIconOffsetYPx, 0f, progress)
+                // The shared tab scale owns press deformation and the <= 0.74 morph. Apply
+                // only the late compact correction here so the press scale is not duplicated.
+                val scale = sharedTabScale() * selectedIconLateScale()
+                scaleX = scale
+                scaleY = scale
+                alpha = 1f
+                colorFilter = selectedIconColorFilter.value
+            },
+    )
 }

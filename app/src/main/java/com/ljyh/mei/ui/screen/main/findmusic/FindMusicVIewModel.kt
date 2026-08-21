@@ -6,6 +6,7 @@ import com.ljyh.mei.data.repository.PlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.data.model.weapi.HighQualityPlaylistResult
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -25,6 +26,8 @@ class FindMusicViewModel @Inject constructor(
     private val _highQualityPlaylist = MutableStateFlow<Resource<HighQualityPlaylistResult>>(Resource.Loading)
     val highQualityPlaylist = _highQualityPlaylist.asStateFlow()
     private val _playlistCache = mutableMapOf<String, HighQualityPlaylistResult>()
+    private var loadJob: Job? = null
+    private var loadGeneration = 0
 
     init {
         // 初始化加载
@@ -35,16 +38,20 @@ class FindMusicViewModel @Inject constructor(
      * 用户点击分类时调用
      */
     fun onCategorySelected(cat: String) {
+        val category = normalizeCategory(cat)
+
         // 1. 更新选中的 Tag UI
-        _selectedCategory.value = cat
+        _selectedCategory.value = category
 
         // 2. 检查缓存
-        if (_playlistCache.containsKey(cat)) {
+        if (_playlistCache.containsKey(category)) {
+            loadGeneration++
+            loadJob?.cancel()
             // 【命中缓存】：直接使用缓存数据，不发网络请求
-            _highQualityPlaylist.value = Resource.Success(_playlistCache[cat]!!)
+            _highQualityPlaylist.value = Resource.Success(_playlistCache[category]!!)
         } else {
             // 【未命中缓存】：发起网络请求
-            loadCategoryData(cat)
+            loadCategoryData(category)
         }
     }
 
@@ -53,19 +60,34 @@ class FindMusicViewModel @Inject constructor(
      * @param forceRefresh 是否强制刷新（哪怕有缓存也重新请求）
      */
     fun loadCategoryData(cat: String, limit: Int = 30, forceRefresh: Boolean = false) {
-        viewModelScope.launch {
+        val category = normalizeCategory(cat)
+        if (!forceRefresh) {
+            _playlistCache[category]?.let { cached ->
+                loadGeneration++
+                loadJob?.cancel()
+                _highQualityPlaylist.value = Resource.Success(cached)
+                return
+            }
+        }
+        val generation = ++loadGeneration
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _highQualityPlaylist.value = Resource.Loading
 
             // 调用 Repository
-            val result = repository.getHighQualityPlaylist(cat, limit)
+            val result = repository.getHighQualityPlaylist(category, limit)
+            if (generation != loadGeneration) return@launch
 
             // 如果请求成功，写入缓存
             if (result is Resource.Success) {
-                _playlistCache[cat] = result.data
+                _playlistCache[category] = result.data
             }
 
             // 更新 UI
             _highQualityPlaylist.value = result
         }
     }
+
+    private fun normalizeCategory(category: String): String =
+        if (category == "排行榜") "榜单" else category
 }

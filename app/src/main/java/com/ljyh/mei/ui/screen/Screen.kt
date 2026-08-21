@@ -10,6 +10,7 @@ sealed class Screen(val route:String) {
     data object Home:Screen("home")
     data object Library:Screen("library")
     data object FindMusic: Screen("find_music")
+    data object PlaylistCategory: Screen("playlist_category")
     data object SearchResult:Screen("search_result")
     data object PlayList:Screen("playlist")
     data object Setting:Screen("setting")

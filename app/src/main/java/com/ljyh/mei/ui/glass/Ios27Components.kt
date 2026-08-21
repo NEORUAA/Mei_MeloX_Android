@@ -335,6 +335,7 @@ fun IosBottomSearchToolbar(
     @Suppress("UNUSED_PARAMETER") cancelLabel: String,
     placeholder: String,
     modifier: Modifier = Modifier,
+    style: GlassSurfaceStyle = GlassSurfaceStyle.Navigation,
     focusRequester: FocusRequester = remember { FocusRequester() },
 ) {
     val colors = LocalGlassColors.current
@@ -348,6 +349,7 @@ fun IosBottomSearchToolbar(
             modifier = Modifier.weight(1f).height(56.dp),
             backdrop = backdrop,
             shape = Capsule(),
+            style = style,
         ) {
             Row(
                 Modifier.fillMaxSize().padding(horizontal = 12.dp),
@@ -384,6 +386,7 @@ fun IosBottomSearchToolbar(
         GlassIconButton(
             onClick = onCancel,
             backdrop = backdrop,
+            style = style,
             modifier = Modifier.size(56.dp),
         ) {
             SfIcon("xmark", null, size = 20.dp, tint = colors.content)
