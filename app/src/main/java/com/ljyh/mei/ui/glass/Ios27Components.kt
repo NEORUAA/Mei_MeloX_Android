@@ -583,6 +583,9 @@ fun IosContextMenu(
     // disappear near the beginning of close while the glass shell was still visibly shrinking.
     val contentProgress = progress
     val childBackdrop = rememberLayerBackdrop()
+    // Context menus render in a separate Popup window. Map their sampling coordinates back
+    // to the source window so the menu refracts the content physically behind its position.
+    val samplingBackdrop = rememberCrossWindowBackdrop(backdrop)
     val elevatedBackground = LocalGlassColors.current.elevatedBackground
     val menuLayerBlock: GraphicsLayerScope.() -> Unit = {
         transformOrigin = TransformOrigin(1f, if (opensAbove) 1f else 0f)
@@ -626,7 +629,7 @@ fun IosContextMenu(
                     layerBlock = menuLayerBlock,
                 )
                 .drawBackdrop(
-                    backdrop = backdrop,
+                    backdrop = samplingBackdrop,
                     exportedBackdrop = childBackdrop,
                     shape = { RoundedRectangle(radius) },
                     effects = {

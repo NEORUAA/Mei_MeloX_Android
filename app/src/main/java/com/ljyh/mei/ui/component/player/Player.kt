@@ -92,7 +92,10 @@ fun BottomSheetPlayer(
     )
 
     // 单入口、双实现 - 根据样式渲染不同的播放器
-    CompositionLocalProvider(LocalPlayerBackdropCover provides backdropCover) {
+    CompositionLocalProvider(
+        LocalPlayerBackdropCover provides backdropCover,
+        LocalGlassBackdrop provides playerBackdrop,
+    ) {
         when (playerStyle) {
             PlayerStyle.AppleMusic -> {
                 // 横屏模式下直接进入经典模式
