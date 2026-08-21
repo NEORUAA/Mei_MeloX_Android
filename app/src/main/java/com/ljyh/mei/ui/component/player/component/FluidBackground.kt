@@ -1,6 +1,11 @@
 package com.ljyh.mei.ui.component.player.component
 
+import android.graphics.Bitmap
+import android.os.Handler
+import android.os.Looper
 import android.os.Build
+import android.view.PixelCopy
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -12,20 +17,32 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
-import coil3.Bitmap
 import com.ljyh.mei.constants.MeshFlowSpeedKey
 import com.ljyh.mei.constants.MeshLowFreqVolumeKey
 import com.ljyh.mei.constants.MeshPlayingKey
 import com.ljyh.mei.constants.MeshRenderScaleKey
 import com.ljyh.mei.constants.MeshStaticModeKey
 import com.ljyh.mei.constants.MeshSubdivisionKey
-import com.ljyh.mei.ui.component.player.LocalPlayerBackdropCover
+import com.ljyh.mei.ui.component.player.LocalPlayerBackdropFrame
 import com.ljyh.mei.ui.component.player.component.mesh.AlbumTextureProcessor
 import com.ljyh.mei.ui.component.player.component.mesh.MeshBackgroundView
+import com.ljyh.mei.ui.glass.trackBackdropPosition
 import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.ljyh.mei.utils.rememberPreference
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
+import kotlin.math.roundToInt
+
+private const val BackdropCaptureShortSide = 360
+private const val BackdropCaptureLongSide = 720
+private const val BackdropCaptureIntervalMillis = 67L
+private const val StaticBackdropCaptureAttempts = 18
 
 
 @Composable
@@ -34,6 +51,7 @@ fun FluidBackground(
     audioVisualizerManager: AudioVisualizerManager,
     isPlaying: Boolean = true,
     alpha: Float = 1f,
+    backdrop: LayerBackdrop,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -84,46 +102,126 @@ fun FluidBackground(
 
     // Publish the cover as the player backdrop's recording stand-in: this GL surface's
     // pixels cannot be captured by a Compose layer recording, so sheets sample this instead.
-    val backdropCover = LocalPlayerBackdropCover.current
-    LaunchedEffect(backdropCover, albumBitmap) {
-        backdropCover?.value = withContext(Dispatchers.Default) {
+    val backdropFrame = LocalPlayerBackdropFrame.current
+    LaunchedEffect(backdropFrame, albumBitmap) {
+        backdropFrame?.value = withContext(Dispatchers.Default) {
             // The mesh renders AlbumTextureProcessor's heavily blurred, darkened output;
-            // that is the faithful stand-in for the player background, not the sharp cover.
+            // keep this as the immediate fallback until the first PixelCopy frame arrives.
             albumBitmap?.let(AlbumTextureProcessor::process)
         }?.asImageBitmap()
     }
 
     // 2. 组装当前需要传递给 View 的所有状态
     val shouldAnimate = !meshPlaying || isPlaying
+    val pixelCopyHandler = remember { Handler(Looper.getMainLooper()) }
+
+    // SurfaceView is not part of Compose's graphics-layer recording. Copy a small live frame
+    // instead; glass blurs it heavily, so this resolution preserves the visual result without
+    // reading a full-screen buffer every frame. Static mode captures through the mesh fade-in
+    // and then stops, while animated mode keeps the sample moving at roughly 15 fps.
+    LaunchedEffect(meshView, backdropFrame, albumBitmap, staticMode, shouldAnimate) {
+        val view = meshView ?: return@LaunchedEffect
+        val target = backdropFrame ?: return@LaunchedEffect
+        var buffers = emptyArray<Bitmap>()
+        var bufferWidth = 0
+        var bufferHeight = 0
+        var bufferIndex = 0
+        var attempts = 0
+        val continuous = !staticMode && shouldAnimate
+
+        delay(BackdropCaptureIntervalMillis)
+        while (isActive && (continuous || attempts < StaticBackdropCaptureAttempts)) {
+            val sourceWidth = view.width
+            val sourceHeight = view.height
+            if (view.isAttachedToWindow && sourceWidth > 0 && sourceHeight > 0) {
+                val shortSide = minOf(sourceWidth, sourceHeight).toFloat()
+                val longSide = maxOf(sourceWidth, sourceHeight).toFloat()
+                val scale = minOf(
+                    1f,
+                    BackdropCaptureShortSide / shortSide,
+                    BackdropCaptureLongSide / longSide,
+                )
+                val width = (sourceWidth * scale).roundToInt().coerceAtLeast(1)
+                val height = (sourceHeight * scale).roundToInt().coerceAtLeast(1)
+                if (buffers.isEmpty() || width != bufferWidth || height != bufferHeight) {
+                    bufferWidth = width
+                    bufferHeight = height
+                    buffers = Array(3) {
+                        Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    }
+                    bufferIndex = 0
+                }
+
+                val bitmap = buffers[bufferIndex]
+                bufferIndex = (bufferIndex + 1) % buffers.size
+                if (copySurfaceFrame(view, bitmap, pixelCopyHandler)) {
+                    target.value = bitmap.asImageBitmap()
+                }
+                attempts++
+            }
+            delay(BackdropCaptureIntervalMillis)
+        }
+    }
 
     // 3. 去掉过于严格的版本限制 (只要设备存在就能初始化，低端机 GLES 3.0 兼容性极好)
     // 如果你想绝对保险，可以写 >= Build.VERSION_CODES.LOLLIPOP (21)
-    AndroidView(
-        factory = { ctx ->
-            MeshBackgroundView(ctx).apply {
-                meshView = this
-                this.alpha = alpha.coerceIn(0f, 1f)
-                // 初始化时的默认值
-                setFlowSpeed(flowSpeed)
-                setRenderScale(renderScale)
-                setSubdivision(subdivision)
-                setStaticMode(staticMode)
-                setPlaying(shouldAnimate)
-                setPreserveEGLContextOnPause(true)
-            }
-        },
-        update = { view ->
-            // GLSurfaceView owns a native Surface; driving the View alpha avoids a bright
-            // first frame escaping a Compose graphics layer during sheet expansion.
-            view.alpha = alpha.coerceIn(0f, 1f)
+    Box(modifier.fillMaxSize()) {
+        // This empty Compose node owns the recording coordinates. Its custom Backdrop draw
+        // reads only [backdropFrame], so the native GL Surface is never re-drawn or re-clipped.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .layerBackdrop(backdrop)
+                .trackBackdropPosition(backdrop),
+        )
+        AndroidView(
+            factory = { ctx ->
+                MeshBackgroundView(ctx).apply {
+                    meshView = this
+                    this.alpha = alpha.coerceIn(0f, 1f)
+                    // 初始化时的默认值
+                    setFlowSpeed(flowSpeed)
+                    setRenderScale(renderScale)
+                    setSubdivision(subdivision)
+                    setStaticMode(staticMode)
+                    setPlaying(shouldAnimate)
+                    setPreserveEGLContextOnPause(true)
+                }
+            },
+            update = { view ->
+                // GLSurfaceView owns a native Surface; driving the View alpha avoids a bright
+                // first frame escaping a Compose graphics layer during sheet expansion.
+                view.alpha = alpha.coerceIn(0f, 1f)
 
-            view.updateVolume(bass * volumeScale)
-            view.setFlowSpeed(flowSpeed)
-            view.setRenderScale(renderScale)
-            view.setSubdivision(subdivision)
-            view.setStaticMode(staticMode)
-            view.setPlaying(shouldAnimate)
-        },
-        modifier = modifier.fillMaxSize()
-    )
+                view.updateVolume(bass * volumeScale)
+                view.setFlowSpeed(flowSpeed)
+                view.setRenderScale(renderScale)
+                view.setSubdivision(subdivision)
+                view.setStaticMode(staticMode)
+                view.setPlaying(shouldAnimate)
+            },
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+private suspend fun copySurfaceFrame(
+    source: MeshBackgroundView,
+    destination: Bitmap,
+    callbackHandler: Handler,
+): Boolean = suspendCancellableCoroutine { continuation ->
+    try {
+        PixelCopy.request(
+            source,
+            destination,
+            { result ->
+                if (continuation.isActive) {
+                    continuation.resume(result == PixelCopy.SUCCESS)
+                }
+            },
+            callbackHandler,
+        )
+    } catch (_: IllegalArgumentException) {
+        continuation.resume(false)
+    }
 }

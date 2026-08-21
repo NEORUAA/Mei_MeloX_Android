@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.os.Build
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,7 +46,8 @@ fun ClassicPlayer(
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
     collapsedBackdrop: Backdrop,
-    playerBackdrop: LayerBackdrop,
+    playerBackgroundBackdrop: LayerBackdrop,
+    playerContentBackdrop: LayerBackdrop,
     compactMiniPlayerProgress: Float,
     miniPlayerVerticalOffset: Dp,
 ) {
@@ -57,8 +60,18 @@ fun ClassicPlayer(
 
     // --- 从状态容器获取数据 ---
     val mediaMetadata by stateContainer.mediaMetadata
+    val isPlaying by stateContainer.isPlaying
     val sliderPosition by remember { derivedStateOf { stateContainer.sliderPosition } }
     val duration by remember { derivedStateOf { stateContainer.duration } }
+    val context = LocalContext.current
+    val audioVisualizerManager = remember { AudioVisualizerManager(context) }
+
+    LaunchedEffect(stateContainer.playerConnection.player) {
+        val player = stateContainer.playerConnection.player as? ExoPlayer
+        player?.audioSessionId?.let { sessionId ->
+            audioVisualizerManager.attachToPlayer(sessionId)
+        }
+    }
 
     // 背景颜色计算
     val colorScheme = MaterialTheme.colorScheme
@@ -90,6 +103,14 @@ fun ClassicPlayer(
                 HorizontalSwipeDirection.Right -> stateContainer.playerConnection.seekToPrevious()
             }
         },
+        backgroundContent = {
+            FluidBackground(
+                imageUrl = mediaMetadata?.coverUrl,
+                audioVisualizerManager = audioVisualizerManager,
+                isPlaying = isPlaying,
+                backdrop = playerBackgroundBackdrop,
+            )
+        },
         collapsedContent = {
             MiniPlayer(
                 position = sliderPosition.toLong(),
@@ -100,43 +121,26 @@ fun ClassicPlayer(
             )
         }
     ) {
-
-        val coverUrl = mediaMetadata?.coverUrl
-        val isPlaying by stateContainer.isPlaying
-        val context = LocalContext.current
-
-        val audioVisualizerManager = remember { AudioVisualizerManager(context) }
-
-        LaunchedEffect(stateContainer.playerConnection.player) {
-            val player = stateContainer.playerConnection.player as? ExoPlayer
-            player?.audioSessionId?.let { sessionId ->
-                audioVisualizerManager.attachToPlayer(sessionId)
+        Box(
+            Modifier
+                .fillMaxSize()
+                .layerBackdrop(playerContentBackdrop)
+                .trackBackdropPosition(playerContentBackdrop),
+        ) {
+            val layoutMode = when {
+                device.isTablet && device.isLandscape -> PlayerLayoutMode.Tablet
+                !device.isTablet && device.isLandscape -> PlayerLayoutMode.ImmersiveLandscape
+                else -> PlayerLayoutMode.PhonePortrait
             }
-        }
 
-        FluidBackground(
-            imageUrl = coverUrl,
-            audioVisualizerManager = audioVisualizerManager,
-            isPlaying = isPlaying,
-            modifier = Modifier
-                .layerBackdrop(playerBackdrop)
-                .trackBackdropPosition(playerBackdrop),
-        )
+//            Timber.tag("PlayerLayoutMode").d(layoutMode.name)
 
 
-        val layoutMode = when {
-            device.isTablet && device.isLandscape -> PlayerLayoutMode.Tablet
-            !device.isTablet && device.isLandscape -> PlayerLayoutMode.ImmersiveLandscape
-            else -> PlayerLayoutMode.PhonePortrait
-        }
-
-//        Timber.tag("PlayerLayoutMode").d(layoutMode.name)
-
-
-        when (layoutMode) {
-            PlayerLayoutMode.PhonePortrait -> ClassicPhoneLayout(stateContainer, overlayHandler)
-            PlayerLayoutMode.Tablet -> ClassicTabletLayout(stateContainer, overlayHandler)
-            PlayerLayoutMode.ImmersiveLandscape -> ClassicImmersiveLayout(stateContainer, overlayHandler)
+            when (layoutMode) {
+                PlayerLayoutMode.PhonePortrait -> ClassicPhoneLayout(stateContainer, overlayHandler)
+                PlayerLayoutMode.Tablet -> ClassicTabletLayout(stateContainer, overlayHandler)
+                PlayerLayoutMode.ImmersiveLandscape -> ClassicImmersiveLayout(stateContainer, overlayHandler)
+            }
         }
 
 

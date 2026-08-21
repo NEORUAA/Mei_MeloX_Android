@@ -104,7 +104,8 @@ fun AppleMusicPlayer(
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
     collapsedBackdrop: Backdrop,
-    playerBackdrop: LayerBackdrop,
+    playerBackgroundBackdrop: LayerBackdrop,
+    playerContentBackdrop: LayerBackdrop,
     compactMiniPlayerProgress: Float,
     miniPlayerVerticalOffset: Dp,
 ) {
@@ -273,9 +274,7 @@ fun AppleMusicPlayer(
                     audioVisualizerManager = audioVisualizerManager,
                     isPlaying = isPlaying,
                     alpha = playerBackgroundAlpha,
-                    modifier = Modifier
-                        .layerBackdrop(playerBackdrop)
-                        .trackBackdropPosition(playerBackdrop),
+                    backdrop = playerBackgroundBackdrop,
                 )
             },
             collapsedContent = {
@@ -291,7 +290,12 @@ fun AppleMusicPlayer(
                 )
             }
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .layerBackdrop(playerContentBackdrop)
+                    .trackBackdropPosition(playerContentBackdrop),
+            ) {
 
                 Box(
                     modifier = Modifier

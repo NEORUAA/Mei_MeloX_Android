@@ -33,12 +33,14 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.glass.LocalGlassBackdrop
 import com.ljyh.mei.ui.glass.LocalGroupedListBackgroundAlpha
+import com.ljyh.mei.ui.glass.rememberCrossWindowBackdrop
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
+import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 
-/** Publishes the current cover art for the player backdrop's recording stand-in. */
-val LocalPlayerBackdropCover = staticCompositionLocalOf<MutableState<ImageBitmap?>?> { null }
+/** Publishes a capturable frame for the player's native GL background. */
+val LocalPlayerBackdropFrame = staticCompositionLocalOf<MutableState<ImageBitmap?>?> { null }
 
 @OptIn(UnstableApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
@@ -55,24 +57,30 @@ fun BottomSheetPlayer(
     val navController = LocalNavController.current
     val device = rememberDeviceInfo()
     val collapsedBackdrop = LocalGlassBackdrop.current
-    val backdropCover = remember { mutableStateOf<ImageBitmap?>(null) }
-    // The visible player background is a GLSurfaceView, whose pixels cannot be captured by
-    // a Compose layer recording. Record a cover-art stand-in instead so glass sheets above
-    // the player sample something faithful to the flowing background.
-    val playerBackdrop = rememberLayerBackdrop(
+    val backdropFrame = remember { mutableStateOf<ImageBitmap?>(null) }
+    // GLSurfaceView owns a separate Surface and must never be drawn again inside a Compose
+    // recording layer. A dedicated, empty Compose source records the latest PixelCopy frame.
+    val playerBackgroundBackdrop = rememberLayerBackdrop(
         onDraw = {
-            drawContent()
-            backdropCover.value?.let { cover ->
-                val scale = maxOf(size.width / cover.width, size.height / cover.height)
-                val w = cover.width * scale
-                val h = cover.height * scale
+            backdropFrame.value?.let { frame ->
+                val scale = maxOf(size.width / frame.width, size.height / frame.height)
+                val w = frame.width * scale
+                val h = frame.height * scale
                 withTransform({
                     translate(left = (size.width - w) / 2f, top = (size.height - h) / 2f)
                 }) {
-                    drawImage(cover, dstSize = IntSize(w.toInt(), h.toInt()))
+                    drawImage(frame, dstSize = IntSize(w.toInt(), h.toInt()))
                 }
             }
         },
+    )
+    // Foreground content is a regular Compose layer, so it can be recorded independently
+    // without ever touching the native GL Surface. Window-space wrappers keep both sources
+    // stable when a Popup or ModalBottomSheet animates in another Compose owner.
+    val playerContentBackdrop = rememberLayerBackdrop()
+    val playerBackdrop = rememberCombinedBackdrop(
+        rememberCrossWindowBackdrop(playerBackgroundBackdrop),
+        rememberCrossWindowBackdrop(playerContentBackdrop),
     )
 
     // 获取播放器样式
@@ -93,7 +101,7 @@ fun BottomSheetPlayer(
 
     // 单入口、双实现 - 根据样式渲染不同的播放器
     CompositionLocalProvider(
-        LocalPlayerBackdropCover provides backdropCover,
+        LocalPlayerBackdropFrame provides backdropFrame,
         LocalGlassBackdrop provides playerBackdrop,
     ) {
         when (playerStyle) {
@@ -106,7 +114,8 @@ fun BottomSheetPlayer(
                         stateContainer = stateContainer,
                         overlayHandler = overlayHandler,
                         collapsedBackdrop = collapsedBackdrop,
-                        playerBackdrop = playerBackdrop,
+                        playerBackgroundBackdrop = playerBackgroundBackdrop,
+                        playerContentBackdrop = playerContentBackdrop,
                         compactMiniPlayerProgress = compactMiniPlayerProgress,
                         miniPlayerVerticalOffset = miniPlayerVerticalOffset,
                     )
@@ -117,7 +126,8 @@ fun BottomSheetPlayer(
                         stateContainer = stateContainer,
                         overlayHandler = overlayHandler,
                         collapsedBackdrop = collapsedBackdrop,
-                        playerBackdrop = playerBackdrop,
+                        playerBackgroundBackdrop = playerBackgroundBackdrop,
+                        playerContentBackdrop = playerContentBackdrop,
                         compactMiniPlayerProgress = compactMiniPlayerProgress,
                         miniPlayerVerticalOffset = miniPlayerVerticalOffset,
                     )
@@ -131,7 +141,8 @@ fun BottomSheetPlayer(
                     stateContainer = stateContainer,
                     overlayHandler = overlayHandler,
                     collapsedBackdrop = collapsedBackdrop,
-                    playerBackdrop = playerBackdrop,
+                    playerBackgroundBackdrop = playerBackgroundBackdrop,
+                    playerContentBackdrop = playerContentBackdrop,
                     compactMiniPlayerProgress = compactMiniPlayerProgress,
                     miniPlayerVerticalOffset = miniPlayerVerticalOffset,
                 )
