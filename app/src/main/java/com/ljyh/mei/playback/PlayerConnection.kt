@@ -107,9 +107,10 @@ class PlayerConnection(
     fun isPlaying(id: String): Boolean {
         return mediaMetadata.value?.id.toString() == id && isPlaying.value
     }
-    fun onTrackClicked( trackId: String, buildQueue: () ->  ListQueue?) {
+    fun onTrackClicked(trackId: String, buildQueue: () -> ListQueue?) {
         val foundIndex = player.mediaItems.indexOfFirst { it.mediaId == trackId }
-        if (foundIndex != -1) {
+        val foundItem = player.mediaItems.getOrNull(foundIndex)
+        if (foundItem != null && isPlayableMediaItem(foundItem)) {
             player.seekToDefaultPosition(foundIndex)
             player.play()
         } else {

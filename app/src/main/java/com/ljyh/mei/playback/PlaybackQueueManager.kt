@@ -14,9 +14,13 @@ import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.playback.queue.Queue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
@@ -31,6 +35,9 @@ class PlaybackQueueManager(
     private val TAG = "QueueManager"
     private val _queueState = MutableStateFlow<QueueState>(QueueState.Idle)
     private val loadingIds = ConcurrentHashMap.newKeySet<String>()
+    private var activeQueueBuildJob: Job? = null
+    private var queueBuildGeneration = 0L
+    private var activeFmGeneration: Long? = null
 
     private val _isShuffleModeEnabled = MutableStateFlow(false)
     var isFmMode = false
@@ -42,10 +49,54 @@ class PlaybackQueueManager(
     }
 
     fun startFmMode(seedItem: MediaItem) {
-        scope.launch(Dispatchers.Main) {
-            isFmMode = true
-            _queueState.value = QueueState.Loading("私人 FM")
+        cancelActiveQueueBuild()
+        val generation = queueBuildGeneration
+        activeQueueBuildJob = scope.launch(Dispatchers.Main) {
+            try {
+                startFmPlayback(seedItem, generation)
+            } catch (e: CancellationException) {
+                throw e
+            } finally {
+                if (generation == queueBuildGeneration) {
+                    activeQueueBuildJob = null
+                }
+            }
+        }
+    }
 
+    fun startFmModeById(seedId: String?) {
+        cancelActiveQueueBuild()
+        val generation = queueBuildGeneration
+        activeQueueBuildJob = scope.launch(Dispatchers.Main) {
+            try {
+                if (generation != queueBuildGeneration) return@launch
+                if (seedId == null) {
+                    startFmPlayback(null, generation)
+                } else {
+                    // 先加载这首歌的详情，再进入 FM；新播放请求会取消此 job。
+                    val details = loadSongDetails(listOf(seedId))
+                    currentCoroutineContext().ensureActive()
+                    if (generation != queueBuildGeneration) return@launch
+                    startFmPlayback(details.firstOrNull(), generation)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } finally {
+                if (generation == queueBuildGeneration) {
+                    activeQueueBuildJob = null
+                }
+            }
+        }
+    }
+
+    private suspend fun startFmPlayback(seedItem: MediaItem?, generation: Long) {
+        if (generation != queueBuildGeneration) return
+
+        isFmMode = true
+        activeFmGeneration = generation
+        _queueState.value = QueueState.Loading("私人 FM")
+
+        if (seedItem != null) {
             // 1. 准备播放器环境
             player.stop()
             player.clearMediaItems()
@@ -59,33 +110,19 @@ class PlaybackQueueManager(
             player.play()
 
             // 3. 异步获取 FM 推荐列表并追加
-            // 注意：这里传 seedItem.mediaId 是为了告诉 API 排除掉当前这一首（取决于 API 支持）
             fetchAndAppendFmRecommendations(seedItem.mediaId)
-        }
-    }
-
-    fun startFmModeById(seedId: String?) {
-        scope.launch(Dispatchers.Main) {
-            if (seedId == null) {
-                isFmMode = true
-                fetchAndAppendFmRecommendations()
-            } else {
-                // 先加载这首歌的详情，再调用上面的方法
-                val details = loadSongDetails(listOf(seedId))
-                if (details.isNotEmpty()) {
-                    startFmMode(details.first())
-                } else {
-                    // 如果加载失败，降级处理：直接进入普通 FM
-                    isFmMode = true
-                    fetchAndAppendFmRecommendations()
-                }
-            }
-
+        } else {
+            // 没有种子时保留现有 FM 队列，只补充推荐歌曲。
+            fetchAndAppendFmRecommendations()
         }
     }
 
     suspend fun fetchAndAppendFmRecommendations(currentId: String? = null) {
         if (isFetchingFm) return
+        if (!isFmMode) return
+        val fmGeneration = activeFmGeneration ?: queueBuildGeneration.also {
+            activeFmGeneration = it
+        }
         isFetchingFm = true
         try {
             // 调用 FM 接口
@@ -98,6 +135,11 @@ class PlaybackQueueManager(
                     .map { it.toMediaMetadata().toMediaItem() }
 
                 withContext(Dispatchers.Main) {
+                    val regularBuildPending = activeQueueBuildJob != null &&
+                        fmGeneration != queueBuildGeneration
+                    if (!isFmMode || fmGeneration != activeFmGeneration || regularBuildPending) {
+                        return@withContext
+                    }
                     // 追加到列表末尾
                     player.addMediaItems(items)
 
@@ -107,6 +149,8 @@ class PlaybackQueueManager(
                     checkAndLoadMetadata()
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "FM Fetch Error", e)
         } finally {
@@ -135,6 +179,8 @@ class PlaybackQueueManager(
                         fetchAndAppendFmRecommendations()
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Trash failed", e)
             }
@@ -147,9 +193,11 @@ class PlaybackQueueManager(
         startInShuffleMode: Boolean = false,
         playWhenReady: Boolean = true,
     ) {
-        isFmMode = false
-        scope.launch(Dispatchers.Main) {
+        activeQueueBuildJob?.cancel()
+        val generation = ++queueBuildGeneration
+        activeQueueBuildJob = scope.launch(Dispatchers.Main) {
             try {
+                if (generation != queueBuildGeneration) return@launch
                 _queueState.value = QueueState.Loading(queue.title ?: "加载中")
 
                 val status = queue.getInitialStatus()
@@ -160,9 +208,35 @@ class PlaybackQueueManager(
                     return@launch
                 }
 
-                val mediaItems = allIds.map { item -> item.second ?: createPlaceholder(item.first) }
+                val startIndex = status.mediaItemIndex
+                if (startIndex !in allIds.indices) {
+                    _queueState.value = QueueState.Error("播放位置无效")
+                    return@launch
+                }
+
+                // The selected item must be hydrated before prepare(). A placeholder can fail
+                // immediately in the player, and MusicService handles that failure by seeking
+                // to the next item (which is random when shuffle is enabled).
+                val selectedItem = hydrateQueueItem(allIds[startIndex])
+                if (selectedItem == null) {
+                    Log.e(TAG, "Unable to hydrate selected item ${allIds[startIndex].first}")
+                    if (generation == queueBuildGeneration) {
+                        _queueState.value = QueueState.Error("当前歌曲加载失败")
+                    }
+                    return@launch
+                }
+
+                currentCoroutineContext().ensureActive()
+                if (generation != queueBuildGeneration) return@launch
+
+                val mediaItems = allIds.mapIndexed { index, item ->
+                    if (index == startIndex) selectedItem
+                    else item.second ?: createPlaceholder(item.first)
+                }
 
                 // 2. 停止并重置
+                isFmMode = false
+                activeFmGeneration = null
                 player.stop()
                 player.clearMediaItems()
 
@@ -171,11 +245,7 @@ class PlaybackQueueManager(
                 _isShuffleModeEnabled.value = false
 
                 // 设置列表并直接跳转 此时 shuffle 是 false，所以 status.mediaItemIndex 绝对对应 list 里的第 N 个
-                player.setMediaItems(
-                    mediaItems,
-                    status.mediaItemIndex,
-                    status.position.toLong()
-                )
+                player.setMediaItems(mediaItems, startIndex, status.position.toLong())
 
                 player.repeatMode = Player.REPEAT_MODE_ALL
                 player.prepare()
@@ -194,9 +264,16 @@ class PlaybackQueueManager(
                 // 因为当前歌曲已经是 RealItem 了，这个方法会自动跳过当前歌曲，去加载下一首
                 checkAndLoadMetadata()
 
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
+                if (generation != queueBuildGeneration) return@launch
                 Log.e(TAG, "playQueue Error", e)
                 _queueState.value = QueueState.Error(e.message ?: "播放错误")
+            } finally {
+                if (generation == queueBuildGeneration) {
+                    activeQueueBuildJob = null
+                }
             }
         }
     }
@@ -292,11 +369,10 @@ class PlaybackQueueManager(
                 if (index < 0 || index >= player.mediaItemCount) return@mapNotNull null
 
                 val item = player.getMediaItemAt(index)
-                val isPlaceholder = item.localConfiguration?.uri.toString() == PLACEHOLDER_URI
                 val id = item.mediaId
 
-                // 只有是占位符且没在加载中才请求
-                if (isPlaceholder && !loadingIds.contains(id)) {
+                // Resolve entries without a playable local configuration, including placeholders.
+                if (needsMetadataHydration(item) && !loadingIds.contains(id)) {
                     id
                 } else null
             }.distinct()
@@ -306,16 +382,22 @@ class PlaybackQueueManager(
             loadingIds.addAll(itemsNeedLoading)
 
             // IO 线程加载数据
-            val loadedItems = withContext(Dispatchers.IO) {
-                try {
+            val loadedItems = try {
+                withContext(Dispatchers.IO) {
                     loadSongDetails(itemsNeedLoading)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Fetch Metadata Failed", e)
-                    // 失败移除标记
-                    loadingIds.removeAll(itemsNeedLoading.toSet())
-                    emptyList()
                 }
+            } catch (e: CancellationException) {
+                loadingIds.removeAll(itemsNeedLoading.toSet())
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Fetch Metadata Failed", e)
+                loadingIds.removeAll(itemsNeedLoading.toSet())
+                emptyList()
             }
+
+            // Also clear IDs omitted by a partial response; otherwise a failed entry would
+            // remain marked forever and never be retried.
+            loadingIds.removeAll(itemsNeedLoading.toSet())
 
             // 回到主线程更新
             if (loadedItems.isNotEmpty()) {
@@ -335,11 +417,8 @@ class PlaybackQueueManager(
                         // 只有当 ID 匹配，且当前确实是占位符时才替换
                         // 这样即使 index 错位了（比如变成了别的歌），因为 ID 不匹配，也不会错误替换
                         if (newItem != null) {
-                            val isStillPlaceholder =
-                                currentItem.localConfiguration?.uri.toString() == PLACEHOLDER_URI
-
                             // 只有当它是占位符，或者我们要强制刷新时才替换
-                            if (isStillPlaceholder) {
+                            if (isPlaceholderMediaItem(currentItem)) {
                                 player.replaceMediaItem(index, newItem)
                             }
                         }
@@ -385,6 +464,8 @@ class PlaybackQueueManager(
                     com.ljyh.mei.data.model.api.GetSongDetails(c = ids.joinToString(","))
                 )
                 response.songs.map { it.toMediaItem() }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load song details", e)
                 emptyList()
@@ -392,10 +473,30 @@ class PlaybackQueueManager(
         }
     }
 
+    /**
+     * Resolve a queue entry used as the current item before the player is prepared.
+     * Non-placeholder items are already safe to use; unresolved entries reuse the same
+     * metadata request as the lazy-loading path below.
+     */
+    private suspend fun hydrateQueueItem(item: Pair<String, MediaItem?>): MediaItem? {
+        val existing = item.second
+        if (existing != null && isPlayableMediaItem(existing)) return existing
+
+        return loadSongDetails(listOf(item.first))
+            .firstOrNull { it.mediaId == item.first }
+    }
+
     fun release() {
+        cancelActiveQueueBuild()
         player.removeListener(this)
         loadingIds.clear()
         // 不要 cancel scope，因为它是由外部 Service 传进来的
+    }
+
+    private fun cancelActiveQueueBuild() {
+        activeQueueBuildJob?.cancel()
+        activeQueueBuildJob = null
+        queueBuildGeneration++
     }
 
     sealed class QueueState {
@@ -408,3 +509,12 @@ class PlaybackQueueManager(
         object Empty : QueueState()
     }
 }
+
+internal fun isPlaceholderMediaItem(item: MediaItem): Boolean =
+    item.localConfiguration?.uri?.toString() == PLACEHOLDER_URI
+
+internal fun isPlayableMediaItem(item: MediaItem): Boolean =
+    item.localConfiguration != null && !isPlaceholderMediaItem(item)
+
+private fun needsMetadataHydration(item: MediaItem): Boolean =
+    !isPlayableMediaItem(item)

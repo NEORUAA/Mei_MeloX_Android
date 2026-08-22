@@ -178,10 +178,10 @@ fun PlaylistScreen(
             // 保持原始顺序
             val allPairs = playlist.trackIds
                 .filterNot { it.id in removedTrackIds }
-                .mapNotNull { trackId ->
-                val tid = trackId.id.toString()
-                mediaItemsMap[tid]?.let { Pair(tid, it) }
-            }
+                .map { trackId ->
+                    val tid = trackId.id.toString()
+                    Pair(tid, mediaItemsMap[tid])
+                }
 
             return ListQueue(
                 id = "playlist_${uiData.id}",
