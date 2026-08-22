@@ -115,6 +115,18 @@ fun FluidBackground(
     val shouldAnimate = !meshPlaying || isPlaying
     val pixelCopyHandler = remember { Handler(Looper.getMainLooper()) }
 
+    // Configuration changes are infrequent compared with sheet/bass recompositions. Apply
+    // renderer settings from their state boundary instead of queueing GL work from every
+    // AndroidView update pass.
+    LaunchedEffect(meshView, flowSpeed, renderScale, subdivision, staticMode, shouldAnimate) {
+        val view = meshView ?: return@LaunchedEffect
+        view.setFlowSpeed(flowSpeed)
+        view.setRenderScale(renderScale)
+        view.setSubdivision(subdivision)
+        view.setStaticMode(staticMode)
+        view.setPlaying(shouldAnimate)
+    }
+
     // SurfaceView is not part of Compose's graphics-layer recording. Copy a small live frame
     // instead; glass blurs it heavily, so this resolution preserves the visual result without
     // reading a full-screen buffer every frame. Static mode captures through the mesh fade-in
@@ -194,11 +206,6 @@ fun FluidBackground(
                 view.alpha = alpha.coerceIn(0f, 1f)
 
                 view.updateVolume(bass * volumeScale)
-                view.setFlowSpeed(flowSpeed)
-                view.setRenderScale(renderScale)
-                view.setSubdivision(subdivision)
-                view.setStaticMode(staticMode)
-                view.setPlaying(shouldAnimate)
             },
             modifier = Modifier.fillMaxSize(),
         )

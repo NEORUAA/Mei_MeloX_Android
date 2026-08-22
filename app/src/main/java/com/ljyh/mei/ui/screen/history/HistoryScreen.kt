@@ -36,7 +36,6 @@ import com.ljyh.mei.data.model.room.HistoryItem
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.glass.GlassCard
 import com.ljyh.mei.ui.glass.GlassIconButton
-import com.ljyh.mei.ui.glass.IosGroupedList
 import com.ljyh.mei.ui.glass.IosListRow
 import com.ljyh.mei.ui.glass.IosPinnedListPage
 import com.ljyh.mei.ui.glass.SfIcon
@@ -44,6 +43,7 @@ import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.screen.main.library.component.groupedLazyItems
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -57,6 +57,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
         title = stringResource(R.string.listening_history),
         onNavigateBack = navController::navigateUp,
         bottomPadding = insets.calculateBottomPadding(),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
         actions = {
             if (historyList.isNotEmpty()) {
                 GlassIconButton(viewModel::clearHistory) {
@@ -66,38 +67,43 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
         },
     ) {
         if (historyList.isEmpty()) {
-            item { EmptyHistoryState() }
-        } else {
-            item(key = "history-group") {
-                IosGroupedList {
-                    historyList.forEachIndexed { index, item ->
-                        IosListRow(
-                            title = item.song.title,
-                            subtitle = item.song.artist.joinToString(" / "),
-                            detail = relativeTime(item.playedAt),
-                            showTopSeparator = index > 0,
-                            leading = {
-                                AsyncImage(
-                                    model = item.song.cover,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
-                                    contentScale = ContentScale.Crop,
-                                )
-                            },
-                            onClick = {
-                                playerConnection?.playQueue(
-                                    ListQueue(
-                                        id = "history",
-                                        title = navController.context.getString(R.string.listening_history),
-                                        items = historyList.map { it.song.id to null },
-                                        startIndex = index,
-                                        position = 0,
-                                    ),
-                                )
-                            },
-                        )
-                    }
+            item {
+                Box(Modifier.fillMaxWidth().padding(top = 10.dp)) {
+                    EmptyHistoryState()
                 }
+            }
+        } else {
+            groupedLazyItems(
+                items = historyList,
+                key = { "history-${it.historyId}" },
+                contentType = "history-item",
+                firstItemTopPadding = 10.dp,
+            ) { item, index ->
+                IosListRow(
+                    title = item.song.title,
+                    subtitle = item.song.artist.joinToString(" / "),
+                    detail = relativeTime(item.playedAt),
+                    showTopSeparator = index > 0,
+                    leading = {
+                        AsyncImage(
+                            model = item.song.cover,
+                            contentDescription = null,
+                            modifier = Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
+                            contentScale = ContentScale.Crop,
+                        )
+                    },
+                    onClick = {
+                        playerConnection?.playQueue(
+                            ListQueue(
+                                id = "history",
+                                title = navController.context.getString(R.string.listening_history),
+                                items = historyList.map { it.song.id to null },
+                                startIndex = index,
+                                position = 0,
+                            ),
+                        )
+                    },
+                )
             }
         }
     }

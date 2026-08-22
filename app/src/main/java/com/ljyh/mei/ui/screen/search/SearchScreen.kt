@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.screen.search
 
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -36,7 +35,8 @@ import com.ljyh.mei.constants.SuggestionItemHeight
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.SearchBarIconOffsetX
 import com.ljyh.mei.ui.glass.SfIcon
-import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import timber.log.Timber
 
 
@@ -55,8 +55,9 @@ fun SearchScreen(
     val lazyListState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
-        snapshotFlow { lazyListState.firstVisibleItemScrollOffset }
-            .drop(1)
+        snapshotFlow { lazyListState.isScrollInProgress }
+            .distinctUntilChanged()
+            .filter { it }
             .collect {
                 keyboardController?.hide()
             }

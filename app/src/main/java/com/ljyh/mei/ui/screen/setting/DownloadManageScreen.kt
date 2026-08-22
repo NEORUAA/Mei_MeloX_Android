@@ -43,7 +43,6 @@ import com.ljyh.mei.ui.glass.GlassButton
 import com.ljyh.mei.ui.glass.GlassCard
 import com.ljyh.mei.ui.glass.GlassEmphasis
 import com.ljyh.mei.ui.glass.GlassIconButton
-import com.ljyh.mei.ui.glass.IosGroupedList
 import com.ljyh.mei.ui.glass.IosListRow
 import com.ljyh.mei.ui.glass.IosPinnedListPage
 import com.ljyh.mei.ui.glass.IosScrollableTabRow
@@ -51,6 +50,7 @@ import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+import com.ljyh.mei.ui.screen.main.library.component.groupedLazyItems
 import com.ljyh.mei.utils.DownloadManager
 import kotlinx.coroutines.launch
 
@@ -62,6 +62,30 @@ private enum class DownloadFilter(val titleRes: Int) {
     Failed(R.string.download_filter_failed),
 }
 
+private data class DownloadTaskAggregation(
+    val tasksByFilter: Map<DownloadFilter, List<DownloadTask>>,
+    val counts: Map<DownloadFilter, Int>,
+)
+
+private fun aggregateDownloadTasks(tasks: List<DownloadTask>): DownloadTaskAggregation {
+    val grouped = DownloadFilter.entries.associateWith { mutableListOf<DownloadTask>() }
+    tasks.forEach { task ->
+        grouped.getValue(DownloadFilter.All).add(task)
+        when (task.status) {
+            DownloadStatus.PENDING, DownloadStatus.DOWNLOADING -> {
+                grouped.getValue(DownloadFilter.Active).add(task)
+            }
+            DownloadStatus.PAUSED -> grouped.getValue(DownloadFilter.Paused).add(task)
+            DownloadStatus.COMPLETED -> grouped.getValue(DownloadFilter.Completed).add(task)
+            DownloadStatus.FAILED -> grouped.getValue(DownloadFilter.Failed).add(task)
+        }
+    }
+    return DownloadTaskAggregation(
+        tasksByFilter = grouped.mapValues { (_, value) -> value.toList() },
+        counts = grouped.mapValues { (_, value) -> value.size },
+    )
+}
+
 @Composable
 fun DownloadManageScreen(
     @Suppress("UNUSED_PARAMETER") scrollBehavior: TopAppBarScrollBehavior,
@@ -69,35 +93,18 @@ fun DownloadManageScreen(
     val navController = LocalNavController.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val allTasks by AppDatabase.getDatabase(context).downloadDao().getAll().collectAsState(initial = emptyList())
+    val downloadDao = remember(context) { AppDatabase.getDatabase(context).downloadDao() }
+    val allTasksFlow = remember(downloadDao) { downloadDao.getAll() }
+    val allTasks by allTasksFlow.collectAsState(initial = emptyList())
     var selectedFilter by remember { mutableStateOf(DownloadFilter.All) }
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
-    val filteredTasks = remember(allTasks, selectedFilter) {
-        allTasks.filter { task ->
-            when (selectedFilter) {
-                DownloadFilter.All -> true
-                DownloadFilter.Active -> task.status == DownloadStatus.PENDING || task.status == DownloadStatus.DOWNLOADING
-                DownloadFilter.Paused -> task.status == DownloadStatus.PAUSED
-                DownloadFilter.Completed -> task.status == DownloadStatus.COMPLETED
-                DownloadFilter.Failed -> task.status == DownloadStatus.FAILED
-            }
-        }
-    }
-    val count: (DownloadFilter) -> Int = { filter ->
-        allTasks.count { task ->
-            when (filter) {
-                DownloadFilter.All -> true
-                DownloadFilter.Active -> task.status == DownloadStatus.PENDING || task.status == DownloadStatus.DOWNLOADING
-                DownloadFilter.Paused -> task.status == DownloadStatus.PAUSED
-                DownloadFilter.Completed -> task.status == DownloadStatus.COMPLETED
-                DownloadFilter.Failed -> task.status == DownloadStatus.FAILED
-            }
-        }
-    }
+    val taskAggregation = remember(allTasks) { aggregateDownloadTasks(allTasks) }
+    val filteredTasks = taskAggregation.tasksByFilter.getValue(selectedFilter)
 
     IosPinnedListPage(
         title = stringResource(R.string.download_management),
         bottomPadding = insets.calculateBottomPadding(),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
         onNavigateBack = navController::navigateUp,
         actions = {
             if (allTasks.isNotEmpty()) {
@@ -109,10 +116,10 @@ fun DownloadManageScreen(
     ) {
         item(key = "download-filters") {
             IosScrollableTabRow(
-                items = DownloadFilter.entries.map { it to "${stringResource(it.titleRes)} ${count(it)}" },
+                items = DownloadFilter.entries.map { it to "${stringResource(it.titleRes)} ${taskAggregation.counts.getValue(it)}" },
                 selected = selectedFilter,
                 onSelected = { selectedFilter = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
             )
         }
         if (filteredTasks.isEmpty()) {
@@ -132,26 +139,26 @@ fun DownloadManageScreen(
             }
             }
         } else {
-            item(key = "download-group") {
-                IosGroupedList {
-                    filteredTasks.forEachIndexed { index, task ->
-                        DownloadTaskItem(
-                            task = task,
-                            showTopSeparator = index > 0,
-                            onPause = { DownloadManager.pauseSong(context, task.songId) },
-                            onResume = {
-                                scope.launch {
-                                    DownloadManager.resumeSong(
-                                        context,
-                                        task.songId,
-                                        context.getString(R.string.resumed_download),
-                                    )
-                                }
-                            },
-                            onDelete = { DownloadManager.deleteTask(context, task.songId) },
-                        )
-                    }
-                }
+            groupedLazyItems(
+                items = filteredTasks,
+                key = { "download-${it.songId}" },
+                contentType = "download-task",
+            ) { task, index ->
+                DownloadTaskItem(
+                    task = task,
+                    showTopSeparator = index > 0,
+                    onPause = { DownloadManager.pauseSong(context, task.songId) },
+                    onResume = {
+                        scope.launch {
+                            DownloadManager.resumeSong(
+                                context,
+                                task.songId,
+                                context.getString(R.string.resumed_download),
+                            )
+                        }
+                    },
+                    onDelete = { DownloadManager.deleteTask(context, task.songId) },
+                )
             }
         }
     }

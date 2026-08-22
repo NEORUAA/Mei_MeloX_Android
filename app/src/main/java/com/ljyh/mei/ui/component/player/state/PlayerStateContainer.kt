@@ -30,7 +30,6 @@ import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import timber.log.Timber
-import java.util.Timer
 
 @UnstableApi
 class PlayerStateContainer(
@@ -102,7 +101,8 @@ class PlayerStateContainer(
 @UnstableApi
 fun rememberPlayerStateContainer(
     playerViewModel: PlayerViewModel = hiltViewModel(),
-    playerConnection: PlayerConnection
+    playerConnection: PlayerConnection,
+    progressUpdatesEnabled: Boolean = true,
 ): PlayerStateContainer {
 
     val container = remember(playerConnection) {
@@ -144,7 +144,17 @@ fun rememberPlayerStateContainer(
         }
     }
 
-    LaunchedEffect(container.playbackState.value, container.isPlaying.value, container.isDragging) {
+    // The collapsed player does not render a progress indicator. Avoid publishing a 50 ms
+    // Compose-state tick while it is hidden, but resume immediately as soon as the expanded
+    // player starts consuming the position.
+    LaunchedEffect(
+        container.playbackState.value,
+        container.isPlaying.value,
+        container.isDragging,
+        progressUpdatesEnabled,
+    ) {
+        if (!progressUpdatesEnabled) return@LaunchedEffect
+
         val playbackState = container.playbackState.value
         val isPlaying = container.isPlaying.value
         val isDragging = container.isDragging

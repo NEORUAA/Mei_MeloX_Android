@@ -46,7 +46,6 @@ import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.glass.GlassButton
 import com.ljyh.mei.ui.glass.GlassCard
 import com.ljyh.mei.ui.glass.GlassEmphasis
-import com.ljyh.mei.ui.glass.IosGroupedList
 import com.ljyh.mei.ui.glass.IosListRow
 import com.ljyh.mei.ui.glass.IosPinnedListPage
 import com.ljyh.mei.ui.glass.SfIcon
@@ -54,6 +53,7 @@ import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.screen.main.library.component.groupedLazyItems
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -143,6 +143,7 @@ fun CloudMusicScreen(viewModel: CloudMusicViewModel = hiltViewModel()) {
             stringResource(R.string.cloud_music_quota, formatBytes(page.usedSize), formatBytes(page.maxSize))
         },
         bottomPadding = bottom,
+        verticalArrangement = Arrangement.spacedBy(0.dp),
         onNavigateBack = navController::navigateUp,
         actions = {
             GlassButton(onClick = { picker.launch(arrayOf("audio/*")) }, enabled = !state.isUploading) {
@@ -153,9 +154,17 @@ fun CloudMusicScreen(viewModel: CloudMusicViewModel = hiltViewModel()) {
             }
         },
     ) {
+        var hasPreviousContent = false
+        val hasLoadingContent = state.isLoading && state.page == null
+        val hasErrorContent = state.error != null
         if (state.isUploading) {
             item {
-                GlassCard(Modifier.fillMaxWidth()) {
+                GlassCard(
+                    Modifier.fillMaxWidth().padding(
+                        top = 10.dp,
+                        bottom = if (hasLoadingContent || hasErrorContent || songs.isNotEmpty()) 10.dp else 0.dp,
+                    ),
+                ) {
                     Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(progress = { state.uploadProgress }, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                         Text(
@@ -165,48 +174,72 @@ fun CloudMusicScreen(viewModel: CloudMusicViewModel = hiltViewModel()) {
                     }
                 }
             }
+            hasPreviousContent = true
         }
-        if (state.isLoading && state.page == null) {
-            item { Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
-        }
-        state.error?.let { error ->
-            item { Text(error, color = MaterialTheme.colorScheme.error) }
-        }
-        if (songs.isNotEmpty()) {
-            item(key = "cloud-group") {
-                IosGroupedList {
-                    songs.forEachIndexed { index, song ->
-                        IosListRow(
-                            title = song.name,
-                            subtitle = listOf(song.artist, song.album)
-                                .filter(String::isNotBlank)
-                                .joinToString(" · "),
-                            showTopSeparator = index > 0,
-                            leading = {
-                                AsyncImage(
-                                    model = song.coverUrl,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
-                                )
-                            },
-                            trailing = {
-                                GlassButton(
-                                    onClick = { viewModel.delete(song) },
-                                    enabled = song.id !in state.deletingIds,
-                                    emphasis = GlassEmphasis.Regular,
-                                ) { Text(stringResource(R.string.delete)) }
-                            },
-                            onClick = {
-                                val queue = songs.map { item ->
-                                    val mediaItem = item.asMediaMetadata().toMediaItem()
-                                    mediaItem.mediaId to mediaItem
-                                }
-                                playerConnection?.playQueue(ListQueue("cloud", cloudTitle, queue, index))
-                            },
-                        )
+        if (hasLoadingContent) {
+            item {
+                Box(
+                    Modifier.fillMaxWidth().padding(
+                        top = if (hasPreviousContent) 0.dp else 10.dp,
+                        bottom = if (hasErrorContent || songs.isNotEmpty()) 10.dp else 0.dp,
+                    ),
+                ) {
+                    Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
                 }
+            }
+            hasPreviousContent = true
+        }
+        state.error?.let { error ->
+            item {
+                Text(
+                    error,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(
+                        top = if (hasPreviousContent) 0.dp else 10.dp,
+                        bottom = if (songs.isNotEmpty()) 10.dp else 0.dp,
+                    ),
+                )
+            }
+            hasPreviousContent = true
+        }
+        if (songs.isNotEmpty()) {
+            groupedLazyItems(
+                items = songs,
+                key = { "cloud-${it.id}" },
+                contentType = "cloud-song",
+                firstItemTopPadding = if (hasPreviousContent) 0.dp else 10.dp,
+            ) { song, index ->
+                IosListRow(
+                    title = song.name,
+                    subtitle = listOf(song.artist, song.album)
+                        .filter(String::isNotBlank)
+                        .joinToString(" · "),
+                    showTopSeparator = index > 0,
+                    leading = {
+                        AsyncImage(
+                            model = song.coverUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
+                        )
+                    },
+                    trailing = {
+                        GlassButton(
+                            onClick = { viewModel.delete(song) },
+                            enabled = song.id !in state.deletingIds,
+                            emphasis = GlassEmphasis.Regular,
+                        ) { Text(stringResource(R.string.delete)) }
+                    },
+                    onClick = {
+                        val queue = songs.map { item ->
+                            val mediaItem = item.asMediaMetadata().toMediaItem()
+                            mediaItem.mediaId to mediaItem
+                        }
+                        playerConnection?.playQueue(ListQueue("cloud", cloudTitle, queue, index))
+                    },
+                )
             }
         }
     }

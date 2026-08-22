@@ -477,6 +477,11 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
 
     private val renderer = MeshGradientRenderer()
+    private var lastFlowSpeed = renderer.flowSpeed
+    private var lastRenderScale = renderer.renderScale
+    private var lastSubdivision = renderer.subdivision
+    private var lastStaticMode = false
+    private var lastPlaying = true
 
     init {
         setEGLContextClientVersion(3)
@@ -494,23 +499,33 @@ class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
     }
 
     fun setFlowSpeed(speed: Float) {
+        if (lastFlowSpeed == speed) return
+        lastFlowSpeed = speed
         renderer.flowSpeed = speed
     }
 
     fun setRenderScale(scale: Float) {
+        if (lastRenderScale == scale) return
+        lastRenderScale = scale
         renderer.renderScale = scale
         queueEvent { renderer.rebuildFbo() }
     }
 
     fun setSubdivision(level: Int) {
+        if (lastSubdivision == level) return
+        lastSubdivision = level
         renderer.subdivision = level
     }
 
     fun setStaticMode(enable: Boolean) {
+        if (lastStaticMode == enable) return
+        lastStaticMode = enable
         queueEvent { renderer.setStaticMode(enable) }
     }
 
     fun setPlaying(playing: Boolean) {
+        if (lastPlaying == playing) return
+        lastPlaying = playing
         renderer.setPlaying(playing)
     }
 

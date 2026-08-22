@@ -89,7 +89,8 @@ fun BottomSheetPlayer(
     // 创建公共状态容器
     val stateContainer = rememberPlayerStateContainer(
         playerViewModel = playerViewModel,
-        playerConnection = playerConnection
+        playerConnection = playerConnection,
+        progressUpdatesEnabled = !state.isCollapsed,
     )
 
     // 创建弹窗处理器

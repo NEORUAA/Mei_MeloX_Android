@@ -3,6 +3,7 @@ package com.ljyh.mei.ui.screen.search
 import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -55,6 +56,7 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.navigation.MeiNavigator
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.screen.main.library.component.groupedLazyItems
 import com.ljyh.mei.ui.screen.playlist.component.StandaloneTrackActionOverlay
 import com.ljyh.mei.utils.rememberPreference
 import com.ljyh.mei.utils.smallImage
@@ -87,13 +89,16 @@ fun SearchResultScreen(
             title = query,
             bottomPadding = bottomPadding,
             listState = listState,
+            verticalArrangement = Arrangement.spacedBy(0.dp),
             onNavigateBack = navController::navigateUp,
         ) {
             item(key = "search-tabs") {
-                SearchTypeFilterRow(
-                    selected = selectedType,
-                    onSelect = viewModel::onTabChange,
-                )
+                Box(Modifier.padding(top = 10.dp)) {
+                    SearchTypeFilterRow(
+                        selected = selectedType,
+                        onSelect = viewModel::onTabChange,
+                    )
+                }
             }
 
             when (val result = searchState) {
@@ -150,7 +155,7 @@ fun SearchTypeFilterRow(
 @Composable
 fun LoadingView() {
     Box(
-        Modifier.fillMaxWidth().padding(vertical = 48.dp),
+        Modifier.fillMaxWidth().padding(top = 10.dp).padding(vertical = 48.dp),
         contentAlignment = Alignment.Center,
     ) {
         CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
@@ -160,7 +165,7 @@ fun LoadingView() {
 @Composable
 fun ErrorView(message: String) {
     Box(
-        Modifier.fillMaxWidth().padding(vertical = 48.dp),
+        Modifier.fillMaxWidth().padding(top = 10.dp).padding(vertical = 48.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(stringResource(R.string.load_failed_message, message))
@@ -174,34 +179,20 @@ fun LazyListScope.SearchResultList(
     onSongMore: (MediaMetadata) -> Unit,
     onSongClick: (List<SearchResult.Result.Song>, Int) -> Unit,
 ) {
-    item(key = "search-results-${type.name}") {
-        IosGroupedList {
-            SearchResultRows(
-                data = data,
-                type = type,
-                navController = navController,
-                onSongMore = onSongMore,
-                onSongClick = onSongClick,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SearchResultRows(
-    data: SearchResult,
-    type: SearchType,
-    navController: MeiNavigator,
-    onSongMore: (MediaMetadata) -> Unit,
-    onSongClick: (List<SearchResult.Result.Song>, Int) -> Unit,
-) {
     when (type) {
         SearchType.Song -> {
             val songs = data.result.songs.orEmpty()
             if (songs.isEmpty()) {
-                EmptyView()
+                item(key = "search-empty-${type.name}") {
+                    IosGroupedList(Modifier.padding(top = 10.dp)) { EmptyView() }
+                }
             } else {
-                songs.forEachIndexed { index, song ->
+                groupedLazyItems(
+                    items = songs,
+                    key = { "search-song-${it.id}" },
+                    contentType = "search-song",
+                    firstItemTopPadding = 10.dp,
+                ) { song, index ->
                     val media = song.toMediaData()
                     IosListRow(
                         title = media.title,
@@ -247,9 +238,16 @@ private fun SearchResultRows(
         SearchType.Artist -> {
             val artists = data.result.artists.orEmpty()
             if (artists.isEmpty()) {
-                EmptyView()
+                item(key = "search-empty-${type.name}") {
+                    IosGroupedList(Modifier.padding(top = 10.dp)) { EmptyView() }
+                }
             } else {
-                artists.forEachIndexed { index, artist ->
+                groupedLazyItems(
+                    items = artists,
+                    key = { "search-artist-${it.id}" },
+                    contentType = "search-artist",
+                    firstItemTopPadding = 10.dp,
+                ) { artist, index ->
                     ArtistSearchRow(
                         artist = artist,
                         showTopSeparator = index > 0,
@@ -264,9 +262,16 @@ private fun SearchResultRows(
         SearchType.Album -> {
             val albums = data.result.albums.orEmpty()
             if (albums.isEmpty()) {
-                EmptyView()
+                item(key = "search-empty-${type.name}") {
+                    IosGroupedList(Modifier.padding(top = 10.dp)) { EmptyView() }
+                }
             } else {
-                albums.forEachIndexed { index, album ->
+                groupedLazyItems(
+                    items = albums,
+                    key = { "search-album-${it.id}" },
+                    contentType = "search-album",
+                    firstItemTopPadding = 10.dp,
+                ) { album, index ->
                     val albumModel = album.toAlbum()
                     IosListRow(
                         title = albumModel.title,
@@ -294,9 +299,16 @@ private fun SearchResultRows(
         SearchType.Playlist -> {
             val playlists = data.result.playlists.orEmpty()
             if (playlists.isEmpty()) {
-                EmptyView()
+                item(key = "search-empty-${type.name}") {
+                    IosGroupedList(Modifier.padding(top = 10.dp)) { EmptyView() }
+                }
             } else {
-                playlists.forEachIndexed { index, playlist ->
+                groupedLazyItems(
+                    items = playlists,
+                    key = { "search-playlist-${it.id}" },
+                    contentType = "search-playlist",
+                    firstItemTopPadding = 10.dp,
+                ) { playlist, index ->
                     val playlistModel = playlist.toPlaylist()
                     IosListRow(
                         title = playlistModel.title,
@@ -321,9 +333,16 @@ private fun SearchResultRows(
         SearchType.Podcast -> {
             val podcasts = data.result.podcasts.orEmpty()
             if (podcasts.isEmpty()) {
-                EmptyView()
+                item(key = "search-empty-${type.name}") {
+                    IosGroupedList(Modifier.padding(top = 10.dp)) { EmptyView() }
+                }
             } else {
-                podcasts.forEachIndexed { index, podcast ->
+                groupedLazyItems(
+                    items = podcasts,
+                    key = { "search-podcast-${it.id}" },
+                    contentType = "search-podcast",
+                    firstItemTopPadding = 10.dp,
+                ) { podcast, index ->
                     IosListRow(
                         title = podcast.name,
                         subtitle = listOfNotNull(podcast.host?.nickname, podcast.category)

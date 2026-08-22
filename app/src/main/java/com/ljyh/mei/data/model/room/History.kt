@@ -31,5 +31,6 @@ data class PlaybackHistory(
 
 data class HistoryItem(
     @Embedded val song: Song, // 包含 Song 的所有字段
+    val historyId: Long,      // Auto-incremented playback_history key for one playback record
     val playedAt: Long        // 包含历史记录的时间
 )

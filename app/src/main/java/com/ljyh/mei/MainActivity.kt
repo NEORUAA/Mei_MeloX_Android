@@ -180,8 +180,8 @@ import com.ljyh.mei.utils.rememberPreference
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
+import com.kyant.backdrop.backdrops.rememberCanvasBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.ljyh.mei.ui.glass.trackBackdropPosition
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -395,17 +395,28 @@ class MainActivity : ComponentActivity() {
                 seedColor = if (dynamicTheme) targetThemeColor else Color(accentColorArgb.toInt()),
                 isDark = effectiveDark,
             ) {
-                val glassBackdrop = rememberLayerBackdrop()
+                val glassColors = defaultGlassColors(
+                    isDark = effectiveDark,
+                    accent = if (effectiveDark) Color(0xFFFF4245) else Color(0xFFFF3B30),
+                )
+                // The regular page backdrop is a static color, so avoid recording a full-screen
+                // layer just to replay the same pixels for every glass consumer.
+                val staticGlassBackdrop = rememberCanvasBackdrop {
+                    drawRect(glassColors.groupedBackground)
+                }
+                // Picture-in-picture still needs a recorded cover image backdrop.
+                val pipBackdrop = rememberLayerBackdrop()
+                val glassBackdrop = if (pictureInPictureMode && playerConnection != null) {
+                    pipBackdrop
+                } else {
+                    staticGlassBackdrop
+                }
                 // Keep the base page backdrop and the bottom controls' sample
                 // layer separate. Page glass samples [glassBackdrop], while the
                 // bottom layer records the page after it has rendered. Controls
                 // then sample [bottomBackdrop] without sampling themselves.
                 val bottomBackdrop = rememberLayerBackdrop()
                 val bottomControlsBackdrop = rememberCombinedBackdrop(glassBackdrop, bottomBackdrop)
-                val glassColors = defaultGlassColors(
-                    isDark = effectiveDark,
-                    accent = if (effectiveDark) Color(0xFFFF4245) else Color(0xFFFF3B30),
-                )
                 CompositionLocalProvider(
                     LocalGlassBackdrop provides glassBackdrop,
                     LocalGlassColors provides glassColors,
@@ -632,16 +643,14 @@ class MainActivity : ComponentActivity() {
                         LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
                         LocalUserData provides userData,
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .layerBackdrop(glassBackdrop)
-                                .trackBackdropPosition(glassBackdrop),
-                        ) {
-                            if (pictureInPictureMode && playerConnection != null) {
+                        if (pictureInPictureMode && playerConnection != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .layerBackdrop(pipBackdrop)
+                                    .trackBackdropPosition(pipBackdrop),
+                            ) {
                                 FloatingLyricsPipBackdrop(playerConnection = playerConnection!!)
-                            } else {
-                                MainGlassBackdrop()
                             }
                         }
 
@@ -1005,13 +1014,3 @@ private fun AnimatedContentTransitionScope<Scene<NavKey>>.usesHomeAlphaTransitio
 
 private fun AnimatedContentTransitionScope<Scene<NavKey>>.homeAlphaTransition(): ContentTransform =
     fadeIn() togetherWith fadeOut()
-
-@Composable
-private fun MainGlassBackdrop() {
-    val colors = LocalGlassColors.current
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(colors.groupedBackground),
-    )
-}

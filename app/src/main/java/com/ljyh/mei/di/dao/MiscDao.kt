@@ -60,7 +60,7 @@ interface HistoryDao {
     }
 
     @Query("""
-        SELECT song.*, history.playedAt 
+        SELECT song.*, history.historyId, history.playedAt
         FROM playback_history AS history
         INNER JOIN song ON history.songId = song.id
         ORDER BY history.playedAt DESC

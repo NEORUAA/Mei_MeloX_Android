@@ -23,12 +23,16 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -47,14 +51,17 @@ import com.ljyh.mei.ui.glass.GlassButton
 import com.ljyh.mei.ui.glass.GlassCard
 import com.ljyh.mei.ui.glass.GlassEmphasis
 import com.ljyh.mei.ui.glass.GlassIconButton
-import com.ljyh.mei.ui.glass.IosGroupedList
 import com.ljyh.mei.ui.glass.IosPinnedListPage
+import com.ljyh.mei.ui.glass.LocalGlassColors
+import com.ljyh.mei.ui.glass.LocalGroupedListBackgroundAlpha
+import com.ljyh.mei.ui.glass.LocalMergedGlassCards
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.screen.main.library.component.groupedLazyItems
 
 @Composable
 fun PodcastScreen(
@@ -199,6 +206,7 @@ fun PodcastDetailScreen(
                 title = detail.podcast.name,
                 subtitle = detail.podcast.host?.nickname,
                 bottomPadding = bottomPadding,
+                verticalArrangement = Arrangement.spacedBy(0.dp),
                 onNavigateBack = navController::navigateUp,
                 actions = {
                     GlassButton(
@@ -210,7 +218,7 @@ fun PodcastDetailScreen(
                 },
             ) {
                 item {
-                    GlassCard(Modifier.fillMaxWidth()) {
+                    GlassCard(Modifier.fillMaxWidth().padding(top = 10.dp)) {
                         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(
                                 model = detail.podcast.picUrl,
@@ -231,10 +239,17 @@ fun PodcastDetailScreen(
                         }
                     }
                 }
-                item {
-                    IosGroupedList {
-                        detail.programs.forEachIndexed { index, program ->
-                            PodcastProgramRow(program) {
+                if (detail.programs.isNotEmpty()) {
+                    groupedLazyItems(
+                        items = detail.programs,
+                        key = { "podcast-program-${it.id}" },
+                        contentType = "podcast-program",
+                        firstItemTopPadding = 10.dp,
+                    ) { program, index ->
+                        CompositionLocalProvider(LocalMergedGlassCards provides true) {
+                            // IosGroupedList masks the merged card's first top separator with
+                            // the group background; every later row keeps its top separator.
+                            PodcastProgramRow(program, hideTopSeparator = index == 0) {
                                 val playable = detail.programs.filter { it.mainSongId != null }
                                 val startIndex = playable.indexOfFirst { it.id == program.id }.coerceAtLeast(0)
                                 val items = playable.map { item ->
@@ -256,8 +271,35 @@ fun PodcastDetailScreen(
 }
 
 @Composable
-private fun PodcastProgramRow(program: PodcastProgram, onClick: () -> Unit) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
+private fun PodcastProgramRow(
+    program: PodcastProgram,
+    hideTopSeparator: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = LocalGlassColors.current
+    val groupedBackground = colors.elevatedBackground.copy(
+        alpha = LocalGroupedListBackgroundAlpha.current.coerceIn(0f, 1f),
+    )
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (hideTopSeparator) {
+                    Modifier.drawWithContent {
+                        drawContent()
+                        val inset = 16.dp.toPx()
+                        drawRect(
+                            color = groupedBackground,
+                            topLeft = Offset(inset, 0f),
+                            size = Size((size.width - inset * 2f).coerceAtLeast(0f), 1.dp.toPx()),
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            ),
+        onClick = onClick,
+    ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = program.coverUrl,

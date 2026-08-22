@@ -932,7 +932,7 @@ fun IosAlertDialog(
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
     val colors = LocalGlassColors.current
-    val dimAmount = if (colors.isDark) 0.08f else 0.01f
+    val dimAmount = if (colors.isDark) 0.2f else 0.08f
     val fullScreenProperties = DialogProperties(
         dismissOnBackPress = properties.dismissOnBackPress,
         dismissOnClickOutside = properties.dismissOnClickOutside,

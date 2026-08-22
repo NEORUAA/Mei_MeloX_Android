@@ -25,7 +25,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -91,13 +91,15 @@ fun PlaylistContent(
     }
     val currentMediaItemIndex by playerConnection.currentMediaItemIndex.collectAsState()
 
-    LaunchedEffect(playerConnection) {
-        playerConnection.player.addListener(object : Player.Listener {
+    DisposableEffect(playerConnection) {
+        val listener = object : Player.Listener {
             override fun onTimelineChanged(timeline: Timeline, reason: Int) {
                 mediaItems.clear()
                 mediaItems.addAll(playerConnection.player.mediaItems)
             }
-        })
+        }
+        playerConnection.player.addListener(listener)
+        onDispose { playerConnection.player.removeListener(listener) }
     }
 
     Column(modifier) {

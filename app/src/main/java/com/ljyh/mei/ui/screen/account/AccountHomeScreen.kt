@@ -55,7 +55,6 @@ import com.ljyh.mei.ui.glass.GlassEmphasis
 import com.ljyh.mei.ui.glass.GlassIconButton
 import com.ljyh.mei.ui.glass.GlassSegmentedControl
 import com.ljyh.mei.ui.glass.GlassSurface
-import com.ljyh.mei.ui.glass.IosGroupedList
 import com.ljyh.mei.ui.glass.IosListRow
 import com.ljyh.mei.ui.glass.IosPinnedListPage
 import com.ljyh.mei.ui.glass.LocalGlassColors
@@ -65,6 +64,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.screen.main.library.component.groupedLazyItems
 import com.ljyh.mei.utils.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -126,6 +126,7 @@ fun AccountHomeScreen(viewModel: AccountHomeViewModel = hiltViewModel()) {
         title = stringResource(R.string.account_home),
         onNavigateBack = navController::navigateUp,
         bottomPadding = insets.calculateBottomPadding(),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
         actions = {
             GlassIconButton(viewModel::refresh) {
                 SfIcon(SfSymbol.ArrowClockwise, stringResource(R.string.refresh))
@@ -134,30 +135,43 @@ fun AccountHomeScreen(viewModel: AccountHomeViewModel = hiltViewModel()) {
     ) {
         state.profile?.let { profile ->
             item {
-                AccountHero(
-                    profile = profile,
-                    detail = state.detail,
-                    playlistCount = state.playlists.size,
-                    onRankings = {
-                        Screen.AccountListeningRank.navigate(navController) { addPath(profile.id.toString()) }
-                    },
-                )
+                Box(Modifier.padding(top = 10.dp)) {
+                    AccountHero(
+                        profile = profile,
+                        detail = state.detail,
+                        playlistCount = state.playlists.size,
+                        onRankings = {
+                            Screen.AccountListeningRank.navigate(navController) { addPath(profile.id.toString()) }
+                        },
+                    )
+                }
             }
             item {
                 Text(
                     stringResource(R.string.account_playlists, state.playlists.size),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 8.dp, start = 4.dp),
+                    modifier = Modifier.padding(top = 18.dp, start = 4.dp),
                 )
             }
         }
         if (state.loading && state.profile == null) {
-            item { Box(Modifier.fillMaxWidth().padding(64.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+            item {
+                Box(
+                    Modifier.fillMaxWidth().padding(top = 10.dp).padding(64.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
         }
         state.error?.let { message ->
             item {
-                GlassCard(Modifier.fillMaxWidth()) {
+                GlassCard(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                ) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(message, color = MaterialTheme.colorScheme.error)
                         GlassButton(viewModel::refresh, emphasis = GlassEmphasis.Prominent) {
@@ -168,27 +182,28 @@ fun AccountHomeScreen(viewModel: AccountHomeViewModel = hiltViewModel()) {
             }
         }
         if (state.playlists.isNotEmpty()) {
-            item(key = "account-playlists-group") {
-                IosGroupedList {
-                    state.playlists.forEachIndexed { index, playlist ->
-                        IosListRow(
-                            title = playlist.name,
-                            subtitle = stringResource(R.string.account_track_count, playlist.trackCount),
-                            showTopSeparator = index > 0,
-                            leading = {
-                                AsyncImage(
-                                    model = playlist.coverUrl,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
-                                )
-                            },
-                            onClick = {
-                                Screen.PlayList.navigate(navController) { addPath(playlist.id.toString()) }
-                            },
+            groupedLazyItems(
+                items = state.playlists,
+                key = { "account-playlist-${it.id}" },
+                contentType = "account-playlist",
+                firstItemTopPadding = 10.dp,
+            ) { playlist, index ->
+                IosListRow(
+                    title = playlist.name,
+                    subtitle = stringResource(R.string.account_track_count, playlist.trackCount),
+                    showTopSeparator = index > 0,
+                    leading = {
+                        AsyncImage(
+                            model = playlist.coverUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
                         )
-                    }
-                }
+                    },
+                    onClick = {
+                        Screen.PlayList.navigate(navController) { addPath(playlist.id.toString()) }
+                    },
+                )
             }
         }
     }
@@ -306,6 +321,7 @@ fun ListeningRankScreen(userId: Long, viewModel: ListeningRankViewModel = hiltVi
         title = stringResource(R.string.account_listening_rank),
         onNavigateBack = navController::navigateUp,
         bottomPadding = insets.calculateBottomPadding(),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
         actions = {
             GlassIconButton({ viewModel.load(userId, state.period, force = true) }) {
                 SfIcon(SfSymbol.ArrowClockwise, stringResource(R.string.refresh))
@@ -320,63 +336,75 @@ fun ListeningRankScreen(userId: Long, viewModel: ListeningRankViewModel = hiltVi
                 ),
                 selected = state.period,
                 onSelected = { viewModel.load(userId, it) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
             )
         }
         if (state.loading && state.records.isEmpty()) {
             item(key = "rank-loading") {
-                Box(Modifier.fillMaxWidth().padding(64.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier.fillMaxWidth().padding(top = 10.dp).padding(64.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
                     CircularProgressIndicator()
                 }
             }
         } else {
-            state.error?.let { error -> item { Text(error, color = MaterialTheme.colorScheme.error) } }
+            state.error?.let {
+                item {
+                    Text(
+                        it,
+                        modifier = Modifier.padding(top = 10.dp),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
             if (!state.loading && state.records.isEmpty()) {
                 item {
                     Text(
                         stringResource(R.string.account_no_listening_records),
-                        modifier = Modifier.fillMaxWidth().padding(48.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp).padding(48.dp),
                         textAlign = TextAlign.Center,
                     )
                 }
             } else if (state.records.isNotEmpty()) {
-                item(key = "rank-group-${state.period.name}") {
-                    IosGroupedList {
-                        state.records.forEachIndexed { index, record ->
-                            IosListRow(
-                                title = record.song.name,
-                                subtitle = record.song.artists.joinToString(" / "),
-                                detail = stringResource(R.string.account_play_count, record.playCount),
-                                showTopSeparator = index > 0,
-                                leading = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            "${index + 1}",
-                                            modifier = Modifier.width(24.dp),
-                                            textAlign = TextAlign.Center,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                        AsyncImage(
-                                            model = record.song.coverUrl,
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    playerConnection?.playQueue(
-                                        ListQueue(
-                                            id = "account-rank-${state.period.name}",
-                                            title = navController.context.getString(R.string.account_listening_rank),
-                                            items = state.records.map { it.song.id.toString() to null },
-                                            startIndex = index,
-                                        ),
-                                    )
-                                },
+                groupedLazyItems(
+                    items = state.records,
+                    key = { "account-rank-${state.period.name}-${it.song.id}" },
+                    contentType = "account-rank-record",
+                    firstItemTopPadding = 10.dp,
+                ) { record, index ->
+                    IosListRow(
+                        title = record.song.name,
+                        subtitle = record.song.artists.joinToString(" / "),
+                        detail = stringResource(R.string.account_play_count, record.playCount),
+                        showTopSeparator = index > 0,
+                        leading = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "${index + 1}",
+                                    modifier = Modifier.width(24.dp),
+                                    textAlign = TextAlign.Center,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                AsyncImage(
+                                    model = record.song.coverUrl,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.size(44.dp).clip(ContinuousRoundedRectangle(10.dp)),
+                                )
+                            }
+                        },
+                        onClick = {
+                            playerConnection?.playQueue(
+                                ListQueue(
+                                    id = "account-rank-${state.period.name}",
+                                    title = navController.context.getString(R.string.account_listening_rank),
+                                    items = state.records.map { it.song.id.toString() to null },
+                                    startIndex = index,
+                                ),
                             )
-                        }
-                    }
+                        },
+                    )
                 }
             }
         }

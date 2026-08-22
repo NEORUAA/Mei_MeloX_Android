@@ -97,8 +97,14 @@ fun LocalSongListScreen(
         else -> db.songDao().getLocalSongs()
     }.collectAsState(initial = emptyList())
 
-    val tracks: List<MediaMetadata> = songs.map { it.toMediaMetadata() }
-    val coverUrl = songs.firstOrNull { it.cover.isNotEmpty() }?.cover
+    // The toolbar collapse state changes on every scroll frame. Keep the local-song conversion
+    // out of that recomposition path; the database list is the only input that can change it.
+    val tracks: List<MediaMetadata> = remember(songs) {
+        songs.map { it.toMediaMetadata() }
+    }
+    val coverUrl = remember(songs) {
+        songs.firstOrNull { it.cover.isNotEmpty() }?.cover
+    }
 
     val lazyListState = rememberLazyListState()
     val device = rememberDeviceInfo()
@@ -216,10 +222,12 @@ private fun LocalSongListHeader(
     filterType: String,
     onPlayAll: () -> Unit
 ) {
-    val cover = songs.firstOrNull { it.cover.isNotEmpty() }?.cover
-    val coverList = songs.filter { it.cover.isNotEmpty() }.map { it.cover }.take(9)
-    val totalDuration = songs.sumOf { it.duration }
-    val durationText = formatDuration(totalDuration)
+    val cover = remember(songs) { songs.firstOrNull { it.cover.isNotEmpty() }?.cover }
+    val coverList = remember(songs) {
+        songs.filter { it.cover.isNotEmpty() }.map { it.cover }.take(9)
+    }
+    val totalDuration = remember(songs) { songs.sumOf { it.duration } }
+    val durationText = remember(totalDuration) { formatDuration(totalDuration) }
 
     val placeholderIcon: ImageVector = when (filterType) {
         "artist" -> Icons.Rounded.Person
@@ -300,7 +308,7 @@ private fun LocalSongListHeader(
         }
 
         if (filterType == "album") {
-            val artists = songs.flatMap { it.artist }.distinct()
+            val artists = remember(songs) { songs.flatMap { it.artist }.distinct() }
             if (artists.isNotEmpty()) {
                 Text(
                     text = if (artists.size <= 2) artists.joinToString(" / ")
