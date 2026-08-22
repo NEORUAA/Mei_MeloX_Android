@@ -1099,7 +1099,7 @@ fun IosAlertSurface(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 24.dp),
+                    .padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(

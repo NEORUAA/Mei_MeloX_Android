@@ -21,7 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,7 +48,11 @@ import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.component.VersionUpdateAlert
 import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.utils.VersionUpdateChecker
+import com.ljyh.mei.utils.VersionUpdateResult
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 @Composable
@@ -56,6 +62,18 @@ fun AboutScreen(viewModel: AboutViewModel = hiltViewModel()) {
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val (devMode, onDevModeChange) = rememberPreference(DevModeKey, false)
     var clickCount by remember { mutableIntStateOf(0) }
+    val updateCheckScope = rememberCoroutineScope()
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var updateResult by remember { mutableStateOf<VersionUpdateResult?>(null) }
+
+    fun checkForUpdates() {
+        if (isCheckingUpdate) return
+        isCheckingUpdate = true
+        updateCheckScope.launch {
+            updateResult = VersionUpdateChecker.check(BuildConfig.VERSION_NAME)
+            isCheckingUpdate = false
+        }
+    }
 
     IosPinnedListPage(
         title = stringResource(R.string.settings_about),
@@ -94,6 +112,15 @@ fun AboutScreen(viewModel: AboutViewModel = hiltViewModel()) {
                 AboutEntry("chevron.left.forwardslash.chevron.right", stringResource(R.string.about_github)) { openUrl(context, Github) }
                 AboutEntry("ladybug", stringResource(R.string.about_feedback)) { openUrl(context, "$Github/issues") }
                 AboutEntry("apple.terminal", stringResource(R.string.about_logs)) { Screen.Log.navigate(navController) }
+                AboutEntry(
+                    "arrow.clockwise",
+                    if (isCheckingUpdate) {
+                        stringResource(R.string.about_checking_updates)
+                    } else {
+                        stringResource(R.string.about_check_updates)
+                    },
+//                    stringResource(R.string.about_check_updates_description),
+                ) { checkForUpdates() }
             }
         }
         item {
@@ -128,6 +155,11 @@ fun AboutScreen(viewModel: AboutViewModel = hiltViewModel()) {
             }
         }
     }
+
+    VersionUpdateAlert(
+        result = updateResult,
+        onDismiss = { updateResult = null },
+    )
 }
 
 @Composable

@@ -142,6 +142,7 @@ import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.ClipboardLinkPrompt
 import com.ljyh.mei.ui.component.IconButton
+import com.ljyh.mei.ui.component.VersionUpdateAlert
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
 import com.ljyh.mei.ui.component.player.FloatingLyricsPipBackdrop
 import com.ljyh.mei.ui.component.player.FloatingLyricsPipScreen
@@ -182,6 +183,8 @@ import com.ljyh.mei.utils.log.FileLoggingTree
 import com.ljyh.mei.utils.netease.NeteaseUtils.getAndroidId
 import com.ljyh.mei.utils.rememberPreference
 import com.ljyh.mei.utils.rememberEnumPreference
+import com.ljyh.mei.utils.VersionUpdateChecker
+import com.ljyh.mei.utils.VersionUpdateResult
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
@@ -267,6 +270,14 @@ class MainActivity : ComponentActivity() {
             var playerConnection by remember { mutableStateOf<PlayerConnection?>(null) }
             var clipboardLink by remember { mutableStateOf<NeteaseMusicLink?>(null) }
             var clipboardInspected by rememberSaveable { mutableStateOf(false) }
+            var startupUpdateResult by remember { mutableStateOf<VersionUpdateResult?>(null) }
+
+            LaunchedEffect(Unit) {
+                val result = VersionUpdateChecker.check(BuildConfig.VERSION_NAME)
+                if (result is VersionUpdateResult.UpdateAvailable) {
+                    startupUpdateResult = result
+                }
+            }
 
             var isMeasured by remember { mutableStateOf(false) }
             DisposableEffect(Unit) {
@@ -930,6 +941,10 @@ class MainActivity : ComponentActivity() {
                                 },
                             )
                         }
+                        VersionUpdateAlert(
+                            result = startupUpdateResult,
+                            onDismiss = { startupUpdateResult = null },
+                        )
                         }
                     }
                 }
