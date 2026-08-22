@@ -931,46 +931,77 @@ fun IosAlertDialog(
     ),
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
-    Dialog(onDismissRequest = onDismissRequest, properties = properties) {
-        IosAlertSurface(
-            modifier = modifier,
-            backdrop = backdrop,
-            title = title,
-            message = message,
-        ) {
-            content()
-            if (buttons.isNotEmpty()) {
-                when (buttonLayout) {
-                    IosAlertButtonLayout.SideBySide -> {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            buttons.forEach { button ->
-                                IosAlertButton(
-                                    text = button.label,
-                                    onClick = button.onClick,
-                                    modifier = Modifier.weight(1f),
-                                    role = button.role,
-                                    enabled = button.enabled,
-                                )
+    val colors = LocalGlassColors.current
+    val dimAmount = if (colors.isDark) 0.08f else 0.01f
+    val fullScreenProperties = DialogProperties(
+        dismissOnBackPress = properties.dismissOnBackPress,
+        dismissOnClickOutside = properties.dismissOnClickOutside,
+        securePolicy = properties.securePolicy,
+        usePlatformDefaultWidth = false,
+        decorFitsSystemWindows = false,
+        windowTitle = properties.windowTitle,
+        windowType = properties.windowType,
+        windowToken = properties.windowToken,
+    )
+    Dialog(onDismissRequest = onDismissRequest, properties = fullScreenProperties) {
+        Box(Modifier.fillMaxSize()) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = dimAmount))
+                    .then(
+                        if (properties.dismissOnClickOutside) {
+                            Modifier.clickable(
+                                interactionSource = null,
+                                indication = null,
+                                onClick = onDismissRequest,
+                            )
+                        } else {
+                            Modifier
+                        },
+                    ),
+            )
+            IosAlertSurface(
+                modifier = modifier.align(Alignment.Center),
+                backdrop = backdrop,
+                title = title,
+                message = message,
+                dimAmount = 0f,
+            ) {
+                content()
+                if (buttons.isNotEmpty()) {
+                    when (buttonLayout) {
+                        IosAlertButtonLayout.SideBySide -> {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                buttons.forEach { button ->
+                                    IosAlertButton(
+                                        text = button.label,
+                                        onClick = button.onClick,
+                                        modifier = Modifier.weight(1f),
+                                        role = button.role,
+                                        enabled = button.enabled,
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    IosAlertButtonLayout.Stacked -> {
-                        Column(
-                            Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            buttons.forEach { button ->
-                                IosAlertButton(
-                                    text = button.label,
-                                    onClick = button.onClick,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    role = button.role,
-                                    enabled = button.enabled,
-                                )
+                        IosAlertButtonLayout.Stacked -> {
+                            Column(
+                                Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                buttons.forEach { button ->
+                                    IosAlertButton(
+                                        text = button.label,
+                                        onClick = button.onClick,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        role = button.role,
+                                        enabled = button.enabled,
+                                    )
+                                }
                             }
                         }
                     }
@@ -987,13 +1018,14 @@ fun IosAlertSurface(
     backdrop: Backdrop = LocalGlassBackdrop.current,
     title: String,
     message: String? = null,
+    dimAmount: Float? = null,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
     val colors = LocalGlassColors.current
     val light = !colors.isDark
     val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
     SideEffect {
-        dialogWindow?.setDimAmount(if (light) 0.1f else 0.01f)
+        dialogWindow?.setDimAmount((dimAmount ?: if (light) 0.01f else 0.08f).coerceIn(0f, 1f))
     }
     val animationScope = rememberCoroutineScope()
     val interactiveHighlight = remember(animationScope) {

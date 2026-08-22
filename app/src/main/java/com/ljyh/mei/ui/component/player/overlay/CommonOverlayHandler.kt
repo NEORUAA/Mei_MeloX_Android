@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.ui.component.player.OverlayState
@@ -31,7 +30,7 @@ import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.R
-import com.ljyh.mei.ui.glass.IosAlertSurface
+import com.ljyh.mei.ui.glass.IosAlertDialog
 import com.ljyh.mei.ui.glass.IosGroupedList
 import com.ljyh.mei.ui.glass.IosListRow
 import com.ljyh.mei.ui.glass.LocalGlassColors
@@ -173,31 +172,32 @@ fun CommonOverlayHandler(
 
         is OverlayState.MusicQualitySelection -> {
             val playerConnection = LocalPlayerConnection.current
-            Dialog(onDismissRequest = overlayHandler::dismiss) {
-                IosAlertSurface(title = stringResource(R.string.music_quality)) {
-                    IosGroupedList {
-                        MusicQuality.entries.forEachIndexed { index, quality ->
-                            IosListRow(
-                                title = "${quality.explanation} · ${quality.text}",
-                                showTopSeparator = index != 0,
-                                onClick = {
-                                    playerConnection?.changeQuality(quality)
-                                    overlayHandler.dismiss()
-                                },
-                                trailing = if (quality.ordinal == overlay.current) {
-                                    {
-                                        SfIcon(
-                                            "checkmark",
-                                            contentDescription = null,
-                                            size = 17.dp,
-                                            tint = LocalGlassColors.current.accent,
-                                        )
-                                    }
-                                } else {
-                                    null
-                                },
-                            )
-                        }
+            IosAlertDialog(
+                onDismissRequest = overlayHandler::dismiss,
+                title = stringResource(R.string.music_quality),
+            ) {
+                IosGroupedList {
+                    MusicQuality.entries.forEachIndexed { index, quality ->
+                        IosListRow(
+                            title = "${quality.explanation} · ${quality.text}",
+                            showTopSeparator = index != 0,
+                            onClick = {
+                                playerConnection?.changeQuality(quality)
+                                overlayHandler.dismiss()
+                            },
+                            trailing = if (quality.ordinal == overlay.current) {
+                                {
+                                    SfIcon(
+                                        "checkmark",
+                                        contentDescription = null,
+                                        size = 17.dp,
+                                        tint = LocalGlassColors.current.accent,
+                                    )
+                                }
+                            } else {
+                                null
+                            },
+                        )
                     }
                 }
             }

@@ -21,10 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import com.ljyh.mei.R
 import com.ljyh.mei.ui.component.player.PlayerViewModel
-import com.ljyh.mei.ui.glass.IosAlertSurface
+import com.ljyh.mei.ui.glass.IosAlertDialog
 import com.ljyh.mei.ui.glass.IosGroupedList
 import com.ljyh.mei.ui.glass.IosListRow
 import com.ljyh.mei.ui.glass.IosModalSheet
@@ -101,24 +100,23 @@ private fun SortOptionsDialog(
     onOrderSelected: (SortOrder) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        IosAlertSurface(
-            title = stringResource(R.string.more_actions_sort_title),
-        ) {
-            IosGroupedList {
-                SortOptionRow(
-                    text = stringResource(R.string.more_actions_sort_frequency),
-                    selected = currentOrder == SortOrder.FREQUENCY,
-                    showTopSeparator = false,
-                    onClick = { onOrderSelected(SortOrder.FREQUENCY) },
-                )
-                SortOptionRow(
-                    text = stringResource(R.string.more_actions_sort_risk),
-                    selected = currentOrder == SortOrder.RISK,
-                    onClick = { onOrderSelected(SortOrder.RISK) },
-                )
-                IosListRow(title = stringResource(R.string.done), onClick = onDismiss)
-            }
+    IosAlertDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.more_actions_sort_title),
+    ) {
+        IosGroupedList {
+            SortOptionRow(
+                text = stringResource(R.string.more_actions_sort_frequency),
+                selected = currentOrder == SortOrder.FREQUENCY,
+                showTopSeparator = false,
+                onClick = { onOrderSelected(SortOrder.FREQUENCY) },
+            )
+            SortOptionRow(
+                text = stringResource(R.string.more_actions_sort_risk),
+                selected = currentOrder == SortOrder.RISK,
+                onClick = { onOrderSelected(SortOrder.RISK) },
+            )
+            IosListRow(title = stringResource(R.string.done), onClick = onDismiss)
         }
     }
 }
