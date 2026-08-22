@@ -122,7 +122,7 @@ fun PlayerHeader(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(end = 10.dp)
+            modifier = Modifier.padding(horizontal = 10.dp)
         ) {
             IconButton(
                 onClick = onLikeClick,
@@ -140,6 +140,7 @@ fun PlayerHeader(
                         contentDescription = stringResource(R.string.app_tab_library_songs),
                         tint = iconColor.copy(alpha = 0.8f),
                         size = 22.dp,
+                        weight = FontWeight.Bold
                     )
                 }
             }

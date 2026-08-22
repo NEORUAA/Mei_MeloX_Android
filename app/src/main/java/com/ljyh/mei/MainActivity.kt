@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.zIndex
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
@@ -788,17 +789,24 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                        CompositionLocalProvider(
-                            // MiniPlayer is rendered by BottomSheetPlayer's
-                            // collapsed content. Give it the page sample layer
-                            // while keeping page/player glass out of that source.
-                            LocalGlassBackdrop provides bottomControlsBackdrop,
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .zIndex(1f),
                         ) {
-                            BottomSheetPlayer(
-                                state = playerBottomSheetState,
-                                compactMiniPlayerProgress = compactNavigationProgress,
-                                miniPlayerVerticalOffset = miniPlayerVerticalOffset,
-                            )
+                            CompositionLocalProvider(
+                                // MiniPlayer is rendered by BottomSheetPlayer's
+                                // collapsed content. Give it the page sample layer
+                                // while keeping page/player glass out of that source.
+                                LocalGlassBackdrop provides bottomControlsBackdrop,
+                            ) {
+                                BottomSheetPlayer(
+                                    state = playerBottomSheetState,
+                                    modifier = Modifier.fillMaxSize(),
+                                    compactMiniPlayerProgress = compactNavigationProgress,
+                                    miniPlayerVerticalOffset = miniPlayerVerticalOffset,
+                                )
+                            }
                         }
                         AnimatedVisibility(
                             visible = active,
@@ -832,7 +840,9 @@ class MainActivity : ComponentActivity() {
                             visible = shouldAllowNavigationBar,
                             enter = fadeIn(),
                             exit = fadeOut(),
-                            modifier = Modifier.align(Alignment.BottomCenter),
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .zIndex(2f),
                         ) {
                             Row(
                                 modifier = Modifier

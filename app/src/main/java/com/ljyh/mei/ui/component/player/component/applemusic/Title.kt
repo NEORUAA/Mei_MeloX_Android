@@ -86,7 +86,7 @@ fun Title(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(end = 10.dp)
+            modifier = Modifier.padding(horizontal = 10.dp)
         ) {
             // Like Button
             IconButton(
@@ -105,6 +105,7 @@ fun Title(
                         contentDescription = stringResource(R.string.app_tab_library_songs),
                         tint = iconColor.copy(alpha = 0.8f),
                         size = 22.dp,
+                        weight = FontWeight.Bold
                     )
                 }
             }
