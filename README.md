@@ -1,10 +1,10 @@
 <div align="center">
 
-# Mei
-
-### 一个仍在成长，但更新随缘的第三方网易云音乐播放器
+# [MeiloX](https://github.com/NEORUAA/MeiloX)
 
 <img src="./screenshot/logo.png" width="120px" style="border-radius:12px"/>
+
+### 一个基于 Mei 改造的高仿 Apple Music 风格网易云音乐 Android 客户端
 
 ![Android](https://img.shields.io/badge/Platform-Android-green?logo=android)
 ![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-blue)
@@ -14,170 +14,114 @@
 </div>
 
 ---
-## 项目介绍
 
-Mei 是一款使用 **Jetpack Compose** 开发的 **网易云音乐第三方客户端**。
-好久不见，最近会整合代码，并带来一些新UI，比如将applemusic-like-lyric那样的效果迁移到本项目中
-<table>
-  <tr>
-    <td><img src="./screenshot/2026-05-01/player1.jpg" width="200"></td>
-    <td><img src="./screenshot/2026-05-01/player2.jpg" width="200"></td>
-    <td><img src="./screenshot/2026-05-01/player3.jpg" width="200"></td>
-  </tr>
-</table>
----
+## 项目简介
 
-## 功能进展
+MeiloX 是一个基于 [Mei](https://github.com/ljyh223/Mei) 改造的第三方网易云音乐客户端，使用 **Jetpack Compose** 构建，尝试把 iOS 27 的层次感、液态玻璃和沉浸式播放器体验带到 Android 上。
 
-### 已实现
+项目重点放在三个方向：
 
-* 逐字歌词（支持：**网易云** / **99音乐** / **TMLL**）
-* 播放列表管理(应该比较稳定)
-* 喜欢音乐(似乎能用，但是不太稳定)
-* 随机播放 & 播放顺序优化(算是稳定吧，修复了很多次)
-* 定时播放
-* 历史播放记录(本地存储)
-* 专辑详情页
-* 自选背景 & 个人中心 UI 迭代
+- 用 iOS 风格的页面结构重新组织网易云音乐内容；
+- 用 Liquid Glass、动态背景和专辑封面让播放过程更有沉浸感；
+- 保留网易云音乐的搜索、歌单、歌词和个人资料等使用习惯。
 
----
+> MeiloX 是非官方的个人开源项目，不隶属于网易云音乐或 Apple；项目本身不提供音乐资源，音乐内容及相关版权归其权利人所有。
 
-### TODO 清单
+## 功能概览
 
-| 任务         | 状态   |
-| ---------- |------|
-| 搜索功能    | 已完成  |
-| 播放记录    | 已添加  |
-| 性能优化    | 持续中  |
-| 专辑页面    | 已完成  |
-| 歌单管理    | 已完成  |
-| 歌手主页 | 已完成  |
-| FM 播放   | 以完成  |
-| 红心模式    | 以完成  |
+- 网易云音乐 Cookie 登录与账号信息展示；
+- 搜索歌曲、专辑、歌手和歌单；
+- 播放队列、随机播放、循环播放和定时停止；
+- 播放历史、喜欢的音乐、歌单管理和本地收藏；
+- 专辑详情、歌手主页、每日推荐及 FM 播放；
+- 逐字歌词与多语言歌词展示；
+- Apple Music 风格全屏播放器、迷你播放器和歌词浮窗；
+- 浅色/深色主题、动态专辑背景和 Liquid Glass 交互效果。
 
-> 已完成 | 未来更新（不保证啥时候）
-
----
-
-## 登录说明
-
-⚠️ **本软件目前仅支持 Cookie 登录**
-
-* 只需要 `MUSIC_U` 字段的 **值**
-* ⚠️ 仅保留纯值 `xxxxx`，不要包含 `cookie=`, `MUSIC_U=`, `;`, `空格`, `其它字段` 等内容
-
-✅ 正确示例：
-
-```
-xxxxx（仅纯值）
-```
-
-❌ 以下仍然**错误**的：
-
-```
-cookie=MUSIC_U=xxxxx
-MUSIC_U=xxxxx
-cookie: MUSIC_U=xxxxx;
-```
-
-以后可能会考虑添加更多登录方式，比如扫码、密码登录。
-
-### 获取方式
-
-1. 通过 **网页版登录网易云**
-2. 打开浏览器开发者工具（F12）
-3. 在任意请求的 Request Header 中找到 `MUSIC_U`
-4. 复制它的 **纯值** 即可 ✅
-5. Cookie 一般长期有效，无需频繁更新
-
----
-
+功能仍在持续调整中，实际可用范围会随版本和网易云音乐接口状态变化。
 
 ## 开源致谢
 
-感谢以下两位开源圣人：
+MeiloX 的界面、歌词和底层能力受以下项目启发或直接使用其开源组件，感谢所有贡献者：
 
-* 提供高质量歌词库 [amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db)
-* 提供精美歌词组件 [accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui.git)
-* 提供qrc解密算法 [qrcDecrypt](https://github.com/TLittlePrince/qrcDecrypt)
+- [Mei](https://github.com/ljyh223/Mei)：上游 Android 项目与基础能力；
+- [MeloX](https://github.com/youshen2/MeloX)：iOS 版参考实现与产品方向；
+- [amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db)：高质量逐字歌词数据；
+- [accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui)：歌词模型与渲染组件；
+- [AndroidLiquidGlass / Backdrop](https://github.com/Kyant0/AndroidLiquidGlass)：Compose Multiplatform 流体玻璃效果。
 
 ## 许可证与第三方声明
 
-Mei 主体代码以 [GNU General Public License v3](LICENSE) 发布。AndroidLiquidGlass 的
-Backdrop 依赖以 Apache License 2.0 发布；MeloX 参考项目以 GPLv3 发布；BeatNet 模型
-以 CC BY 4.0 发布；音频指纹运行时以 MIT 发布；PV Tool 衍生内容受其独立的非商业许可
-约束。完整来源、署名和再分发要求见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES)。
+MeiloX 主体代码以 [GNU General Public License v3](LICENSE) 发布。MeiloX 是 Mei 的衍生项目，相关上游代码和参考实现仍受其原始版权与许可证约束；第三方库、模型、脚本、字体和视觉素材不因 MeiloX 使用 GPLv3 就自动转为 GPLv3。
 
-液态玻璃交互实现直接复用了本地 `skill-liquid-glass` 的 Backdrop 2.0 模式，包括
-`layerBackdrop` 采样层、`drawBackdrop`、三层底栏指示器、弹性拖拽、Slider、Toggle、
-Sheet、Dialog 与 Popup Menu；普通内容列表保持 iOS grouped surface，以避免递归采样和
-过多 GPU backdrop 节点。
+重点声明如下：
 
-### SF Pro 图标字体
+- [Mei](https://github.com/ljyh223/Mei) 的上游代码遵循 Apache License 2.0；
+- [MeloX](https://github.com/youshen2/MeloX) 的相关参考代码遵循其项目的 GPLv3 条款；
+- [AndroidLiquidGlass / Backdrop](https://github.com/Kyant0/AndroidLiquidGlass) 相关依赖遵循 Apache License 2.0；
+- [amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db) 与 [accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui) 遵循各自仓库公布的许可证和署名要求；
+- BeatNet 模型、音频指纹运行时、ONNX Runtime、PV Tool 衍生内容及其它随项目分发的组件，遵循其各自的许可证、版权声明和再分发限制。
 
-本项目为个人自用项目，`debug` 与 `release` 均直接打包 `res/font/sf_pro.ttf`，用于按
-MeloX 的 SF Symbols 名称显示一致的图标。该字体不得从本项目拆出或另行分发；如需公开
-发布构建产物，应先重新核对并遵守 Apple 的字体许可条款。
-
-
-
+完整的来源、版权归属、许可证链接和特殊再分发要求请阅读 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES)。其中 `res/font/sf_pro.ttf` 仅作为个人项目资源使用；请勿从构建产物中单独提取或再分发，公开发布构建版本前请重新核对 Apple 的字体许可条款。
 
 ## 软件界面预览
 
-> 更多截图请看仓库 `screenshot` 目录
+以下预览来自 [`screenshot/2026-08-22`](./screenshot/2026-08-22/)，同时展示浅色、深色和播放器界面。
 
-```
-screenshot
-```
+### 浅色界面
 
 <table>
   <tr>
-    <td><img src="./screenshot/2025-12-22/Screenshot_2025-12-22-16-27-39-23_1f30cde8653eb5f00e783c830c9ae6c6.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-12-22/Screenshot_2025-12-22-16-27-45-49_1f30cde8653eb5f00e783c830c9ae6c6.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-12-01/Screenshot_2025-12-01-11-37-53-613_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-12-01/Screenshot_2025-12-01-11-38-04-398_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2026-08-22/light_Screenshot_2026-08-22-09-47-44-801_com.neoruaa.meilox.jpg" width="200" alt="Light mode 01"></td>
+    <td><img src="./screenshot/2026-08-22/light_Screenshot_2026-08-22-10-31-11-383_com.neoruaa.meilox.jpg" width="200" alt="Light mode 07"></td>
+    <td><img src="./screenshot/2026-08-22/light_Screenshot_2026-08-22-10-06-44-461_com.neoruaa.meilox.jpg" width="200" alt="Light mode 04"></td>
+    <td><img src="./screenshot/2026-08-22/light_Screenshot_2026-08-22-10-05-43-651_com.neoruaa.meilox.jpg" width="200" alt="Light mode 02"></td>
   </tr>
   <tr>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-33-154_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-35-720_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-39-301_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-43-241_com.ljyh.mei.jpg" width="200"></td>
-  </tr>
-  <tr>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-28-20-878_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-28-22-374_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-12-22/Screenshot_2025-12-22-16-28-32-34_1f30cde8653eb5f00e783c830c9ae6c6.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-28-33-984_com.ljyh.mei.jpg" width="200"></td>
-  </tr>
-  <tr>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-29-00-715_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-29-20-876_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-29-24-064_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-29-28-763_com.ljyh.mei.jpg" width="200"></td>
-  </tr>
-
-  <tr>
-    <td><img src="./screenshot/2026-02-01/Screenshot_2026-01-31-20-39-33-53_1f30cde8653eb5f.jpg" width="200"></td>
-    <td><img src="./screenshot/2026-02-01/Screenshot_2026-01-31-20-39-29-59_1f30cde8653eb5f.jpg" width="200"></td>
-    <td><img src="./screenshot/2026-02-01/Screenshot_2026-01-31-20-39-39-14_1f30cde8653eb5f.jpg" width="200"></td>
-  </tr>
-
-<tr>
-    <td><img src="./screenshot/2026-02-14/tab_playlist.png" width="400"></td>
-    <td><img src="./screenshot/2026-02-14/tab_library.png" width="400"></td>
+    <td><img src="./screenshot/2026-08-22/light_Screenshot_2026-08-22-10-13-55-779_com.neoruaa.meilox.jpg" width="200" alt="Light mode 05"></td>
+    <td><img src="./screenshot/2026-08-22/light_Screenshot_2026-08-22-10-14-22-986_com.neoruaa.meilox.jpg" width="200" alt="Light mode 06"></td>
+    <td><img src="./screenshot/2026-08-22/light_Screenshot_2026-08-22-10-06-04-617_com.neoruaa.meilox.jpg" width="200" alt="Light mode 03"></td>
+    <td><img src="./screenshot/2026-08-22/light_Screenshot_2026-08-22-10-33-30-925_com.neoruaa.meilox.jpg" width="200" alt="Light mode 08"></td>
   </tr>
 </table>
 
----
+### 深色界面
 
+<table>
+  <tr>
+    <td><img src="./screenshot/2026-08-22/dark_Screenshot_2026-08-22-10-17-19-250_com.neoruaa.meilox.jpg" width="200" alt="Dark mode 02"></td>
+    <td><img src="./screenshot/2026-08-22/dark_Screenshot_2026-08-22-10-28-56-966_com.neoruaa.meilox.jpg" width="200" alt="Dark mode 07"></td>
+    <td><img src="./screenshot/2026-08-22/dark_Screenshot_2026-08-22-10-19-07-140_com.neoruaa.meilox.jpg" width="200" alt="Dark mode 06"></td>
+    <td><img src="./screenshot/2026-08-22/dark_Screenshot_2026-08-22-10-17-04-531_com.neoruaa.meilox.jpg" width="200" alt="Dark mode 01"></td>
+  </tr>
+  <tr>
+    <td><img src="./screenshot/2026-08-22/dark_Screenshot_2026-08-22-10-17-59-681_com.neoruaa.meilox.jpg" width="200" alt="Dark mode 04"></td>
+    <td><img src="./screenshot/2026-08-22/dark_Screenshot_2026-08-22-10-34-42-884_com.neoruaa.meilox.jpg" width="200" alt="Dark mode 08"></td>
+    <td><img src="./screenshot/2026-08-22/dark_Screenshot_2026-08-22-10-17-30-088_com.neoruaa.meilox.jpg" width="200" alt="Dark mode 03"></td>
+    <td><img src="./screenshot/2026-08-22/dark_Screenshot_2026-08-22-10-18-09-075_com.neoruaa.meilox.jpg" width="200" alt="Dark mode 05"></td>
+  </tr>
+</table>
 
-## 写在最后
+### 播放器与歌词
 
-嗯… 可能真的有点荒凉。但如果你读到这里，谢谢你。
+<table>
+  <tr>
+    <td><img src="./screenshot/2026-08-22/player_Screenshot_2026-08-22-10-12-05-012_com.neoruaa.meilox.jpg" width="200" alt="Player 02"></td>
+    <td><img src="./screenshot/2026-08-22/player_Screenshot_2026-08-22-10-11-20-597_com.neoruaa.meilox.jpg" width="200" alt="Player 01"></td>
+    <td><img src="./screenshot/2026-08-22/player_Screenshot_2026-08-22-10-16-34-746_com.neoruaa.meilox.jpg" width="200" alt="Player 03"></td>
+    <td><img src="./screenshot/2026-08-22/player_Screenshot_2026-08-22-10-16-52-289_com.neoruaa.meilox.jpg" width="200" alt="Player 04"></td>
+    <td><img src="./screenshot/2026-08-22/player_Screenshot_2026-08-22-10-21-10-403_com.neoruaa.meilox.jpg" width="200" alt="Player 05"></td>
+  </tr>
+</table>
 
-Mei 还在写、还能听歌、歌词还能逐字滚动、感情虽然滚动不了了但代码还能动。让我们坚信，**我们终将相遇**。
+## 免责声明
 
+本项目仅用于学习、研究和个人使用。使用本项目访问网易云音乐服务时，请遵守当地法律法规、网易云音乐服务条款及相关版权要求。项目维护者不对第三方服务的可用性、账号状态或音乐内容承担责任。
 
-Mei 2025(梅)
+如果你发现侵权内容、许可证遗漏或不准确的第三方声明，欢迎通过 [Issues](https://github.com/NEORUAA/MeiloX/issues) 联系维护者。
 
----
+<div align="center">
+
+Made with Jetpack Compose · MeiloX
+
+</div>

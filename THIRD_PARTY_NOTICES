@@ -1,7 +1,7 @@
 Third-Party Notices
 ===================
 
-Mei is distributed under the GNU General Public License, version 3 (see
+MeiloX is distributed under the GNU General Public License, version 3 (see
 LICENSE). The components below remain under their own terms. This file is a
 notice and does not replace any upstream license text.
 
@@ -22,6 +22,14 @@ local `skill-liquid-glass` reference project, which is derived from
 AndroidLiquidGlass / Backdrop and is licensed under the Apache License,
 Version 2.0. Original copyright and license headers are retained where the
 reference source provides them.
+
+Mei
+---
+Mei is the upstream Android project for this migration. Mei application code
+is Copyright (c) its respective contributors and is licensed under the Apache
+License, Version 2.0:
+https://github.com/ljyh223/Mei
+License: https://www.apache.org/licenses/LICENSE-2.0
 
 MeloX
 -----
