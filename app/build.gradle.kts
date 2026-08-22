@@ -20,9 +20,12 @@ android {
         applicationId = "com.neoruaa.meilox"
         minSdk = 33
         targetSdk = 37
-        versionCode = 5
-        versionName = "1.54.0"
+        versionCode = 6
+        versionName = "1.54.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     buildTypes {
