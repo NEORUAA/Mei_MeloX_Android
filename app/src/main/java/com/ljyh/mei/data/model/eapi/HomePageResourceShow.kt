@@ -325,7 +325,7 @@ data class HomePageResourceShow(
                         @SerializedName("extMap")
                         val extMap: Any,
                         @SerializedName("singleLineTitle")
-                        val singleLineTitle: String,
+                        val singleLineTitle: String? = null,
                     ) {
                         data class PlayBtnData(
                             @SerializedName("pauseType")

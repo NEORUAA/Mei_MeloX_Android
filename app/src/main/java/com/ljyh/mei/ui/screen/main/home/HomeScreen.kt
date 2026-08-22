@@ -304,7 +304,8 @@ private fun HomeBlockItem(
                 }
                 RecommendCard(
                     cover = resource.coverImg,
-                    title = resource.singleLineTitle,
+                    title = resource.singleLineTitle?.trim()?.takeIf { it.isNotEmpty() }
+                        ?: resource.title.trim().takeIf { it.isNotEmpty() },
                     extInfo = CardExtInfo(
                         icon = resource.iconDesc?.image,
                         text = resource.subTitle

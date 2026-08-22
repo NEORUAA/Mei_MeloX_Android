@@ -1,5 +1,8 @@
 package com.ljyh.mei.ui.component.home
 
+import android.graphics.Bitmap
+import android.graphics.Color as AndroidColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -13,25 +16,36 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.ColorUtils
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
+import com.kmpalette.PaletteResult
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
 import com.kyant.capsule.ContinuousRoundedRectangle
@@ -54,145 +68,306 @@ fun RecommendCard(
     viewModel: HomeViewModel,
     onClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val loader = rememberNetworkLoader()
-    val dominantColorState = rememberDominantColorState(loader)
-    val isColorLoaded = remember(cover) { mutableStateOf(false) }
+    val dominantColorState = rememberDominantColorState(
+        loader = loader,
+        defaultColor = Color.DarkGray,
+        defaultOnColor = Color.White,
+        cacheSize = 0,
+    )
+    val coverModel = cover.takeIf { it.isNotBlank() }?.largeImage()
+    val coverRequest = remember(context, coverModel) {
+        coverModel?.let {
+            ImageRequest.Builder(context)
+                .data(it)
+                .allowHardware(false)
+                .build()
+        }
+    }
+    val iconModel = extInfo.icon?.takeIf { it.isNotBlank() }
+    val currentCoverModel = rememberUpdatedState(coverModel)
+    val currentIconModel = rememberUpdatedState(iconModel)
+    val coverTerminal = remember(coverModel) { mutableStateOf(coverModel == null) }
+    val iconTerminal = remember(iconModel) { mutableStateOf(iconModel == null) }
+    val iconSucceeded = remember(iconModel) { mutableStateOf(false) }
+    val upperHalfColor = remember(coverModel) {
+        mutableStateOf(if (coverModel == null) Color.DarkGray else null)
+    }
+    val resolvedColor = remember(cover) { mutableStateOf<Color?>(null) }
 
-    // 颜色提取逻辑 (保持你原有的数据库缓存逻辑，很好)
+    // Resolve the artwork color once per cover. A cached color is terminal and
+    // must not trigger another network extraction. Failed extraction falls
+    // back to a stable color without writing that fallback to the cache.
     LaunchedEffect(cover) {
-        if (isColorLoaded.value) return@LaunchedEffect
-        withContext(Dispatchers.IO) {
-            val cachedColor = viewModel.getColors(cover)
+        resolvedColor.value = null
+        if (cover.isBlank()) {
+            resolvedColor.value = Color.DarkGray
+            return@LaunchedEffect
+        }
+
+        try {
+            val cachedColor = withContext(Dispatchers.IO) {
+                viewModel.getColors(cover)
+            }
+            if (currentCoverModel.value != coverModel) return@LaunchedEffect
+
             if (cachedColor != null) {
-                withContext(Dispatchers.Main) {
-                    dominantColorState.updateFrom(Url(cover)) // 这里可能需要优化，直接设置 Color 而不是 Url
-                    // 实际上 kmpalette 主要是从 Url 提色，如果有 cachedColor int 值，
-                    // 最好直接有一个 state 存储 color，而不是再次调用 loader。
-                    // 但为了保持兼容你现有逻辑，先不动 kmpalette 的核心用法。
-                    isColorLoaded.value = true
+                resolvedColor.value = cachedColor
+                return@LaunchedEffect
+            }
+
+            dominantColorState.updateFrom(Url(cover))
+            if (currentCoverModel.value != coverModel) return@LaunchedEffect
+
+            val extractedColor = when (val result = dominantColorState.result) {
+                is PaletteResult.Success -> {
+                    result.palette.swatches
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { dominantColorState.color }
                 }
-            } else {
-                withContext(Dispatchers.Main) {
-                    val demoImageUrl = Url(cover)
-                    loader.load(demoImageUrl)
-                    dominantColorState.updateFrom(demoImageUrl)
-                }
-                if (dominantColorState.color != Color.Unspecified) {
-                    viewModel.addColor(
-                        com.ljyh.mei.data.model.room.CacheColor(
-                            url = cover,
-                            color = dominantColorState.color.toArgb()
-                        )
+                else -> null
+            }
+
+            if (extractedColor != null && extractedColor != Color.Unspecified) {
+                resolvedColor.value = extractedColor
+                viewModel.addColor(
+                    com.ljyh.mei.data.model.room.CacheColor(
+                        url = cover,
+                        color = extractedColor.toArgb(),
                     )
-                    isColorLoaded.value = true
-                }
+                )
+            } else {
+                resolvedColor.value = Color.DarkGray
+            }
+        } catch (cause: Throwable) {
+            if (cause is kotlinx.coroutines.CancellationException) throw cause
+            if (currentCoverModel.value == coverModel) {
+                resolvedColor.value = Color.DarkGray
             }
         }
     }
 
-    // 基础颜色，如果没有提取到，使用深灰色兜底
-    val baseColor = if (dominantColorState.color != Color.Unspecified) dominantColorState.color else Color.DarkGray
+    val baseColor = resolvedColor.value ?: Color.DarkGray
+    val imageForegroundColor = remember(upperHalfColor.value) {
+        imageForeground(upperHalfColor.value ?: Color.DarkGray)
+    }
+    val footerForegroundColor = remember(baseColor) {
+        footerForeground(baseColor)
+    }
+    val contentReady =
+        coverTerminal.value &&
+            iconTerminal.value &&
+            upperHalfColor.value != null &&
+            resolvedColor.value != null
 
-    Column(
+    Box(
         modifier = Modifier
             .width(cardWidth)
             .clip(ContinuousRoundedRectangle(8.dp))
             .clickable { onClick() }
     ) {
-        // 图片区域
-        Box(
-            modifier = Modifier
-                .size(cardWidth, cardHeight)
-        ) {
-            AsyncImage(
-                model = cover.largeImage(),
-                modifier = Modifier.matchParentSize(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-            )
-
-            // 顶部渐变遮罩 (增强文字可读性)
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                baseColor.copy(alpha = 0.6f),
-                                baseColor.copy(alpha = 0.1f),
-                                Color.Transparent
-                            ),
-                            startY = 0f,
-                            endY = 200f // 仅覆盖顶部
-                        )
-                    )
-            )
-
-            // 顶部左上角图标+文字
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (extInfo.icon != null) {
-                    AsyncImage(
-                        model = extInfo.icon,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clip(ContinuousRoundedRectangle(4.dp)),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(Modifier.width(4.dp))
-                }
-                Text(
-                    text = extInfo.text,
-                    fontSize = 14.sp,
-                    maxLines = 1,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-
-            if (showPlay) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.PlaylistPlay,
-                    contentDescription = "Play",
-                    tint = Color.White,
+            Column {
+                // Cover image and the top metadata row.
+                Box(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(8.dp)
-                        .size(28.dp)
+                        .size(cardWidth, cardHeight)
+                ) {
+                    if (coverModel != null) {
+                        AsyncImage(
+                            model = coverRequest,
+                            modifier = Modifier.matchParentSize(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            onLoading = {
+                                if (currentCoverModel.value == coverModel) {
+                                    coverTerminal.value = false
+                                    upperHalfColor.value = null
+                                }
+                            },
+                            onSuccess = { state ->
+                                if (currentCoverModel.value == coverModel) {
+                                    coverTerminal.value = true
+                                    upperHalfColor.value = runCatching {
+                                        sampleUpperHalfColor(state.result.image.toBitmap())
+                                    }.getOrElse { resolvedColor.value ?: Color.DarkGray }
+                                }
+                            },
+                            onError = {
+                                if (currentCoverModel.value == coverModel) {
+                                    coverTerminal.value = true
+                                    upperHalfColor.value = Color.DarkGray
+                                }
+                            },
+                        )
+                    }
+
+                    // Top gradient overlay for text readability.
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        baseColor.copy(alpha = 0.6f),
+                                        baseColor.copy(alpha = 0.1f),
+                                        Color.Transparent
+                                    ),
+                                    startY = 0f,
+                                    endY = 200f
+                                )
+                            )
+                    )
+
+                    CompositionLocalProvider(LocalContentColor provides imageForegroundColor) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (iconModel != null && (!iconTerminal.value || iconSucceeded.value)) {
+                                AsyncImage(
+                                    model = iconModel,
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .clip(ContinuousRoundedRectangle(4.dp)),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    colorFilter = ColorFilter.tint(imageForegroundColor),
+                                    onLoading = {
+                                        if (currentIconModel.value == iconModel) {
+                                            iconTerminal.value = false
+                                            iconSucceeded.value = false
+                                        }
+                                    },
+                                    onSuccess = {
+                                        if (currentIconModel.value == iconModel) {
+                                            iconTerminal.value = true
+                                            iconSucceeded.value = true
+                                        }
+                                    },
+                                    onError = {
+                                        if (currentIconModel.value == iconModel) {
+                                            iconTerminal.value = true
+                                            iconSucceeded.value = false
+                                        }
+                                    },
+                                )
+                                if (iconSucceeded.value) {
+                                    Spacer(Modifier.width(4.dp))
+                                }
+                            }
+                            Text(
+                                text = extInfo.text,
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+
+                        if (showPlay) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                                contentDescription = "Play",
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(8.dp)
+                                    .size(28.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Bottom title area.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    baseColor.copy(alpha = 0.9f),
+                                    baseColor
+                                )
+                            )
+                        )
+                        .padding(horizontal = 8.dp, vertical = 10.dp)
+                ) {
+                    CompositionLocalProvider(LocalContentColor provides footerForegroundColor) {
+                        Text(
+                            text = title ?: "",
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            // Keep the full card blank and opaque until cover, icon, and color
+            // have all reached a terminal state.
+            if (!contentReady) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(ContinuousRoundedRectangle(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
                 )
             }
-        }
-
-        // 底部标题区域
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            baseColor.copy(alpha = 0.9f), // 稍微透明一点，更有质感
-                            baseColor
-                        )
-                    )
-                )
-                .padding(horizontal = 8.dp, vertical = 10.dp)
-        ) {
-            Text(
-                text = title ?: "",
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                fontSize = 13.sp,
-                color = Color.White,
-                fontWeight = FontWeight.Medium,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
     }
 }
-data class CardExtInfo(val icon: String?=null, val text: String)
+
+data class CardExtInfo(val icon: String? = null, val text: String)
+
+private fun imageForeground(baseColor: Color): Color {
+    val opaqueBaseColor = baseColor.copy(alpha = 1f).toArgb()
+    val luminance = ColorUtils.calculateLuminance(opaqueBaseColor)
+    return if (luminance < 0.5) Color.White else Color.Black
+}
+
+private fun footerForeground(baseColor: Color): Color {
+    val opaqueBaseColor = baseColor.copy(alpha = 1f).toArgb()
+    val luminance = ColorUtils.calculateLuminance(opaqueBaseColor)
+    return if (luminance < 0.5) Color.White else Color.Black
+}
+
+private fun sampleUpperHalfColor(bitmap: Bitmap): Color {
+    if (bitmap.width == 0 || bitmap.height == 0) return Color.DarkGray
+
+    val sampleColumns = 16
+    val sampleRows = 8
+    val upperHalfHeight = (bitmap.height / 2).coerceAtLeast(1)
+    var red = 0f
+    var green = 0f
+    var blue = 0f
+    var weight = 0f
+
+    for (row in 0 until sampleRows) {
+        val y = ((row + 0.5f) * upperHalfHeight / sampleRows)
+            .toInt()
+            .coerceIn(0, bitmap.height - 1)
+        for (column in 0 until sampleColumns) {
+            val x = ((column + 0.5f) * bitmap.width / sampleColumns)
+                .toInt()
+                .coerceIn(0, bitmap.width - 1)
+            val pixel = bitmap.getPixel(x, y)
+            val alpha = AndroidColor.alpha(pixel) / 255f
+            red += AndroidColor.red(pixel) * alpha
+            green += AndroidColor.green(pixel) * alpha
+            blue += AndroidColor.blue(pixel) * alpha
+            weight += alpha
+        }
+    }
+
+    if (weight <= 0f) return Color.DarkGray
+    return Color(
+        AndroidColor.rgb(
+            (red / weight).toInt().coerceIn(0, 255),
+            (green / weight).toInt().coerceIn(0, 255),
+            (blue / weight).toInt().coerceIn(0, 255),
+        )
+    )
+}
