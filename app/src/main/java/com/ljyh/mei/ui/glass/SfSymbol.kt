@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.glass
 
+import android.content.Context
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
@@ -63,6 +64,28 @@ enum class SfSymbol(
     Close("xmark", 0x100184),
     ChevronBack("chevron.left", 0x100189, autoMirrored = true),
 }
+
+private object SfSymbolTypefaceCache {
+    private var baseTypeface: Typeface? = null
+    private val weightedTypefaces = mutableMapOf<Int, Typeface>()
+
+    @Synchronized
+    fun get(context: Context, weight: FontWeight): Typeface {
+        return weightedTypefaces.getOrPut(weight.weight) {
+            val base = baseTypeface ?: requireNotNull(
+                ResourcesCompat.getFont(context.applicationContext, R.font.sf_pro),
+            ) {
+                "SF Pro font could not be loaded"
+            }.also { baseTypeface = it }
+            Typeface.create(base, weight.weight, false)
+        }
+    }
+}
+
+private data class SfGlyphDrawCache(
+    val paint: Paint,
+    val bounds: Rect,
+)
 
 @Composable
 fun SfIcon(
@@ -129,15 +152,34 @@ private fun SfIconGlyph(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    val baseTypeface = remember(context) {
-        requireNotNull(ResourcesCompat.getFont(context, R.font.sf_pro)) {
-            "SF Pro font could not be loaded"
-        }
-    }
-    val typeface = remember(baseTypeface, weight) {
-        Typeface.create(baseTypeface, weight.weight, false)
+    val typeface = remember(context.applicationContext, weight) {
+        SfSymbolTypefaceCache.get(context, weight)
     }
     val glyph = remember(codePoint) { String(Character.toChars(codePoint)) }
+    val requestedSize = with(density) { fontSize.toPx() }
+    val iconSize = with(density) { size.toPx() }
+    val drawCache = remember(typeface, glyph, requestedSize, iconSize) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
+            this.typeface = typeface
+            textSize = requestedSize
+            textAlign = Paint.Align.LEFT
+            fontFeatureSettings = "'ss16' 1"
+        }
+        val bounds = Rect()
+        paint.getTextBounds(glyph, 0, glyph.length, bounds)
+        val safeWidth = iconSize * 0.88f
+        val safeHeight = iconSize * 0.88f
+        val scale = minOf(
+            1f,
+            safeWidth / bounds.width().coerceAtLeast(1),
+            safeHeight / bounds.height().coerceAtLeast(1),
+        )
+        if (scale < 1f) {
+            paint.textSize *= scale
+            paint.getTextBounds(glyph, 0, glyph.length, bounds)
+        }
+        SfGlyphDrawCache(paint = paint, bounds = bounds)
+    }
     val semanticsModifier = if (contentDescription == null) {
         Modifier.clearAndSetSemantics { }
     } else {
@@ -150,27 +192,9 @@ private fun SfIconGlyph(
             .then(if (mirrored) Modifier.scale(scaleX = -1f, scaleY = 1f) else Modifier),
     ) {
         drawIntoCanvas { canvas ->
-            val requestedSize = with(density) { fontSize.toPx() }
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
-                color = tint.toArgb()
-                this.typeface = typeface
-                textSize = requestedSize
-                textAlign = Paint.Align.LEFT
-                fontFeatureSettings = "'ss16' 1"
-            }
-            val bounds = Rect()
-            paint.getTextBounds(glyph, 0, glyph.length, bounds)
-            val safeWidth = this.size.width * 0.88f
-            val safeHeight = this.size.height * 0.88f
-            val scale = minOf(
-                1f,
-                safeWidth / bounds.width().coerceAtLeast(1),
-                safeHeight / bounds.height().coerceAtLeast(1),
-            )
-            if (scale < 1f) {
-                paint.textSize *= scale
-                paint.getTextBounds(glyph, 0, glyph.length, bounds)
-            }
+            val paint = drawCache.paint
+            val bounds = drawCache.bounds
+            paint.color = tint.toArgb()
             // Center from the actual ink bounds, not the font advance or line metrics.
             // SF Symbols contains wide/offset glyphs whose typographic box otherwise
             // appears shifted and is clipped at the right or bottom in a square control.

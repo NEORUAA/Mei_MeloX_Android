@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -48,8 +49,8 @@ fun ClassicPlayer(
     collapsedBackdrop: Backdrop,
     playerBackgroundBackdrop: LayerBackdrop,
     playerContentBackdrop: LayerBackdrop,
-    compactMiniPlayerProgress: Float,
-    miniPlayerVerticalOffset: Dp,
+    compactMiniPlayerProgress: State<Float>,
+    miniPlayerVerticalOffset: () -> Dp,
 ) {
 
     val device = rememberDeviceInfo()

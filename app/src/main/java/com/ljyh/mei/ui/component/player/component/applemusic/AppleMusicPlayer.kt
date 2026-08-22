@@ -46,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -94,6 +95,10 @@ import com.ljyh.mei.utils.UnitUtils.toPx
 import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import kotlin.math.min
 
+private class MiniPlayerCoverBoundsHolder {
+    var value: Rect? = null
+}
+
 
 
 @OptIn(UnstableApi::class)
@@ -106,8 +111,8 @@ fun AppleMusicPlayer(
     collapsedBackdrop: Backdrop,
     playerBackgroundBackdrop: LayerBackdrop,
     playerContentBackdrop: LayerBackdrop,
-    compactMiniPlayerProgress: Float,
-    miniPlayerVerticalOffset: Dp,
+    compactMiniPlayerProgress: State<Float>,
+    miniPlayerVerticalOffset: () -> Dp,
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
@@ -117,7 +122,7 @@ fun AppleMusicPlayer(
     // --- Apple Music 特定状态 ---
     var showLyrics by remember { mutableStateOf(false) }
     var playerBoundsInRoot by remember { mutableStateOf<Rect?>(null) }
-    var miniCoverBoundsInRoot by remember { mutableStateOf<Rect?>(null) }
+    val miniCoverBoundsInRoot = remember { MiniPlayerCoverBoundsHolder() }
 
     // --- 从状态容器获取数据 ---
     val mediaMetadata by stateContainer.mediaMetadata
@@ -177,14 +182,14 @@ fun AppleMusicPlayer(
         // --- 1. 定义关键尺寸参数 ---
 
         // A. Mini Player (Bottom)
-        val measuredMiniBounds = miniCoverBoundsInRoot
+        val measuredMiniBounds = miniCoverBoundsInRoot.value
         val measuredPlayerBounds = playerBoundsInRoot
         val miniSize = measuredMiniBounds?.width?.takeIf { it > 0f }
             ?: with(density) { 32.dp.toPx() }
         val miniStart = if (measuredMiniBounds != null && measuredPlayerBounds != null) {
             measuredMiniBounds.left - measuredPlayerBounds.left
         } else {
-            with(density) { (20.dp + 60.dp * compactMiniPlayerProgress).toPx() }
+            with(density) { (20.dp + 60.dp * compactMiniPlayerProgress.value).toPx() }
         }
         val miniRadius = with(density) { ThumbnailCornerRadius.toPx() }
         val collapsedBoundPx = with(density) { state.collapsedBound.toPx() }
@@ -192,7 +197,7 @@ fun AppleMusicPlayer(
             measuredMiniBounds.top - measuredPlayerBounds.top
         } else {
             maxHeightPx - collapsedBoundPx +
-                with(density) { (8.dp + miniPlayerVerticalOffset).toPx() }
+                with(density) { (8.dp + miniPlayerVerticalOffset()).toPx() }
         }
 
         // B. Normal Expanded
@@ -285,7 +290,7 @@ fun AppleMusicPlayer(
                     compactProgress = compactMiniPlayerProgress,
                     onClick = state::expandSoft,
                     onCoverBoundsChanged = { bounds ->
-                        if (miniCoverBoundsInRoot != bounds) miniCoverBoundsInRoot = bounds
+                        miniCoverBoundsInRoot.value = bounds
                     },
                 )
             }

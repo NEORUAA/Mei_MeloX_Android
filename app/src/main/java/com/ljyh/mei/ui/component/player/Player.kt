@@ -7,6 +7,7 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,8 +49,8 @@ val LocalPlayerBackdropFrame = staticCompositionLocalOf<MutableState<ImageBitmap
 fun BottomSheetPlayer(
     state: BottomSheetState,
     modifier: Modifier = Modifier,
-    compactMiniPlayerProgress: Float,
-    miniPlayerVerticalOffset: Dp,
+    compactMiniPlayerProgress: State<Float>,
+    miniPlayerVerticalOffset: () -> Dp,
     playerViewModel: PlayerViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
 ) {

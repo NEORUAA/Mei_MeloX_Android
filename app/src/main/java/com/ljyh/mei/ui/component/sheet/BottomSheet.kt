@@ -118,7 +118,7 @@ fun BottomSheet(
     state: BottomSheetState,
     modifier: Modifier = Modifier,
     backgroundColor: Color = MaterialTheme.colorScheme.surface,
-    collapsedDragOffset: Dp = 0.dp,
+    collapsedDragOffset: () -> Dp = { 0.dp },
     collapsedDragHeight: Dp = 0.dp,
     collapsedContentPadding: Dp = 0.dp,
     onDismiss: (() -> Unit)? = null,
@@ -207,13 +207,14 @@ fun BottomSheet(
                                 state.collapsedBound
                             },
                         )
-                        .offset(
-                            y = if (collapsedDragHeight > 0.dp) {
-                                collapsedDragOffset + collapsedSurfaceOffset
+                        .offset {
+                            val offset = if (collapsedDragHeight > 0.dp) {
+                                collapsedDragOffset() + collapsedSurfaceOffset
                             } else {
                                 0.dp
-                            },
-                        )
+                            }
+                            IntOffset(x = 0, y = offset.roundToPx())
+                        }
                         .then(
                             if (!state.isExpanded && !state.isDismissed && collapsedDragHeight > 0.dp) {
                                 Modifier.bottomSheetGestureHandlers(state, onHorizontalSwipe)

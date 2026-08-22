@@ -18,8 +18,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -28,6 +31,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +57,40 @@ import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.smallImage
+import kotlin.math.roundToInt
+
+private fun Modifier.compactMiniPlayerHorizontalPadding(
+    compactProgress: State<Float>,
+): Modifier = layout { measurable, constraints ->
+    val progress = compactProgress.value.coerceIn(0f, 1f)
+    val horizontalPadding = (12.dp + 60.dp * progress).roundToPx()
+    val totalPadding = horizontalPadding * 2
+    val childConstraints = constraints.copy(
+        minWidth = (constraints.minWidth - totalPadding).coerceAtLeast(0),
+        maxWidth = (constraints.maxWidth - totalPadding).coerceAtLeast(0),
+    )
+    val placeable = measurable.measure(childConstraints)
+    val width = (placeable.width + totalPadding)
+        .coerceIn(constraints.minWidth, constraints.maxWidth)
+    val height = placeable.height.coerceIn(constraints.minHeight, constraints.maxHeight)
+    layout(width, height) {
+        placeable.placeRelative(horizontalPadding, 0)
+    }
+}
+
+private fun Modifier.compactNextButtonWidth(
+    compactProgress: State<Float>,
+): Modifier = layout { measurable, constraints ->
+    val visibility = 1f - compactProgress.value.coerceIn(0f, 1f)
+    val width = (40.dp.toPx() * visibility).roundToInt()
+        .coerceIn(constraints.minWidth, constraints.maxWidth)
+    val placeable = measurable.measure(
+        constraints.copy(minWidth = width, maxWidth = width),
+    )
+    layout(width, placeable.height) {
+        placeable.placeRelative(0, 0)
+    }
+}
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -61,7 +99,7 @@ fun MiniPlayer(
     @Suppress("UNUSED_PARAMETER") duration: Long,
     modifier: Modifier = Modifier,
     backdrop: Backdrop = LocalGlassBackdrop.current,
-    compactProgress: Float = 0f,
+    compactProgress: State<Float>,
     onClick: () -> Unit,
     onCoverBoundsChanged: ((Rect) -> Unit)? = null,
 ) {
@@ -71,15 +109,14 @@ fun MiniPlayer(
     val error by playerConnection.error.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
-    val progress = compactProgress.coerceIn(0f, 1f)
-    val horizontalInset = 12.dp + 60.dp * progress
-    val nextVisibility = 1f - progress
-
+    val showNextButton by remember(compactProgress) {
+        derivedStateOf { 1f - compactProgress.value.coerceIn(0f, 1f) > 0.001f }
+    }
     GlassSurface(
         modifier = modifier
             .fillMaxWidth()
             .height(MiniPlayerHeight)
-            .padding(horizontal = horizontalInset),
+            .compactMiniPlayerHorizontalPadding(compactProgress),
         backdrop = backdrop,
         shape = Capsule(),
         style = GlassSurfaceStyle.Navigation,
@@ -128,11 +165,12 @@ fun MiniPlayer(
                 )
             }
 
-            if (nextVisibility > 0.001f) {
+            if (showNextButton) {
                 Box(
                     modifier = Modifier
-                        .width(40.dp * nextVisibility)
+                        .compactNextButtonWidth(compactProgress)
                         .graphicsLayer {
+                            val nextVisibility = 1f - compactProgress.value.coerceIn(0f, 1f)
                             alpha = nextVisibility
                             val scale = 0.82f + 0.18f * nextVisibility
                             scaleX = scale

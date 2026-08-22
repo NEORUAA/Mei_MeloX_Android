@@ -29,6 +29,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -57,6 +58,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -75,6 +77,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
@@ -143,6 +146,7 @@ import com.ljyh.mei.ui.component.player.BottomSheetPlayer
 import com.ljyh.mei.ui.component.player.FloatingLyricsPipBackdrop
 import com.ljyh.mei.ui.component.player.FloatingLyricsPipScreen
 import com.ljyh.mei.ui.component.sheet.rememberBottomSheetState
+import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.utils.appBarScrollBehavior
 import com.ljyh.mei.ui.component.utils.resetHeightOffset
 import com.ljyh.mei.ui.local.LocalDatabase
@@ -179,6 +183,7 @@ import com.ljyh.mei.utils.netease.NeteaseUtils.getAndroidId
 import com.ljyh.mei.utils.rememberPreference
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.kyant.backdrop.backdrops.rememberCanvasBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -490,7 +495,6 @@ class MainActivity : ComponentActivity() {
                                 currentRoute == Screen.Search.route) &&
                                 !active
                     }
-                    val shouldShowNavigationBar = shouldAllowNavigationBar && navigationBarVisible
                     val shouldCompactNavigationBar = shouldAllowNavigationBar && !navigationBarVisible
 
 
@@ -507,23 +511,15 @@ class MainActivity : ComponentActivity() {
                         collapsedBottomReservation +
                         MiniPlayerHeight
 
-                    val compactNavigationProgress by animateFloatAsState(
+                    val compactNavigationProgress = animateFloatAsState(
                         targetValue = if (shouldCompactNavigationBar) 1f else 0f,
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                         label = "CompactBottomNavigation",
                     )
-                    val miniPlayerVerticalOffset =
-                        (NavigationBarHeight - 16.dp) * compactNavigationProgress
                     val playerBottomSheetState = rememberBottomSheetState(
                         dismissedBound = 0.dp,
                         collapsedBound = collapsedBound,
                         expandedBound = maxHeight,
-                    )
-                    val topAppBarScrollBehavior = appBarScrollBehavior(
-                        canScroll = {
-                            currentRoute?.startsWith("search_result/") == false &&
-                                    (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
-                        }
                     )
                     val (query, onQueryChange) = rememberSaveable(stateSaver = TextFieldValue.Saver) {
                         mutableStateOf(TextFieldValue())
@@ -558,30 +554,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val playerAwareWindowInsets = remember(
-                        bottomInset,
-                        shouldShowNavigationBar,
-                        shouldAllowNavigationBar,
-                        active,
-                        playerBottomSheetState.isDismissed
-                    ) {
-                        var bottom = bottomInset
-                        if (shouldShowNavigationBar) bottom += NavigationBarHeight
-                        if (!playerBottomSheetState.isDismissed) {
-                            bottom += MiniPlayerHeight
-                            if (!shouldAllowNavigationBar && !active) {
-                                bottom += NavigationBarBottomMargin
-                            }
-                        }
-                        windowsInsets
-                            .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
-                            .add(
-                                WindowInsets(
-                                    top = 0.dp,
-                                    bottom = bottom,
-                                ),
-                            )
-                    }
                     LaunchedEffect(Unit) {
                         lifecycleScope.launch {
                             getAndroidId(this@MainActivity)
@@ -595,15 +567,6 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(isMeasured, playerConnection) {
                         if (isMeasured && playerConnection?.player?.currentMediaItem != null) {
                             playerBottomSheetState.collapseSoft()
-                        }
-                    }
-
-                    LaunchedEffect(currentRoute) {
-                        topAppBarScrollBehavior.state.resetHeightOffset()
-                    }
-                    LaunchedEffect(active) {
-                        if (active) {
-                            topAppBarScrollBehavior.state.resetHeightOffset()
                         }
                     }
 
@@ -640,7 +603,6 @@ class MainActivity : ComponentActivity() {
                         LocalDatabase provides database,
                         LocalNavController provides navController,
                         LocalPlayerConnection provides playerConnection,
-                        LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
                         LocalUserData provides userData,
                     ) {
                         if (pictureInPictureMode && playerConnection != null) {
@@ -755,10 +717,51 @@ class MainActivity : ComponentActivity() {
                                                 key = route,
                                                 contentKey = meiRoute.route,
                                             ) {
-                                                navigationEntry(
-                                                    route = meiRoute.route,
-                                                    scrollBehavior = topAppBarScrollBehavior,
+                                                val entryTopAppBarScrollBehavior = appBarScrollBehavior(
+                                                    canScroll = {
+                                                        !meiRoute.route.startsWith("search_result/") &&
+                                                            (playerBottomSheetState.isCollapsed ||
+                                                                playerBottomSheetState.isDismissed)
+                                                    },
                                                 )
+                                                LaunchedEffect(currentRoute) {
+                                                    if (meiRoute.route == currentRoute) {
+                                                        entryTopAppBarScrollBehavior.state
+                                                            .resetHeightOffset()
+                                                    }
+                                                }
+                                                LaunchedEffect(active) {
+                                                    if (active && meiRoute.route == currentRoute) {
+                                                        entryTopAppBarScrollBehavior.state
+                                                            .resetHeightOffset()
+                                                    }
+                                                }
+                                                val entryPlayerAwareWindowInsets = remember(
+                                                    meiRoute.route,
+                                                    bottomInset,
+                                                    navigationItems,
+                                                    navigationBarVisible,
+                                                    playerBottomSheetState.isDismissed,
+                                                    windowsInsets,
+                                                ) {
+                                                    playerAwareWindowInsetsForRoute(
+                                                        route = meiRoute.route,
+                                                        navigationItems = navigationItems,
+                                                        navigationBarVisible = navigationBarVisible,
+                                                        playerDismissed = playerBottomSheetState.isDismissed,
+                                                        windowsInsets = windowsInsets,
+                                                        bottomInset = bottomInset,
+                                                    )
+                                                }
+                                                CompositionLocalProvider(
+                                                    LocalPlayerAwareWindowInsets provides
+                                                        entryPlayerAwareWindowInsets,
+                                                ) {
+                                                    navigationEntry(
+                                                        route = meiRoute.route,
+                                                        scrollBehavior = entryTopAppBarScrollBehavior,
+                                                    )
+                                                }
                                             }
                                         },
                                     )
@@ -798,25 +801,11 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .zIndex(1f),
-                        ) {
-                            CompositionLocalProvider(
-                                // MiniPlayer is rendered by BottomSheetPlayer's
-                                // collapsed content. Give it the page sample layer
-                                // while keeping page/player glass out of that source.
-                                LocalGlassBackdrop provides bottomControlsBackdrop,
-                            ) {
-                                BottomSheetPlayer(
-                                    state = playerBottomSheetState,
-                                    modifier = Modifier.fillMaxSize(),
-                                    compactMiniPlayerProgress = compactNavigationProgress,
-                                    miniPlayerVerticalOffset = miniPlayerVerticalOffset,
-                                )
-                            }
-                        }
+                        AnimatedMiniPlayerLayer(
+                            compactProgress = compactNavigationProgress,
+                            state = playerBottomSheetState,
+                            backdrop = bottomControlsBackdrop,
+                        )
                         AnimatedVisibility(
                             visible = active,
                             enter = fadeIn(),
@@ -845,6 +834,13 @@ class MainActivity : ComponentActivity() {
                         val selectedIndex = navigationItems.firstOrNull { it.route == currentRoute }
                             ?: navigationItems.firstOrNull { it.name == lastSelectedTab }
                             ?: Index.Home
+                        val navigationTabs = navigationItems.map { item ->
+                            GlassTabItem(
+                                key = item,
+                                label = stringResource(item.labelRes),
+                                symbol = item.symbol,
+                            )
+                        }
                         AnimatedVisibility(
                             visible = shouldAllowNavigationBar,
                             enter = fadeIn(),
@@ -853,27 +849,9 @@ class MainActivity : ComponentActivity() {
                                 .align(Alignment.BottomCenter)
                                 .zIndex(2f),
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp)
-                                    .padding(bottom = bottomInset + NavigationBarBottomMargin)
-                                    .offset {
-                                        val slideOffset =
-                                            (bottomInset + NavigationBarHeight) *
-                                                playerBottomSheetState.progress.coerceIn(0f, 1f)
-                                        IntOffset(x = 0, y = slideOffset.roundToPx())
-                                    },
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                GlassBottomBar(
-                                items = navigationItems.map { item ->
-                                    GlassTabItem(
-                                        key = item,
-                                        label = stringResource(item.labelRes),
-                                        symbol = item.symbol,
-                                    )
-                                },
+                            AnimatedBottomNavigationRow(
+                                compactProgress = compactNavigationProgress,
+                                items = navigationTabs,
                                 selectedKey = selectedIndex,
                                 onExpand = { navigationBarVisible = true },
                                 onSelected = { screen ->
@@ -887,41 +865,16 @@ class MainActivity : ComponentActivity() {
                                         navController.navigateTopLevel(screen.route)
                                     }
                                 },
-                                backdrop = bottomControlsBackdrop,
-                                compactProgress = compactNavigationProgress,
-                                compactSize = MiniPlayerHeight,
-                                modifier = Modifier.weight(1f),
-                            )
-                                Spacer(Modifier.size(width = 8.dp, height = 1.dp))
-                                Box(
-                                    modifier = Modifier.size(64.dp),
-                                    contentAlignment = Alignment.CenterEnd,
-                                ) {
-                                    GlassIconButton(
-                                        onClick = {
-                                            if (currentRoute != Screen.Search.route) {
-                                                navController.navigate(Screen.Search.route)
-                                            }
-                                            onActiveChange(true)
-                                        },
-                                        backdrop = bottomControlsBackdrop,
-                                        style = GlassSurfaceStyle.Navigation,
-                                        modifier = Modifier.size(
-                                            64.dp - 16.dp * compactNavigationProgress,
-                                        ),
-                                    ) {
-                                        SfIcon(
-                                            SfSymbol.Search,
-                                            contentDescription = stringResource(R.string.app_tab_search),
-                                            tint = com.ljyh.mei.ui.glass.LocalGlassColors.current.content,
-                                            size = 26.dp +
-                                                (CompactBottomControlIconSize - 26.dp) *
-                                                compactNavigationProgress,
-                                            weight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                                        )
+                                onSearchClick = {
+                                    if (currentRoute != Screen.Search.route) {
+                                        navController.navigate(Screen.Search.route)
                                     }
-                                }
-                            }
+                                    onActiveChange(true)
+                                },
+                                backdrop = bottomControlsBackdrop,
+                                playerBottomSheetState = playerBottomSheetState,
+                                bottomInset = bottomInset,
+                            )
                         }
                         LaunchedEffect(recognizeClipboardLinks) {
                             if (recognizeClipboardLinks && !clipboardInspected) {
@@ -1006,6 +959,114 @@ private val homeNavigationRoutes = Screen.MainScreens.map { it.route }.toSet()
 
 private fun Scene<NavKey>.currentRoute(): String? =
     entries.lastOrNull()?.contentKey as? String
+
+@Composable
+private fun BoxScope.AnimatedMiniPlayerLayer(
+    compactProgress: State<Float>,
+    state: BottomSheetState,
+    backdrop: Backdrop,
+) {
+    val miniPlayerVerticalOffset = remember(compactProgress) {
+        { (NavigationBarHeight - 16.dp) * compactProgress.value }
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(1f),
+    ) {
+        CompositionLocalProvider(
+            // MiniPlayer is rendered by BottomSheetPlayer's collapsed content. Give it the page
+            // sample layer while keeping page/player glass out of that source.
+            LocalGlassBackdrop provides backdrop,
+        ) {
+            BottomSheetPlayer(
+                state = state,
+                modifier = Modifier.fillMaxSize(),
+                compactMiniPlayerProgress = compactProgress,
+                miniPlayerVerticalOffset = miniPlayerVerticalOffset,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AnimatedBottomNavigationRow(
+    compactProgress: State<Float>,
+    items: List<GlassTabItem<Index>>,
+    selectedKey: Index,
+    onExpand: () -> Unit,
+    onSelected: (Index) -> Unit,
+    onSearchClick: () -> Unit,
+    backdrop: Backdrop,
+    playerBottomSheetState: BottomSheetState,
+    bottomInset: Dp,
+) {
+    val progress = compactProgress.value
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .padding(bottom = bottomInset + NavigationBarBottomMargin)
+            .offset {
+                val slideOffset = (bottomInset + NavigationBarHeight) *
+                    playerBottomSheetState.progress.coerceIn(0f, 1f)
+                IntOffset(x = 0, y = slideOffset.roundToPx())
+            },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        GlassBottomBar(
+            items = items,
+            selectedKey = selectedKey,
+            onExpand = onExpand,
+            onSelected = onSelected,
+            backdrop = backdrop,
+            compactProgress = progress,
+            compactSize = MiniPlayerHeight,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.size(width = 8.dp, height = 1.dp))
+        Box(
+            modifier = Modifier.size(64.dp),
+            contentAlignment = Alignment.CenterEnd,
+        ) {
+            GlassIconButton(
+                onClick = onSearchClick,
+                backdrop = backdrop,
+                style = GlassSurfaceStyle.Navigation,
+                modifier = Modifier.size(64.dp - 16.dp * progress),
+            ) {
+                SfIcon(
+                    SfSymbol.Search,
+                    contentDescription = stringResource(R.string.app_tab_search),
+                    tint = LocalGlassColors.current.content,
+                    size = 26.dp + (CompactBottomControlIconSize - 26.dp) * progress,
+                    weight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                )
+            }
+        }
+    }
+}
+
+private fun playerAwareWindowInsetsForRoute(
+    route: String,
+    navigationItems: List<Index>,
+    navigationBarVisible: Boolean,
+    playerDismissed: Boolean,
+    windowsInsets: WindowInsets,
+    bottomInset: Dp,
+): WindowInsets {
+    val allowsNavigationBar =
+        navigationItems.fastAny { it.route == route } || route == Screen.Search.route
+    var bottom = bottomInset
+    if (allowsNavigationBar && navigationBarVisible) bottom += NavigationBarHeight
+    if (!playerDismissed) {
+        bottom += MiniPlayerHeight
+        if (!allowsNavigationBar) bottom += NavigationBarBottomMargin
+    }
+    return windowsInsets
+        .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
+        .add(WindowInsets(top = 0.dp, bottom = bottom))
+}
 
 private fun AnimatedContentTransitionScope<Scene<NavKey>>.usesHomeAlphaTransition(): Boolean {
     return initialState.currentRoute() in homeNavigationRoutes &&
