@@ -67,6 +67,11 @@ fun ClassicPlayer(
     val context = LocalContext.current
     val audioVisualizerManager = remember { AudioVisualizerManager(context) }
 
+    // Match the Apple Music player's continuous fade while the sheet approaches the mini
+    // player. The background view is removed at the collapsed anchor, so it must reach zero
+    // before that discrete composition change to avoid a final-frame flash in landscape mode.
+    val playerBackgroundAlpha = state.revealProgress
+
     LaunchedEffect(stateContainer.playerConnection.player) {
         val player = stateContainer.playerConnection.player as? ExoPlayer
         player?.audioSessionId?.let { sessionId ->
@@ -109,6 +114,7 @@ fun ClassicPlayer(
                 imageUrl = mediaMetadata?.coverUrl,
                 audioVisualizerManager = audioVisualizerManager,
                 isPlaying = isPlaying,
+                alpha = playerBackgroundAlpha,
                 backdrop = playerBackgroundBackdrop,
             )
         },
