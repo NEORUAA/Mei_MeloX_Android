@@ -163,6 +163,7 @@ import com.ljyh.mei.ui.glass.IosBottomSearchToolbar
 import com.ljyh.mei.ui.glass.CompactBottomControlIconSize
 import com.ljyh.mei.ui.glass.LocalGlassBackdrop
 import com.ljyh.mei.ui.glass.LocalGlassColors
+import com.ljyh.mei.ui.glass.LocalAlertBackdrop
 import com.ljyh.mei.ui.glass.defaultGlassColors
 import com.ljyh.mei.ui.glass.SfIcon
 import com.ljyh.mei.ui.glass.SfSymbol
@@ -436,6 +437,7 @@ class MainActivity : ComponentActivity() {
                 CompositionLocalProvider(
                     LocalGlassBackdrop provides glassBackdrop,
                     LocalGlassColors provides glassColors,
+                    LocalAlertBackdrop provides bottomControlsBackdrop,
                 ) {
                     BoxWithConstraints(
                         modifier = Modifier
@@ -631,7 +633,8 @@ class MainActivity : ComponentActivity() {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .layerBackdrop(bottomBackdrop),
+                                    .layerBackdrop(bottomBackdrop)
+                                    .trackBackdropPosition(bottomBackdrop),
                             ) {
                                 CompositionLocalProvider(
                                     // Child glass controls sample the base page,
@@ -649,7 +652,8 @@ class MainActivity : ComponentActivity() {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .layerBackdrop(bottomBackdrop),
+                                    .layerBackdrop(bottomBackdrop)
+                                    .trackBackdropPosition(bottomBackdrop),
                             ) {
                                 CompositionLocalProvider(
                                     LocalGlassBackdrop provides glassBackdrop,

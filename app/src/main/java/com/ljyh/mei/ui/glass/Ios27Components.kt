@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -90,7 +91,6 @@ import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.colorControls
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
@@ -921,7 +921,7 @@ fun IosAlertDialog(
     title: String,
     message: String? = null,
     modifier: Modifier = Modifier,
-    backdrop: Backdrop = LocalGlassBackdrop.current,
+    backdrop: Backdrop = LocalAlertBackdrop.current,
     buttonLayout: IosAlertButtonLayout = IosAlertButtonLayout.SideBySide,
     buttons: List<IosAlertButtonSpec> = emptyList(),
     properties: DialogProperties = DialogProperties(
@@ -1015,7 +1015,7 @@ fun IosAlertDialog(
 @Composable
 fun IosAlertSurface(
     modifier: Modifier = Modifier,
-    backdrop: Backdrop = LocalGlassBackdrop.current,
+    backdrop: Backdrop = LocalAlertBackdrop.current,
     title: String,
     message: String? = null,
     dimAmount: Float? = null,
@@ -1040,82 +1040,81 @@ fun IosAlertSurface(
             offset = interactiveHighlight.offset,
         )
     }
-    Column(
-        modifier
-            .width(300.dp)
-            .navigationGlassBoxShadow(
-                shape = { alertShape },
-                alpha = GlassBoxShadowAlpha,
-                layerBlock = alertLayerBlock,
-            )
-            .drawBackdrop(
-                backdrop = samplingBackdrop,
-                shape = { alertShape },
-                effects = {
-                    colorControls(brightness = if (light) 0.2f else 0f, saturation = 1.5f)
-                    blur(if (light) 16.dp.toPx() else 8.dp.toPx())
-                    lens(24.dp.toPx(), 48.dp.toPx(), depthEffect = true)
-                },
-                highlight = { Highlight.Plain },
-                shadow = { Shadow(radius = 48.dp, alpha = 0.25f) },
-                innerShadow = { InnerShadow(radius = 8.dp, alpha = 0.12f) },
-                layerBlock = alertLayerBlock,
-                onDrawSurface = {
-                    // Keep the Figma background-blend stack over the sampled screen;
-                    // do not add an opaque elevated surface on top of the backdrop.
-                    if (light) {
-                        drawRect(
-                            Color.White.copy(alpha = 0.70f * alertBackgroundAlpha),
-                            blendMode = BlendMode.Lighten,
-                        )
-                        drawRect(
-                            Color(0x1ABFBFBF).copy(alpha = 0.10f * alertBackgroundAlpha),
-                            blendMode = BlendMode.Darken,
-                        )
-                    } else {
-                        drawRect(
-                            Color(0xB31A1A1A).copy(alpha = 0.70f * alertBackgroundAlpha),
-                            blendMode = BlendMode.Luminosity,
-                        )
-                        drawRect(
-                            Color(0xE61A1A1A).copy(alpha = 0.90f * alertBackgroundAlpha),
-                            blendMode = BlendMode.Luminosity,
-                        )
-                        drawRect(
-                            Color(0xFF1A1A1A).copy(alpha = alertBackgroundAlpha),
-                            blendMode = BlendMode.Lighten,
-                        )
-                    }
-                },
-            )
-            .then(interactiveHighlight.modifier)
-            .then(interactiveHighlight.gestureModifier)
-            .padding(14.dp),
-    ) {
-        CompositionLocalProvider(
-            LocalContentColor provides colors.content,
-            LocalGlassContentColor provides colors.content,
-        ) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text(
-                    title,
-                    style = IosTypography.headline,
-                    color = colors.content,
+    BoxWithConstraints(modifier) {
+        val alertWidth = (maxWidth * 0.8f).coerceIn(300.dp, 400.dp)
+        Column(
+            Modifier
+                .width(alertWidth)
+                .navigationGlassBoxShadow(
+                    shape = { alertShape },
+                    alpha = GlassBoxShadowAlpha,
+                    layerBlock = alertLayerBlock,
                 )
-                message?.let {
+                .drawBackdrop(
+                    backdrop = samplingBackdrop,
+                    shape = { alertShape },
+                    effects = {
+                        blur(if (light) 16.dp.toPx() else 8.dp.toPx())
+                    },
+                    highlight = { Highlight.Plain },
+                    layerBlock = alertLayerBlock,
+                    onDrawSurface = {
+                        // Keep the Figma background-blend stack over the sampled screen;
+                        // do not add an opaque elevated surface on top of the backdrop.
+                        if (light) {
+                            drawRect(
+                                Color.White.copy(alpha = 0.70f * alertBackgroundAlpha),
+                                blendMode = BlendMode.Lighten,
+                            )
+                            drawRect(
+                                Color(0x1ABFBFBF).copy(alpha = 0.10f * alertBackgroundAlpha),
+                                blendMode = BlendMode.Darken,
+                            )
+                        } else {
+                            drawRect(
+                                Color(0xB31A1A1A).copy(alpha = 0.70f * alertBackgroundAlpha),
+                                blendMode = BlendMode.Luminosity,
+                            )
+                            drawRect(
+                                Color(0xE61A1A1A).copy(alpha = 0.90f * alertBackgroundAlpha),
+                                blendMode = BlendMode.Luminosity,
+                            )
+                            drawRect(
+                                Color(0xFF1A1A1A).copy(alpha = alertBackgroundAlpha),
+                                blendMode = BlendMode.Lighten,
+                            )
+                        }
+                    },
+                )
+                .then(interactiveHighlight.modifier)
+                .then(interactiveHighlight.gestureModifier)
+                .padding(14.dp),
+        ) {
+            CompositionLocalProvider(
+                LocalContentColor provides colors.content,
+                LocalGlassContentColor provides colors.content,
+            ) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     Text(
-                        it,
-                        style = IosTypography.body,
+                        title,
+                        style = IosTypography.headline,
                         color = colors.content,
                     )
+                    message?.let {
+                        Text(
+                            it,
+                            style = IosTypography.body,
+                            color = colors.content,
+                        )
+                    }
                 }
+                content()
             }
-            content()
         }
     }
 }
